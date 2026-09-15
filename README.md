@@ -11,7 +11,8 @@ mvn clean package && java -XstartOnFirstThread -jar target/game-engine-1.0-SNAPS
 
 Build and run it on Windows/Linux:
 ```bash
-mvn clean package && java -jar target/game-engine-1.0-SNAPSHOT.jar
+mvn clean package
+java -jar target/game-engine-1.0-SNAPSHOT.jar
 ```
 
 ## Notes
