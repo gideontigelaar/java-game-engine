@@ -38,13 +38,28 @@ public class App {
 
         double lastTime = GLFW.glfwGetTime();
 
+        // FPS tracking
+        float fpsTimer = 0.0f;
+        int frames = 0;
+
         while (!GLFW.glfwWindowShouldClose(window)) {
             // Calc delta time
             double currentTime = GLFW.glfwGetTime();
             float deltaTime = (float) (currentTime - lastTime);
             lastTime = currentTime;
 
-            GL11.glClearColor(0.15f, 0.15f, 0.18f, 1.0f);
+            // Track frames and time
+            frames++;
+            fpsTimer += deltaTime;
+
+            // Update window title every second
+            if (fpsTimer >= 1.0f) {
+                GLFW.glfwSetWindowTitle(window, Config.WINDOW_TITLE + " | FPS: " + frames);
+                frames = 0;
+                fpsTimer = 0.0f;
+            }
+
+            GL11.glClearColor(Config.BG_COLOR.x, Config.BG_COLOR.y, Config.BG_COLOR.z, Config.BG_COLOR.w);
             GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
 
             sceneManager.update(deltaTime);
