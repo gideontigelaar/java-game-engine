@@ -1,5 +1,7 @@
 package nl.team3;
 
+import nl.team3.engine.core.InputManager.InputManager;
+import nl.team3.engine.core.InputManager.ActionMap;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
@@ -42,6 +44,13 @@ public class App {
         float fpsTimer = 0.0f;
         int frames = 0;
 
+        //input setup
+
+        InputManager input = new InputManager(window);
+        ActionMap actions = new ActionMap(input);
+
+        actions.bind("pause", GLFW.GLFW_KEY_ESCAPE);
+
         while (!GLFW.glfwWindowShouldClose(window)) {
             // Calc delta time
             double currentTime = GLFW.glfwGetTime();
@@ -67,6 +76,10 @@ public class App {
 
             GLFW.glfwSwapBuffers(window);
             GLFW.glfwPollEvents();
+
+            if(actions.isActionPressed("pause")){
+                GLFW.glfwSetWindowShouldClose(window, true);
+            };
         }
 
         sceneManager.cleanup();
