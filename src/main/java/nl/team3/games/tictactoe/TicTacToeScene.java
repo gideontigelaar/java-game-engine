@@ -6,7 +6,7 @@ public class TicTacToeScene implements Scene {
 
     @Override
     public void init() {
-        System.out.println("TicTacToeScene loaded!");
+        System.out.println("TicTacToeScene loaded");
     }
 
     @Override
@@ -21,6 +21,6 @@ public class TicTacToeScene implements Scene {
 
     @Override
     public void cleanup() {
-        System.out.println("TicTacToeScene closed, assets cleaned up!");
+        System.out.println("TicTacToeScene closed");
     }
 }

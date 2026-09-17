@@ -36,10 +36,14 @@ public class App {
         SceneManager sceneManager = new SceneManager();
         sceneManager.changeScene(new TicTacToeScene());
 
-        // Dummy deltaTime
-        float deltaTime = 0.016f;
+        double lastTime = GLFW.glfwGetTime();
 
         while (!GLFW.glfwWindowShouldClose(window)) {
+            // Calc delta time
+            double currentTime = GLFW.glfwGetTime();
+            float deltaTime = (float) (currentTime - lastTime);
+            lastTime = currentTime;
+
             GL11.glClearColor(0.15f, 0.15f, 0.18f, 1.0f);
             GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
 
