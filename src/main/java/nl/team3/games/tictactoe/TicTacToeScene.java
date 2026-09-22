@@ -44,7 +44,7 @@ public class TicTacToeScene implements Scene {
                 50f, 50f, 1f, 1f, 1f,
                 0f, 50f, 1f, 1f, 1f,
         };
-        squareMesh = new Mesh(vertices, GL_TRIANGLE_FAN);
+        squareMesh = new Mesh(vertices, pass);
     }
 
     @Override
