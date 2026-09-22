@@ -90,7 +90,7 @@ public class App {
 
             if (actions.isActionPressed("debugToggle")) {
                 debugOverlay[0] = !debugOverlay[0];
-                System.out.println("Input debug overlay: " + (debugOverlay[0] ? "ON (F1 to hide)" : "OFF"));
+                System.out.println("Input debug overlay: " + (debugOverlay[0] ? "ON (` to hide)" : "OFF"));
             }
 
             if (actions.isActionPressed("lockCursor")) {
@@ -112,38 +112,63 @@ public class App {
 
     private static void printInputDebug(InputManager input, ActionMap actions) {
         StringBuilder line = new StringBuilder();
+        boolean hasInput = false;
 
-        line.append("mouse=(").append((int) input.getMouseX()).append(",").append((int) input.getMouseY()).append(")");
-        line.append(" delta=(").append(String.format("%.1f", input.getMouseDeltaX()))
-                .append(",").append(String.format("%.1f", input.getMouseDeltaY())).append(")");
-        line.append(" inWindow=").append(input.isCursorInWindow());
+        if (input.getMouseDeltaX() != 0 || input.getMouseDeltaY() != 0) {
+            line.append("mouse=(").append((int) input.getMouseX()).append(",").append((int) input.getMouseY()).append(") ");
+            line.append("delta=(").append(String.format("%.1f", input.getMouseDeltaX()))
+                    .append(",").append(String.format("%.1f", input.getMouseDeltaY())).append(") ");
+            hasInput = true;
+        }
 
         if (input.getScrollX() != 0 || input.getScrollY() != 0) {
-            line.append(" scroll=(").append(input.getScrollX()).append(",").append(input.getScrollY()).append(")");
+            line.append("scroll=(").append(input.getScrollX()).append(",").append(input.getScrollY()).append(") ");
+            hasInput = true;
         }
 
         if (input.isButtonDown(GLFW.GLFW_MOUSE_BUTTON_LEFT)) {
-            line.append(" LMB");
+            line.append("LMB ");
+            hasInput = true;
         }
         if (input.isButtonPressed(GLFW.GLFW_MOUSE_BUTTON_RIGHT)) {
-            line.append(" RMB-pressed");
+            line.append("RMB-pressed ");
+            hasInput = true;
         }
         if (input.isButtonReleased(GLFW.GLFW_MOUSE_BUTTON_RIGHT)) {
-            line.append(" RMB-released");
+            line.append("RMB-released ");
+            hasInput = true;
         }
 
         if (input.isAnyKeyDown()) {
-            line.append(" anyKeyDown");
+            line.append("keyboard_active ");
+            hasInput = true;
         }
+
+        for (int i = 0; i <= GLFW.GLFW_KEY_LAST; i++) {
+            if (input.isKeyPressed(i)) {
+                String keyName = GLFW.glfwGetKeyName(i, 0);
+                if (keyName != null) {
+                    line.append("[Pressed: ").append(keyName.toUpperCase()).append("] ");
+                } else {
+                    line.append("[Pressed_ID: ").append(i).append("] ");
+                }
+                hasInput = true;
+            }
+        }
+
         if (actions.isActionDown("pause")) {
-            line.append(" [pause held]");
+            line.append("[pause held] ");
+            hasInput = true;
         }
 
         String typed = input.getTextInput();
         if (!typed.isEmpty()) {
-            line.append(" typed=\"").append(typed).append("\"");
+            line.append("typed=\"").append(typed).append("\" ");
+            hasInput = true;
         }
 
-        System.out.println(line);
+        if (hasInput) {
+            System.out.println(line.toString().trim());
+        }
     }
 }
