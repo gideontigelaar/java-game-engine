@@ -65,7 +65,7 @@ public class InputManager {
         return !keysDown[key] && keysDownLastFrame[key];
     }
 
-    // --- Mouse ---
+
     public boolean isButtonDown(int button) {
         return buttonsDown[button];
     }
