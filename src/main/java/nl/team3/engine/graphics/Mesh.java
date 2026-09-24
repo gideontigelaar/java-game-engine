@@ -5,18 +5,17 @@ import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
 
 public class Mesh {
-    private static final int FLOATS_PER_VERTEX = 5; // x, y, r, g, b
+    private static final int FLOATS_PER_VERTEX = 4; // x, y, u, v
 
     private static Mesh quadInstance;
 
     private final int vaoId;
     private final int vboId;
-    private final int vertexCount;
-    private final int drawMode;
+    private final int eboId;
+    private final int indexCount;
 
-    public Mesh(float[] vertices,int[] indices) {
-        this.vertexCount = vertices.length / FLOATS_PER_VERTEX;
-        this.drawMode = GL_TRIANGLES;
+    public Mesh(float[] vertices, int[] indices) {
+        this.indexCount = indices.length;
 
         vaoId = glGenVertexArrays();
         glBindVertexArray(vaoId);
@@ -25,14 +24,18 @@ public class Mesh {
         glBindBuffer(GL_ARRAY_BUFFER, vboId);
         glBufferData(GL_ARRAY_BUFFER, vertices, GL_STATIC_DRAW);
 
+        eboId = glGenBuffers();
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eboId);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices, GL_STATIC_DRAW);
+
         int stride = FLOATS_PER_VERTEX * Float.BYTES;
 
-        // Position
+        // Position (x, y)
         glVertexAttribPointer(0, 2, GL_FLOAT, false, stride, 0L);
         glEnableVertexAttribArray(0);
 
-        // Color
-        glVertexAttribPointer(1, 3, GL_FLOAT, false, stride, 2L * Float.BYTES);
+        // UV (u, v)
+        glVertexAttribPointer(1, 2, GL_FLOAT, false, stride, 2L * Float.BYTES);
         glEnableVertexAttribArray(1);
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -60,12 +63,13 @@ public class Mesh {
 
     public void render() {
         glBindVertexArray(vaoId);
-        glDrawArrays(drawMode, 0, vertexCount);
+        glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
     }
 
     public void cleanup() {
         glDeleteBuffers(vboId);
+        glDeleteBuffers(eboId);
         glDeleteVertexArrays(vaoId);
     }
 }

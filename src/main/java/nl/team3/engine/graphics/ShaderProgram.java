@@ -67,6 +67,14 @@ public class ShaderProgram {
         glUniform4f(getUniformLocation(name), x, y, z, w);
     }
 
+    public void setUniform1f(String name, float value) {
+        glUniform1f(getUniformLocation(name), value);
+    }
+
+    public void setUniform1i(String name, int value) {
+        glUniform1i(getUniformLocation(name), value);
+    }
+
     public void cleanup() {
         unbind();
         glDeleteProgram(programId);
