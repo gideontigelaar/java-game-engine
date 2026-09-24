@@ -1,5 +1,6 @@
 package nl.team3;
 
+import nl.team3.engine.graphics.*;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
@@ -12,9 +13,15 @@ import nl.team3.engine.input.InputManager;
 import nl.team3.engine.input.ActionMap;
 import nl.team3.games.tictactoe.TicTacToeScene;
 
+import static org.lwjgl.opengl.GL11C.*;
+
 public class App {
     public static void main(String[] args) {
         Configuration.GLFW_CHECK_THREAD0.set(false);
+
+
+
+
 
         if (!GLFW.glfwInit()) {
             throw new IllegalStateException("Failed to initialize GLFW");
@@ -42,7 +49,7 @@ public class App {
         sceneManager.changeScene(new TicTacToeScene());
 
         double lastTime = GLFW.glfwGetTime();
-
+        
         // FPS tracking
         float fpsTimer = 0.0f;
         int frames = 0;

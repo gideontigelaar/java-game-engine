@@ -1,77 +1,57 @@
 package nl.team3.games.tictactoe;
 
-import org.joml.Matrix4f;
-
+import nl.team3.engine.graphics.*;
 import nl.team3.engine.core.Scene;
 import nl.team3.engine.core.Config;
-import nl.team3.engine.graphics.Mesh;
-import nl.team3.engine.graphics.ResourceLoader;
-import nl.team3.engine.graphics.ShaderProgram;
 
-import static org.lwjgl.opengl.GL11.GL_TRIANGLE_FAN;
+import static org.lwjgl.opengl.GL11C.*;
 
 public class TicTacToeScene implements Scene {
-    private float x;
-    private float y;
-    private float speed;
 
-    private ShaderProgram shader;
-    private Mesh squareMesh;
-    private Matrix4f projectionMatrix;
+    private ShaderProgram spriteShader;
+    private SpriteRenderer spriteRenderer;
+    private Texture testTexture;
+    private Sprite testSprite;
+    int x = 0;
 
     @Override
     public void init() {
         System.out.println("TicTacToeScene loaded");
 
-        x = 0;
-        y = Config.WINDOW_HEIGHT / 2.0f; // Start vertically centered
-        speed = 200.0f; // Move 200 pixels per second
+        String vertexSource = ResourceLoader.readResource("/shaders/sprite.vert");
+        String fragmentSource = ResourceLoader.readResource("/shaders/sprite.frag");
+        spriteShader = new ShaderProgram(vertexSource, fragmentSource);
 
-        // 1 unit = 1 pixel, (0,0) = top left corner
-        projectionMatrix = new Matrix4f().ortho(
-                0, Config.WINDOW_WIDTH,
-                Config.WINDOW_HEIGHT, 0,
-                -1, 1);
+        testTexture = Texture.load("src/main/resources/images/testpng.png");
 
-        shader = new ShaderProgram(
-                ResourceLoader.readResource("/shaders/basic.vert"),
-                ResourceLoader.readResource("/shaders/basic.frag"));
+        spriteRenderer = new SpriteRenderer(spriteShader, Config.WINDOW_WIDTH, Config.WINDOW_HEIGHT);
 
-        // Square (x, y, r, g, b)
-        float[] vertices = {
-                0f, 0f, 1f, 1f, 1f,
-                50f, 0f, 1f, 1f, 1f,
-                50f, 50f, 1f, 1f, 1f,
-                0f, 50f, 1f, 1f, 1f,
-        };
-        squareMesh = new Mesh(vertices, pass);
+        testSprite = new Sprite(testTexture);
+        testSprite.setPosition(200, 150);
+        testSprite.setScale(0.1f);
+        testSprite.setRotation(0f);
+        testSprite.setAlpha(1f);
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     }
 
     @Override
     public void update(float dt) {
-        // Move object to the right
-        x += speed * dt;
-
-        if (x > Config.WINDOW_WIDTH) {
-            x = -50;
-        }
+        x += 100 * dt;
+        testSprite.setPosition(x, Config.WINDOW_HEIGHT / 2);
     }
 
     @Override
     public void render() {
-        Matrix4f modelMatrix = new Matrix4f().translate(x, y, 0);
-        Matrix4f mvp = new Matrix4f(projectionMatrix).mul(modelMatrix);
-
-        shader.bind();
-        shader.setUniformMat4("uMVP", mvp);
-        squareMesh.render();
-        shader.unbind();
+        glClear(GL_COLOR_BUFFER_BIT);
+        spriteRenderer.draw(testSprite);
     }
 
     @Override
     public void cleanup() {
         System.out.println("TicTacToeScene closed");
-        squareMesh.cleanup();
-        shader.cleanup();
+        testTexture.cleanup();
+        spriteShader.cleanup();
     }
 }
