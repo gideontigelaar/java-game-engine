@@ -4,7 +4,7 @@ public class SceneManager {
     private Scene currentScene;
     private long window;
     public SceneManager(long window) {
-
+        this.window = window;
     }
 
     public void changeScene(Scene newScene) {

@@ -80,7 +80,7 @@ public class TicTacToeScene implements Scene {
         if (spriteX > currentWidth + (testTexture.getWidth() * testSprite.getScale().x)) {
             spriteX = -(testTexture.getWidth() * testSprite.getScale().x);
         }
-      
+
         movetest.UpdateAnimation(dt);
         testSprite.setTransformation(movetest.getPosition(),movetest.getScale(), movetest.getRotation());
 

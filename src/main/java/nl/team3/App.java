@@ -21,10 +21,6 @@ public class App {
     public static void main(String[] args) {
         Configuration.GLFW_CHECK_THREAD0.set(false);
 
-
-
-
-
         if (!GLFW.glfwInit()) {
             throw new IllegalStateException("Failed to initialize GLFW");
         }
@@ -48,7 +44,15 @@ public class App {
 
         GL.createCapabilities();
 
-        SceneManager sceneManager = new SceneManager();
+        // Input first: the scene needs these
+        InputManager input = new InputManager(window);
+        ActionMap actions = new ActionMap(input);
+        actions.bind("pause", GLFW.GLFW_KEY_ESCAPE);
+        actions.bind("debugToggle", GLFW.GLFW_KEY_GRAVE_ACCENT);
+        actions.bind("lockCursor", GLFW.GLFW_KEY_C);
+
+        // Create the SceneManager once
+        SceneManager sceneManager = new SceneManager(window);
 
         // Listen for window resize events
         GLFW.glfwSetFramebufferSizeCallback(window, (win, width, height) -> {
@@ -56,7 +60,7 @@ public class App {
             sceneManager.resize(width, height);
         });
 
-        sceneManager.changeScene(new TicTacToeScene());
+        sceneManager.changeScene(new TicTacToeScene(input, actions));
 
         // Set initial viewport and scene size
         try (MemoryStack stack = MemoryStack.stackPush()) {
@@ -70,17 +74,8 @@ public class App {
         float fpsTimer = 0.0f;
         int frames = 0;
 
-        InputManager input = new InputManager(window);
-        ActionMap actions = new ActionMap(input);
-        actions.bind("pause", GLFW.GLFW_KEY_ESCAPE);
-        actions.bind("debugToggle", GLFW.GLFW_KEY_GRAVE_ACCENT);
-        actions.bind("lockCursor", GLFW.GLFW_KEY_C);
-
         boolean debugOverlay = false;
         boolean cursorLocked = false;
-
-        SceneManager sceneManager = new SceneManager(window);
-        sceneManager.changeScene(new TicTacToeScene(input, actions));
 
         double lastTime = GLFW.glfwGetTime();
 
