@@ -32,11 +32,11 @@ public class TicTacToeScene implements Scene {
     private int currentHeight;
 
     private Animation movetest = new Animation(
-            new Vector2f(100, 100), //startpos
-            new Vector2f(400, 200),  //endpos
-            new Vector2f(0.1f,0.1f), //startscale
-            new Vector2f(0.3f, 0.3f), //endscale
-            0, 180, 2f, "ExponentialIn"); //startrot, endrot, duration
+            new Vector2f(400, 400), //startpos
+            new Vector2f(400, 400),  //endpos
+            new Vector2f(100f,1f), //startscale
+            new Vector2f(10f, 10f), //endscale
+            0, 0, 0.2f, "ExponentialIn"); //startrot, endrot, duration
 
     private final InputManager input;
     private final ActionMap actions;
@@ -54,13 +54,13 @@ public class TicTacToeScene implements Scene {
         String fragmentSource = ResourceLoader.readResource("/shaders/sprite.frag");
 
         spriteShader = new ShaderProgram(vertexSource, fragmentSource);
-        testTexture = Texture.load("/images/testpng.png");
+        testTexture = Texture.load("/textures/tictactoe/o.png");
 
         spriteRenderer = new SpriteRenderer(spriteShader, Config.WINDOW_WIDTH, Config.WINDOW_HEIGHT);
 
         testSprite = new Sprite(testTexture);
         testSprite.setPosition(200, 150);
-        testSprite.setScale(0.2f);
+        testSprite.setScale(10f,0.1f);
         testSprite.setRotation(0f);
         testSprite.setAlpha(1f);
 
@@ -74,12 +74,7 @@ public class TicTacToeScene implements Scene {
 
     @Override
     public void update(float dt) {
-        spriteX += 150 * dt;
 
-        // Wrap sprite around the screen using dynamic width
-        if (spriteX > currentWidth + (testTexture.getWidth() * testSprite.getScale().x)) {
-            spriteX = -(testTexture.getWidth() * testSprite.getScale().x);
-        }
 
         movetest.UpdateAnimation(dt);
         testSprite.setTransformation(movetest.getPosition(),movetest.getScale(), movetest.getRotation());
@@ -89,7 +84,7 @@ public class TicTacToeScene implements Scene {
         }
 
         // Center sprite using dynamic height
-        testSprite.setPosition(spriteX, currentHeight / 2.0f);
+        //testSprite.setPosition(spriteX, currentHeight / 2.0f);
     }
 
 
