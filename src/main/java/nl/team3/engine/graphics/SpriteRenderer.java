@@ -1,7 +1,14 @@
 package nl.team3.engine.graphics;
 
+import nl.team3.engine.assets.AssetManager;
 import org.joml.Matrix4f;
 import org.joml.Vector4f;
+
+import static org.lwjgl.opengl.GL11.GL_BLEND;
+import static org.lwjgl.opengl.GL11.GL_ONE_MINUS_SRC_ALPHA;
+import static org.lwjgl.opengl.GL11.GL_SRC_ALPHA;
+import static org.lwjgl.opengl.GL11.glBlendFunc;
+import static org.lwjgl.opengl.GL11.glEnable;
 
 public class SpriteRenderer {
     private final ShaderProgram shader;
@@ -11,10 +18,13 @@ public class SpriteRenderer {
     private final Matrix4f projection = new Matrix4f();
     private final Matrix4f transformMatrix = new Matrix4f();
 
-    public SpriteRenderer(ShaderProgram shader, int viewportWidth, int viewportHeight) {
-        this.shader = shader;
-        this.quad = Mesh.getQuad();
+    public SpriteRenderer(AssetManager assets, int viewportWidth, int viewportHeight) {
+        this.shader = assets.getShader(AssetManager.SPRITE_SHADER);
+        this.quad = assets.getMesh(AssetManager.QUAD_MESH);
         setProjection(viewportWidth, viewportHeight);
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     }
 
     public void setProjection(int width, int height) {

@@ -1,6 +1,5 @@
 package nl.team3;
 
-import nl.team3.engine.graphics.*;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
@@ -8,9 +7,9 @@ import org.lwjgl.system.Configuration;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 
+import nl.team3.engine.assets.AssetManager;
 import nl.team3.engine.core.Config;
 import nl.team3.engine.core.SceneManager;
-import nl.team3.engine.graphics.Mesh;
 import nl.team3.engine.input.InputManager;
 import nl.team3.engine.input.ActionMap;
 import nl.team3.games.tictactoe.TicTacToeScene;
@@ -51,8 +50,11 @@ public class App {
         actions.bind("debugToggle", GLFW.GLFW_KEY_GRAVE_ACCENT);
         actions.bind("lockCursor", GLFW.GLFW_KEY_C);
 
+        // Central asset storage
+        AssetManager assets = new AssetManager();
+
         // Create the SceneManager once
-        SceneManager sceneManager = new SceneManager(window);
+        SceneManager sceneManager = new SceneManager(assets);
 
         // Listen for window resize events
         GLFW.glfwSetFramebufferSizeCallback(window, (win, width, height) -> {
@@ -125,8 +127,9 @@ public class App {
             input.update();
         }
 
+        // First clean Scene, then assets
         sceneManager.cleanup();
-        Mesh.cleanupQuad();
+        assets.cleanup();
 
         GLFW.glfwDestroyWindow(window);
         GLFW.glfwTerminate();

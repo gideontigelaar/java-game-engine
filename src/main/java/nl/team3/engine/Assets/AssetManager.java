@@ -1,59 +1,59 @@
-package nl.team3.engine.Assets;
+package nl.team3.engine.assets;
 
 import nl.team3.engine.graphics.Mesh;
-import nl.team3.engine.graphics.ResourceLoader;
 import nl.team3.engine.graphics.ShaderProgram;
 import nl.team3.engine.graphics.Texture;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 
-public class AssetManager {
+public final class AssetManager {
+    public static final String SPRITE_SHADER = "sprite";
+    public static final String QUAD_MESH = "quad";
 
     private final Map<String, Texture> textures = new HashMap<>();
     private final Map<String, ShaderProgram> shaders = new HashMap<>();
     private final Map<String, Mesh> meshes = new HashMap<>();
 
-    public void loadTexture(String key, String path) {
-        if (textures.containsKey(key)) return;
-        Texture texture = Texture.load(path);
-        textures.put(key, texture);
+    public AssetManager() {
+        loadShader(SPRITE_SHADER, "/shaders/sprite.vert", "/shaders/sprite.frag");
+        loadMesh(QUAD_MESH, Mesh::createQuad);
     }
 
-    public void loadShader(String key, String vertexPath, String fragmentPath) {
-        if (shaders.containsKey(key)) return;
-        String vertexSource = ResourceLoader.readResource(vertexPath);
-        String fragmentSource = ResourceLoader.readResource(fragmentPath);
-        ShaderProgram shader = new ShaderProgram(vertexSource, fragmentSource);
-        shaders.put(key, shader);
+    public Texture loadTexture(String key, String path) {
+        return textures.computeIfAbsent(key,
+                k -> Texture.create(ResourceLoader.loadResourceAsByteBuffer(path), path));
     }
 
-    public void addMesh(String key, Mesh mesh) {
-        if (meshes.containsKey(key)) return;
-        meshes.put(key, mesh);
+    public ShaderProgram loadShader(String key, String vertexPath, String fragmentPath) {
+        return shaders.computeIfAbsent(key,
+                k -> new ShaderProgram(ResourceLoader.readResource(vertexPath), ResourceLoader.readResource(fragmentPath)));
     }
 
-    // Getters
+    public Mesh loadMesh(String key, Supplier<Mesh> factory) {
+        return meshes.computeIfAbsent(key, k -> factory.get());
+    }
 
     public Texture getTexture(String key) {
-        Texture t = textures.get(key);
-        if (t == null) throw new IllegalStateException("Texture niet geladen: " + key);
-        return t;
+        return get(textures, "Texture", key);
     }
 
     public ShaderProgram getShader(String key) {
-        ShaderProgram s = shaders.get(key);
-        if (s == null) throw new IllegalStateException("Shader niet geladen: " + key);
-        return s;
+        return get(shaders, "Shader", key);
     }
 
     public Mesh getMesh(String key) {
-        Mesh m = meshes.get(key);
-        if (m == null) throw new IllegalStateException("Mesh niet geregistreerd: " + key);
-        return m;
+        return get(meshes, "Mesh", key);
     }
 
-    // Cleanup
+    private static <T> T get(Map<String, T> assets, String type, String key) {
+        T asset = assets.get(key);
+        if (asset == null) {
+            throw new IllegalStateException(type + " not loaded: " + key);
+        }
+        return asset;
+    }
 
     public void cleanup() {
         textures.values().forEach(Texture::cleanup);

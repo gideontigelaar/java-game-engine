@@ -1,10 +1,13 @@
 package nl.team3.engine.core;
 
+import nl.team3.engine.assets.AssetManager;
+
 public class SceneManager {
     private Scene currentScene;
-    private long window;
-    public SceneManager(long window) {
-        this.window = window;
+    private final AssetManager assets;
+
+    public SceneManager(AssetManager assets) {
+        this.assets = assets;
     }
 
     public void changeScene(Scene newScene) {
@@ -13,7 +16,7 @@ public class SceneManager {
         }
 
         currentScene = newScene;
-        currentScene.init();
+        currentScene.init(assets);
     }
 
     public void update(float dt) {
