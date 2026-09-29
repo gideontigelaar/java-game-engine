@@ -1,5 +1,6 @@
 package nl.team3;
 
+import nl.team3.engine.graphics.*;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
@@ -19,6 +20,10 @@ import java.nio.IntBuffer;
 public class App {
     public static void main(String[] args) {
         Configuration.GLFW_CHECK_THREAD0.set(false);
+
+
+
+
 
         if (!GLFW.glfwInit()) {
             throw new IllegalStateException("Failed to initialize GLFW");
@@ -74,6 +79,9 @@ public class App {
         boolean debugOverlay = false;
         boolean cursorLocked = false;
 
+        SceneManager sceneManager = new SceneManager(window);
+        sceneManager.changeScene(new TicTacToeScene(input, actions));
+
         double lastTime = GLFW.glfwGetTime();
 
         while (!GLFW.glfwWindowShouldClose(window)) {
@@ -105,7 +113,7 @@ public class App {
             GLFW.glfwPollEvents();
 
             if (actions.isActionPressed("pause")) {
-                GLFW.glfwSetWindowShouldClose(window, true);
+
             }
             if (actions.isActionPressed("debugToggle")) {
                 debugOverlay = !debugOverlay;

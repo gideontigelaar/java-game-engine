@@ -41,6 +41,13 @@ public class Sprite {
         this.position.set(x, y);
     }
 
+    public void setTransformation(Vector2f position, Vector2f scale, float rotation) {
+        this.position.set(position);
+        this.scale.set(scale);
+        this.rotation = rotation;
+
+    }
+
     public Vector2f getScale() {
         return scale;
     }
