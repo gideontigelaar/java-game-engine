@@ -5,15 +5,17 @@ import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.system.Configuration;
+import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 
 import nl.team3.engine.core.Config;
 import nl.team3.engine.core.SceneManager;
+import nl.team3.engine.graphics.Mesh;
 import nl.team3.engine.input.InputManager;
 import nl.team3.engine.input.ActionMap;
 import nl.team3.games.tictactoe.TicTacToeScene;
 
-import static org.lwjgl.opengl.GL11C.*;
+import java.nio.IntBuffer;
 
 public class App {
     public static void main(String[] args) {
@@ -43,41 +45,58 @@ public class App {
         GLFW.glfwMakeContextCurrent(window);
         GLFW.glfwSwapInterval(Config.VSYNC_ENABLED ? 1 : 0);
         GLFW.glfwShowWindow(window);
+
         GL.createCapabilities();
 
-        // Input manager setup
+        SceneManager sceneManager = new SceneManager();
+
+        // Listen for window resize events
+        GLFW.glfwSetFramebufferSizeCallback(window, (win, width, height) -> {
+            GL11.glViewport(0, 0, width, height);
+            sceneManager.resize(width, height);
+        });
+
+        sceneManager.changeScene(new TicTacToeScene());
+
+        // Set initial viewport and scene size
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            IntBuffer pWidth = stack.mallocInt(1);
+            IntBuffer pHeight = stack.mallocInt(1);
+            GLFW.glfwGetFramebufferSize(window, pWidth, pHeight);
+            GL11.glViewport(0, 0, pWidth.get(0), pHeight.get(0));
+            sceneManager.resize(pWidth.get(0), pHeight.get(0));
+        }
+
+        float fpsTimer = 0.0f;
+        int frames = 0;
+
         InputManager input = new InputManager(window);
         ActionMap actions = new ActionMap(input);
-
         actions.bind("pause", GLFW.GLFW_KEY_ESCAPE);
         actions.bind("debugToggle", GLFW.GLFW_KEY_GRAVE_ACCENT);
         actions.bind("lockCursor", GLFW.GLFW_KEY_C);
+
+        boolean debugOverlay = false;
+        boolean cursorLocked = false;
 
         SceneManager sceneManager = new SceneManager(window);
         sceneManager.changeScene(new TicTacToeScene(input, actions));
 
         double lastTime = GLFW.glfwGetTime();
-        
-        // FPS tracking
-        float fpsTimer = 0.0f;
-        int frames = 0;
-
-
-
-        boolean[] debugOverlay = {false};
-        boolean[] cursorLocked = {false};
 
         while (!GLFW.glfwWindowShouldClose(window)) {
-            // Calc delta time
             double currentTime = GLFW.glfwGetTime();
             float deltaTime = (float) (currentTime - lastTime);
             lastTime = currentTime;
 
-            // Track frames and time
+            // Cap delta time
+            if (deltaTime > 0.1f) {
+                deltaTime = 0.1f;
+            }
+
             frames++;
             fpsTimer += deltaTime;
 
-            // Update window title every second
             if (fpsTimer >= 1.0f) {
                 GLFW.glfwSetWindowTitle(window, Config.WINDOW_TITLE + " | FPS: " + frames);
                 frames = 0;
@@ -96,18 +115,15 @@ public class App {
             if (actions.isActionPressed("pause")) {
 
             }
-
             if (actions.isActionPressed("debugToggle")) {
-                debugOverlay[0] = !debugOverlay[0];
-                System.out.println("Input debug overlay: " + (debugOverlay[0] ? "ON (` to hide)" : "OFF"));
+                debugOverlay = !debugOverlay;
+                System.out.println("Input debug overlay: " + (debugOverlay ? "ON (` to hide)" : "OFF"));
             }
-
             if (actions.isActionPressed("lockCursor")) {
-                cursorLocked[0] = !cursorLocked[0];
-                input.setCursorMode(cursorLocked[0] ? GLFW.GLFW_CURSOR_DISABLED : GLFW.GLFW_CURSOR_NORMAL);
+                cursorLocked = !cursorLocked;
+                input.setCursorMode(cursorLocked ? GLFW.GLFW_CURSOR_DISABLED : GLFW.GLFW_CURSOR_NORMAL);
             }
-
-            if (debugOverlay[0]) {
+            if (debugOverlay) {
                 printInputDebug(input, actions);
             }
 
@@ -115,6 +131,8 @@ public class App {
         }
 
         sceneManager.cleanup();
+        Mesh.cleanupQuad();
+
         GLFW.glfwDestroyWindow(window);
         GLFW.glfwTerminate();
     }
@@ -139,10 +157,12 @@ public class App {
             line.append("LMB ");
             hasInput = true;
         }
+
         if (input.isButtonPressed(GLFW.GLFW_MOUSE_BUTTON_RIGHT)) {
             line.append("RMB-pressed ");
             hasInput = true;
         }
+
         if (input.isButtonReleased(GLFW.GLFW_MOUSE_BUTTON_RIGHT)) {
             line.append("RMB-released ");
             hasInput = true;

@@ -4,11 +4,39 @@ import org.joml.Matrix4f;
 import org.lwjgl.system.MemoryStack;
 
 import java.nio.FloatBuffer;
+import java.util.HashMap;
+import java.util.Map;
 
-import static org.lwjgl.opengl.GL20.*;
+import static org.lwjgl.opengl.GL20.GL_COMPILE_STATUS;
+import static org.lwjgl.opengl.GL20.GL_FALSE;
+import static org.lwjgl.opengl.GL20.GL_FRAGMENT_SHADER;
+import static org.lwjgl.opengl.GL20.GL_LINK_STATUS;
+import static org.lwjgl.opengl.GL20.GL_VERTEX_SHADER;
+import static org.lwjgl.opengl.GL20.glAttachShader;
+import static org.lwjgl.opengl.GL20.glCompileShader;
+import static org.lwjgl.opengl.GL20.glCreateProgram;
+import static org.lwjgl.opengl.GL20.glCreateShader;
+import static org.lwjgl.opengl.GL20.glDeleteProgram;
+import static org.lwjgl.opengl.GL20.glDeleteShader;
+import static org.lwjgl.opengl.GL20.glDetachShader;
+import static org.lwjgl.opengl.GL20.glGetProgramInfoLog;
+import static org.lwjgl.opengl.GL20.glGetProgrami;
+import static org.lwjgl.opengl.GL20.glGetShaderInfoLog;
+import static org.lwjgl.opengl.GL20.glGetShaderi;
+import static org.lwjgl.opengl.GL20.glGetUniformLocation;
+import static org.lwjgl.opengl.GL20.glLinkProgram;
+import static org.lwjgl.opengl.GL20.glShaderSource;
+import static org.lwjgl.opengl.GL20.glUniform1f;
+import static org.lwjgl.opengl.GL20.glUniform1i;
+import static org.lwjgl.opengl.GL20.glUniform4f;
+import static org.lwjgl.opengl.GL20.glUniformMatrix4fv;
+import static org.lwjgl.opengl.GL20.glUseProgram;
 
 public class ShaderProgram {
     private final int programId;
+
+    // Cache uniform memory locations to avoid GPU string lookups every frame
+    private final Map<String, Integer> uniformCache = new HashMap<>();
 
     public ShaderProgram(String vertexSource, String fragmentSource) {
         int vertexShader = compile(GL_VERTEX_SHADER, vertexSource);
@@ -52,7 +80,12 @@ public class ShaderProgram {
     }
 
     public int getUniformLocation(String name) {
-        return glGetUniformLocation(programId, name);
+        if (uniformCache.containsKey(name)) {
+            return uniformCache.get(name);
+        }
+        int location = glGetUniformLocation(programId, name);
+        uniformCache.put(name, location);
+        return location;
     }
 
     public void setUniformMat4(String name, Matrix4f matrix) {

@@ -7,5 +7,7 @@ public interface Scene {
 
     void render();
 
+    void resize(int width, int height);
+
     void cleanup();
 }

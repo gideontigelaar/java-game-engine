@@ -4,16 +4,13 @@ import org.joml.Vector2f;
 import org.joml.Vector4f;
 
 public class Sprite {
-
     private Texture texture;
-
     private Vector2f position = new Vector2f(0, 0);
     private Vector2f scale = new Vector2f(1, 1);
-    private float rotation = 0f; // radians
+    private float rotation = 0f;
     private float alpha = 1f;
-
-    private Vector2f origin = new Vector2f(0.5f, 0.5f); // pivot, 0-1 range (0.5 = center)
-    private Vector4f tint = new Vector4f(1, 1, 1, 1); // color multiplier (r, g, b, a)
+    private Vector2f origin = new Vector2f(0.5f, 0.5f);
+    private Vector4f tint = new Vector4f(1, 1, 1, 1);
 
     public Sprite(Texture texture) {
         this.texture = texture;
@@ -24,8 +21,6 @@ public class Sprite {
         this.position = position;
     }
 
-
-
     public Texture getTexture() {
         return texture;
     }
@@ -33,8 +28,6 @@ public class Sprite {
     public void setTexture(Texture texture) {
         this.texture = texture;
     }
-
-
 
     public Vector2f getPosition() {
         return position;
@@ -71,8 +64,6 @@ public class Sprite {
         this.scale.set(uniform, uniform);
     }
 
-
-
     public float getRotation() {
         return rotation;
     }
@@ -81,17 +72,13 @@ public class Sprite {
         this.rotation = rotation;
     }
 
-
-
     public float getAlpha() {
         return alpha;
     }
 
     public void setAlpha(float alpha) {
-        this.alpha = Math.max(0f, Math.min(1f, alpha)); // clamp 0-1
+        this.alpha = Math.max(0f, Math.min(1f, alpha));
     }
-
-
 
     public Vector2f getOrigin() {
         return origin;
@@ -104,8 +91,6 @@ public class Sprite {
     public void setOrigin(float x, float y) {
         this.origin.set(x, y);
     }
-
-
 
     public Vector4f getTint() {
         return tint;
