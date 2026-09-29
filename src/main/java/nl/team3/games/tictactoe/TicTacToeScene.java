@@ -1,10 +1,20 @@
 package nl.team3.games.tictactoe;
 
-import nl.team3.engine.graphics.*;
-import nl.team3.engine.core.Scene;
 import nl.team3.engine.core.Config;
+import nl.team3.engine.core.Scene;
+import nl.team3.engine.graphics.ResourceLoader;
+import nl.team3.engine.graphics.ShaderProgram;
+import nl.team3.engine.graphics.Sprite;
+import nl.team3.engine.graphics.SpriteRenderer;
+import nl.team3.engine.graphics.Texture;
 
-import static org.lwjgl.opengl.GL11C.*;
+import static org.lwjgl.opengl.GL11.GL_BLEND;
+import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
+import static org.lwjgl.opengl.GL11.GL_ONE_MINUS_SRC_ALPHA;
+import static org.lwjgl.opengl.GL11.GL_SRC_ALPHA;
+import static org.lwjgl.opengl.GL11.glBlendFunc;
+import static org.lwjgl.opengl.GL11.glClear;
+import static org.lwjgl.opengl.GL11.glEnable;
 
 public class TicTacToeScene implements Scene {
 
@@ -12,7 +22,8 @@ public class TicTacToeScene implements Scene {
     private SpriteRenderer spriteRenderer;
     private Texture testTexture;
     private Sprite testSprite;
-    int x = 0;
+
+    private float spriteX = 0f;
 
     @Override
     public void init() {
@@ -20,9 +31,9 @@ public class TicTacToeScene implements Scene {
 
         String vertexSource = ResourceLoader.readResource("/shaders/sprite.vert");
         String fragmentSource = ResourceLoader.readResource("/shaders/sprite.frag");
-        spriteShader = new ShaderProgram(vertexSource, fragmentSource);
 
-        testTexture = Texture.load("src/main/resources/images/testpng.png");
+        spriteShader = new ShaderProgram(vertexSource, fragmentSource);
+        testTexture = Texture.load("/images/testpng.png");
 
         spriteRenderer = new SpriteRenderer(spriteShader, Config.WINDOW_WIDTH, Config.WINDOW_HEIGHT);
 
@@ -38,8 +49,8 @@ public class TicTacToeScene implements Scene {
 
     @Override
     public void update(float dt) {
-        x += 100 * dt;
-        testSprite.setPosition(x, Config.WINDOW_HEIGHT / 2);
+        spriteX += 100 * dt;
+        testSprite.setPosition(spriteX, Config.WINDOW_HEIGHT / 2.0f);
     }
 
     @Override

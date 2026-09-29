@@ -1,6 +1,5 @@
 package nl.team3;
 
-import nl.team3.engine.graphics.*;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
@@ -9,19 +8,14 @@ import org.lwjgl.system.MemoryUtil;
 
 import nl.team3.engine.core.Config;
 import nl.team3.engine.core.SceneManager;
+import nl.team3.engine.graphics.Mesh;
 import nl.team3.engine.input.InputManager;
 import nl.team3.engine.input.ActionMap;
 import nl.team3.games.tictactoe.TicTacToeScene;
 
-import static org.lwjgl.opengl.GL11C.*;
-
 public class App {
     public static void main(String[] args) {
         Configuration.GLFW_CHECK_THREAD0.set(false);
-
-
-
-
 
         if (!GLFW.glfwInit()) {
             throw new IllegalStateException("Failed to initialize GLFW");
@@ -43,39 +37,38 @@ public class App {
         GLFW.glfwMakeContextCurrent(window);
         GLFW.glfwSwapInterval(Config.VSYNC_ENABLED ? 1 : 0);
         GLFW.glfwShowWindow(window);
+
         GL.createCapabilities();
 
         SceneManager sceneManager = new SceneManager();
         sceneManager.changeScene(new TicTacToeScene());
 
-        double lastTime = GLFW.glfwGetTime();
-        
-        // FPS tracking
         float fpsTimer = 0.0f;
         int frames = 0;
 
-        // Input manager setup
         InputManager input = new InputManager(window);
         ActionMap actions = new ActionMap(input);
-
         actions.bind("pause", GLFW.GLFW_KEY_ESCAPE);
         actions.bind("debugToggle", GLFW.GLFW_KEY_GRAVE_ACCENT);
         actions.bind("lockCursor", GLFW.GLFW_KEY_C);
 
-        boolean[] debugOverlay = {false};
-        boolean[] cursorLocked = {false};
+        boolean debugOverlay = false;
+        boolean cursorLocked = false;
+
+        double lastTime = GLFW.glfwGetTime();
 
         while (!GLFW.glfwWindowShouldClose(window)) {
-            // Calc delta time
             double currentTime = GLFW.glfwGetTime();
             float deltaTime = (float) (currentTime - lastTime);
             lastTime = currentTime;
 
-            // Track frames and time
+            // Cap delta time
+            if (deltaTime > 0.1f) {
+                deltaTime = 0.1f;
+            }
+
             frames++;
             fpsTimer += deltaTime;
-
-            // Update window title every second
             if (fpsTimer >= 1.0f) {
                 GLFW.glfwSetWindowTitle(window, Config.WINDOW_TITLE + " | FPS: " + frames);
                 frames = 0;
@@ -94,18 +87,15 @@ public class App {
             if (actions.isActionPressed("pause")) {
                 GLFW.glfwSetWindowShouldClose(window, true);
             }
-
             if (actions.isActionPressed("debugToggle")) {
-                debugOverlay[0] = !debugOverlay[0];
-                System.out.println("Input debug overlay: " + (debugOverlay[0] ? "ON (` to hide)" : "OFF"));
+                debugOverlay = !debugOverlay;
+                System.out.println("Input debug overlay: " + (debugOverlay ? "ON (` to hide)" : "OFF"));
             }
-
             if (actions.isActionPressed("lockCursor")) {
-                cursorLocked[0] = !cursorLocked[0];
-                input.setCursorMode(cursorLocked[0] ? GLFW.GLFW_CURSOR_DISABLED : GLFW.GLFW_CURSOR_NORMAL);
+                cursorLocked = !cursorLocked;
+                input.setCursorMode(cursorLocked ? GLFW.GLFW_CURSOR_DISABLED : GLFW.GLFW_CURSOR_NORMAL);
             }
-
-            if (debugOverlay[0]) {
+            if (debugOverlay) {
                 printInputDebug(input, actions);
             }
 
@@ -113,6 +103,8 @@ public class App {
         }
 
         sceneManager.cleanup();
+        Mesh.cleanupQuad();
+
         GLFW.glfwDestroyWindow(window);
         GLFW.glfwTerminate();
     }

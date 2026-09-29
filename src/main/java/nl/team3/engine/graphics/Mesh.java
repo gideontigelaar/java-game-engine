@@ -1,12 +1,24 @@
 package nl.team3.engine.graphics;
 
-import static org.lwjgl.opengl.GL15.*;
-import static org.lwjgl.opengl.GL20.*;
-import static org.lwjgl.opengl.GL30.*;
+import static org.lwjgl.opengl.GL11.GL_FLOAT;
+import static org.lwjgl.opengl.GL11.GL_TRIANGLES;
+import static org.lwjgl.opengl.GL11.GL_UNSIGNED_INT;
+import static org.lwjgl.opengl.GL11.glDrawElements;
+import static org.lwjgl.opengl.GL15.GL_ARRAY_BUFFER;
+import static org.lwjgl.opengl.GL15.GL_ELEMENT_ARRAY_BUFFER;
+import static org.lwjgl.opengl.GL15.GL_STATIC_DRAW;
+import static org.lwjgl.opengl.GL15.glBindBuffer;
+import static org.lwjgl.opengl.GL15.glBufferData;
+import static org.lwjgl.opengl.GL15.glDeleteBuffers;
+import static org.lwjgl.opengl.GL15.glGenBuffers;
+import static org.lwjgl.opengl.GL20.glEnableVertexAttribArray;
+import static org.lwjgl.opengl.GL20.glVertexAttribPointer;
+import static org.lwjgl.opengl.GL30.glBindVertexArray;
+import static org.lwjgl.opengl.GL30.glDeleteVertexArrays;
+import static org.lwjgl.opengl.GL30.glGenVertexArrays;
 
 public class Mesh {
-    private static final int FLOATS_PER_VERTEX = 4; // x, y, u, v
-
+    private static final int FLOATS_PER_VERTEX = 4;
     private static Mesh quadInstance;
 
     private final int vaoId;
@@ -30,11 +42,11 @@ public class Mesh {
 
         int stride = FLOATS_PER_VERTEX * Float.BYTES;
 
-        // Position (x, y)
+        // X, Y positions
         glVertexAttribPointer(0, 2, GL_FLOAT, false, stride, 0L);
         glEnableVertexAttribArray(0);
 
-        // UV (u, v)
+        // U, V texture coordinates
         glVertexAttribPointer(1, 2, GL_FLOAT, false, stride, 2L * Float.BYTES);
         glEnableVertexAttribArray(1);
 
@@ -51,14 +63,23 @@ public class Mesh {
 
     public static Mesh createQuad() {
         float[] vertices = {
-                // pos            // uv
-                -0.5f,  0.5f,     0.0f, 1.0f, // top-left
-                -0.5f, -0.5f,     0.0f, 0.0f, // bottom-left
-                0.5f, -0.5f,     1.0f, 0.0f, // bottom-right
-                0.5f,  0.5f,     1.0f, 1.0f  // top-right
+                // pos          // uv
+                -0.5f, -0.5f,   0.0f, 1.0f, // top-left
+                -0.5f,  0.5f,   0.0f, 0.0f, // bottom-left
+                 0.5f,  0.5f,   1.0f, 0.0f, // bottom-right
+                 0.5f, -0.5f,   1.0f, 1.0f  // top-right
         };
+
         int[] indices = { 0, 1, 2, 2, 3, 0 };
         return new Mesh(vertices, indices);
+    }
+
+    // Prevent memory leaks by cleaning up quad instance
+    public static void cleanupQuad() {
+        if (quadInstance != null) {
+            quadInstance.cleanup();
+            quadInstance = null;
+        }
     }
 
     public void render() {
