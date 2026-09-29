@@ -25,7 +25,7 @@ public class Texture {
     private final int width;
     private final int height;
 
-    public Texture(int textureId, int width, int height) {
+    private Texture(int textureId, int width, int height) {
         this.textureId = textureId;
         this.width = width;
         this.height = height;
@@ -52,10 +52,10 @@ public class Texture {
         glDeleteTextures(textureId);
     }
 
-    public static Texture load(String filePath) {
+    // Decode encoded image and upload to GPU
+    public static Texture create(ByteBuffer imageBuffer, String name) {
         ByteBuffer imageData;
         int imgWidth, imgHeight;
-        ByteBuffer imageBuffer = ResourceLoader.loadResourceAsByteBuffer(filePath);
 
         // Prevent memory leaks
         try (MemoryStack stack = MemoryStack.stackPush()) {
@@ -67,7 +67,7 @@ public class Texture {
             imageData = STBImage.stbi_load_from_memory(imageBuffer, widthBuffer, heightBuffer, channelsBuffer, 4);
 
             if (imageData == null) {
-                throw new RuntimeException("Failed to decode texture: " + filePath + " - " + STBImage.stbi_failure_reason());
+                throw new RuntimeException("Failed to decode texture: " + name + " - " + STBImage.stbi_failure_reason());
             }
 
             imgWidth = widthBuffer.get(0);

@@ -1,4 +1,4 @@
-package nl.team3.engine.graphics;
+package nl.team3.engine.assets;
 
 import org.lwjgl.BufferUtils;
 
@@ -8,11 +8,11 @@ import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
-public final class ResourceLoader {
+final class ResourceLoader {
     private ResourceLoader() {
     }
 
-    public static String readResource(String path) {
+    static String readResource(String path) {
         try (InputStream in = ResourceLoader.class.getResourceAsStream(path)) {
             if (in == null) {
                 throw new IOException("Resource not found on classpath: " + path);
@@ -23,7 +23,7 @@ public final class ResourceLoader {
         }
     }
 
-    public static ByteBuffer loadResourceAsByteBuffer(String path) {
+    static ByteBuffer loadResourceAsByteBuffer(String path) {
         try (InputStream in = ResourceLoader.class.getResourceAsStream(path)) {
             if (in == null) {
                 throw new IOException("Resource not found on classpath: " + path);
