@@ -16,7 +16,7 @@ public class Interpolators {
             case "ExponentialOut":
 
                 if (t == 0f) return start;
-                ease = (float) Math.pow(2, -10 * (t));
+                ease = 1f -(float) Math.pow(2, -10 * (t));
                 return start + (end - start) * ease;
 
 

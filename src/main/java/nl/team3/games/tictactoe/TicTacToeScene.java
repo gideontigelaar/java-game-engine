@@ -4,10 +4,13 @@ import nl.team3.engine.graphics.*;
 import nl.team3.engine.core.Scene;
 import nl.team3.engine.core.Config;
 import nl.team3.engine.graphics.animation.Animation;
+import nl.team3.engine.graphics.animation.AnimationSequence;
 import nl.team3.engine.input.ActionMap;
 import nl.team3.engine.input.InputManager;
 import org.joml.Vector2f;
 
+
+import java.util.List;
 
 import static org.lwjgl.opengl.GL11C.*;
 
@@ -17,14 +20,29 @@ public class TicTacToeScene implements Scene {
     private SpriteRenderer spriteRenderer;
     private Texture testTexture;
     private Sprite testSprite;
-    int x = 0;
-    private Animation movetest = new Animation(
-            new Vector2f(100, 100), //startpos
-            new Vector2f(400, 200),  //endpos
-            new Vector2f(0.1f,0.1f), //startscale
-            new Vector2f(0.3f, 0.3f), //endscale
-            0, 180, 2f, "ExponentialIn"); //startrot, endrot, duration
 
+
+
+
+
+    private Animation movetest = new Animation(
+            new Vector2f(0, 200), //startpos
+            new Vector2f(400, 200),  //endpos
+            new Vector2f(0.5f,0.02f), //startscale
+            new Vector2f(0.1f, 0.15f), //endscale
+            0, 0, 0.6f, "ExponentialOut", testSprite); //startrot, endrot, duration
+
+    private Animation movetest2 = new Animation(
+            new Vector2f(400, 200), //startpos
+            new Vector2f(390, 200),  //endpos
+            new Vector2f(0.1f,0.15f), //startscale
+            new Vector2f(0.1f, 0.1f), //endscale
+            0, 0, 0.1f, "Linear", testSprite); //startrot, endrot, duration
+
+    private AnimationSequence sequence = new AnimationSequence(List.of(movetest, movetest2));
+
+
+    int x = 0;
 
     private final InputManager input;
     private final ActionMap actions;
@@ -46,22 +64,23 @@ public class TicTacToeScene implements Scene {
 
         spriteRenderer = new SpriteRenderer(spriteShader, Config.WINDOW_WIDTH, Config.WINDOW_HEIGHT);
 
-
         testSprite = new Sprite(testTexture);
         testSprite.setPosition(200, 150);
         testSprite.setScale(0.1f);
         testSprite.setRotation(0f);
         testSprite.setAlpha(1f);
 
+        movetest.SetSprite(testSprite);
+        movetest2.SetSprite(testSprite);
+
+        sequence.startSequence();
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     }
 
     @Override
     public void update(float dt) {
-        movetest.UpdateAnimation(dt);
-        testSprite.setTransformation(movetest.getPosition(),movetest.getScale(), movetest.getRotation());
-
+        sequence.Update(dt);
         if(actions.isActionDown("pause")){
             movetest.startAnimation();
         }

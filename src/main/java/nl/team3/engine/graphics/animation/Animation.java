@@ -1,5 +1,6 @@
 package nl.team3.engine.graphics.animation;
 
+import nl.team3.engine.graphics.Sprite;
 import org.joml.Vector2f;
 
 public class Animation {
@@ -13,8 +14,9 @@ public class Animation {
     final private int endRot;
     final private float duration;
     final private Timer timer;
+    private Sprite sprite;
 
-    public Animation(Vector2f startPos, Vector2f endPos, Vector2f startScale, Vector2f endScale, int startRot, int endRot, Float duration, String easingType) {
+    public Animation(Vector2f startPos, Vector2f endPos, Vector2f startScale, Vector2f endScale, int startRot, int endRot, Float duration, String easingType, Sprite sprite) {
         this.startPos = startPos;
         this.endPos = endPos;
         this.startScale = startScale;
@@ -24,12 +26,13 @@ public class Animation {
         this.duration = duration;
         this.easingType = easingType;
         this.timer = new Timer(this.duration);
-        startAnimation();
+        this.sprite = sprite;
 
     }
 
     public void UpdateAnimation(float dt) {
         timer.update(dt);
+        sprite.setTransformation(getPosition(),getScale(), getRotation());
     }
 
     public Vector2f getPosition() {
@@ -52,5 +55,11 @@ public class Animation {
 
     public void startAnimation(){
         this.timer.start();
+    }
+
+    public Timer getTimer(){return timer;}
+
+    public void SetSprite(Sprite sprite){
+        this.sprite = sprite;
     }
 }
