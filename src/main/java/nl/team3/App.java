@@ -45,15 +45,6 @@ public class App {
         GLFW.glfwShowWindow(window);
         GL.createCapabilities();
 
-        SceneManager sceneManager = new SceneManager();
-        sceneManager.changeScene(new TicTacToeScene());
-
-        double lastTime = GLFW.glfwGetTime();
-        
-        // FPS tracking
-        float fpsTimer = 0.0f;
-        int frames = 0;
-
         // Input manager setup
         InputManager input = new InputManager(window);
         ActionMap actions = new ActionMap(input);
@@ -61,6 +52,17 @@ public class App {
         actions.bind("pause", GLFW.GLFW_KEY_ESCAPE);
         actions.bind("debugToggle", GLFW.GLFW_KEY_GRAVE_ACCENT);
         actions.bind("lockCursor", GLFW.GLFW_KEY_C);
+
+        SceneManager sceneManager = new SceneManager(window);
+        sceneManager.changeScene(new TicTacToeScene(input, actions));
+
+        double lastTime = GLFW.glfwGetTime();
+        
+        // FPS tracking
+        float fpsTimer = 0.0f;
+        int frames = 0;
+
+
 
         boolean[] debugOverlay = {false};
         boolean[] cursorLocked = {false};
@@ -92,7 +94,7 @@ public class App {
             GLFW.glfwPollEvents();
 
             if (actions.isActionPressed("pause")) {
-                GLFW.glfwSetWindowShouldClose(window, true);
+
             }
 
             if (actions.isActionPressed("debugToggle")) {
