@@ -1,7 +1,5 @@
 package nl.team3.engine.graphics.animation;
 
-import java.util.List;
-
 public class Timer {
     private float duration;
     private float elapsed = 0f;
