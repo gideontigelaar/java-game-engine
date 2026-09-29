@@ -69,7 +69,6 @@ public class Mesh {
     public void render() {
         glBindVertexArray(vaoId);
         glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
     }
 
     public void cleanup() {

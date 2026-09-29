@@ -57,8 +57,9 @@ public class TicTacToeScene implements Scene {
         spriteX += 150 * dt;
 
         // Wrap sprite around the screen using dynamic width
-        if (spriteX > currentWidth + (testTexture.getWidth() * testSprite.getScale().x)) {
-            spriteX = -(testTexture.getWidth() * testSprite.getScale().x);
+        float spriteWidth = testTexture.getWidth() * testSprite.getScale().x;
+        if (spriteX > currentWidth + spriteWidth) {
+            spriteX = -spriteWidth;
         }
 
         movetest.UpdateAnimation(dt);
