@@ -2,6 +2,10 @@ package nl.team3.engine.core;
 
 public class SceneManager {
     private Scene currentScene;
+    private long window;
+    public SceneManager(long window) {
+
+    }
 
     public void changeScene(Scene newScene) {
         if(currentScene != null) {
