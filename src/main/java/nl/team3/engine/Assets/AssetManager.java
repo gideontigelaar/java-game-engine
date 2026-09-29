@@ -53,10 +53,10 @@ public class AssetManager {
         return m;
     }
 
-    // Opruim
+    // Cleanup
 
-    public void dispose() {
-        textures.values().forEach(Texture::dispose);
+    public void cleanup() {
+        textures.values().forEach(Texture::cleanup);
         shaders.values().forEach(ShaderProgram::cleanup);
         meshes.values().forEach(Mesh::cleanup);
         textures.clear();
