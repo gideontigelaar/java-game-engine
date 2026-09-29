@@ -18,10 +18,9 @@ public class SpriteRenderer {
     private final Matrix4f projection = new Matrix4f();
     private final Matrix4f transformMatrix = new Matrix4f();
 
-    public SpriteRenderer(AssetManager assets, int viewportWidth, int viewportHeight) {
+    public SpriteRenderer(AssetManager assets) {
         this.shader = assets.getShader(AssetManager.SPRITE_SHADER);
         this.quad = assets.getMesh(AssetManager.QUAD_MESH);
-        setProjection(viewportWidth, viewportHeight);
 
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

@@ -1,7 +1,6 @@
 package nl.team3.games.tictactoe;
 
 import nl.team3.engine.assets.AssetManager;
-import nl.team3.engine.core.Config;
 import nl.team3.engine.core.Scene;
 import nl.team3.engine.input.ActionMap;
 import nl.team3.engine.input.InputManager;
@@ -44,17 +43,13 @@ public class TicTacToeScene implements Scene {
         System.out.println("TicTacToeScene loaded");
 
         testTexture = assets.loadTexture("test", "/images/testpng.png");
-        spriteRenderer = new SpriteRenderer(assets, Config.WINDOW_WIDTH, Config.WINDOW_HEIGHT);
+        spriteRenderer = new SpriteRenderer(assets);
 
         testSprite = new Sprite(testTexture);
         testSprite.setPosition(200, 150);
         testSprite.setScale(0.2f);
         testSprite.setRotation(0f);
         testSprite.setAlpha(1f);
-
-        // Fallback dimensions
-        currentWidth = Config.WINDOW_WIDTH;
-        currentHeight = Config.WINDOW_HEIGHT;
     }
 
     @Override
@@ -90,9 +85,7 @@ public class TicTacToeScene implements Scene {
         this.currentWidth = width;
         this.currentHeight = height;
 
-        if (spriteRenderer != null) {
-            spriteRenderer.setProjection(width, height);
-        }
+        spriteRenderer.setProjection(width, height);
     }
 
     @Override

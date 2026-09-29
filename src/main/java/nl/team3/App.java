@@ -62,8 +62,6 @@ public class App {
             sceneManager.resize(width, height);
         });
 
-        sceneManager.changeScene(new TicTacToeScene(input, actions));
-
         // Set initial viewport and scene size
         try (MemoryStack stack = MemoryStack.stackPush()) {
             IntBuffer pWidth = stack.mallocInt(1);
@@ -72,6 +70,8 @@ public class App {
             GL11.glViewport(0, 0, pWidth.get(0), pHeight.get(0));
             sceneManager.resize(pWidth.get(0), pHeight.get(0));
         }
+
+        sceneManager.changeScene(new TicTacToeScene(input, actions));
 
         float fpsTimer = 0.0f;
         int frames = 0;
@@ -82,6 +82,8 @@ public class App {
         double lastTime = GLFW.glfwGetTime();
 
         while (!GLFW.glfwWindowShouldClose(window)) {
+            GLFW.glfwPollEvents();
+
             double currentTime = GLFW.glfwGetTime();
             float deltaTime = (float) (currentTime - lastTime);
             lastTime = currentTime;
@@ -100,15 +102,6 @@ public class App {
                 fpsTimer = 0.0f;
             }
 
-            GL11.glClearColor(Config.BG_COLOR.x, Config.BG_COLOR.y, Config.BG_COLOR.z, Config.BG_COLOR.w);
-            GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
-
-            sceneManager.update(deltaTime);
-            sceneManager.render();
-
-            GLFW.glfwSwapBuffers(window);
-            GLFW.glfwPollEvents();
-
             if (actions.isActionPressed("pause")) {
 
             }
@@ -123,6 +116,14 @@ public class App {
             if (debugOverlay) {
                 printInputDebug(input, actions);
             }
+
+            GL11.glClearColor(Config.BG_COLOR.x, Config.BG_COLOR.y, Config.BG_COLOR.z, Config.BG_COLOR.w);
+            GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
+
+            sceneManager.update(deltaTime);
+            sceneManager.render();
+
+            GLFW.glfwSwapBuffers(window);
 
             input.update();
         }

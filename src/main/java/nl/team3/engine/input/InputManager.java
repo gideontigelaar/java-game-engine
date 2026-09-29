@@ -18,7 +18,6 @@ public class InputManager {
     private double mouseX, mouseY;
     private double lastMouseX, lastMouseY;
     private double scrollX, scrollY;
-    private double scrollXThisFrame, scrollYThisFrame;
 
     private final StringBuilder textInput = new StringBuilder();
 
@@ -57,8 +56,8 @@ public class InputManager {
 
         GLFW.glfwSetScrollCallback(window, (win, xoffset, yoffset) -> {
             // Accumulate scroll events
-            scrollXThisFrame += xoffset;
-            scrollYThisFrame += yoffset;
+            scrollX += xoffset;
+            scrollY += yoffset;
         });
 
         GLFW.glfwSetCharCallback(window, (win, codepoint) -> {
@@ -84,10 +83,8 @@ public class InputManager {
         lastMouseX = mouseX;
         lastMouseY = mouseY;
 
-        scrollX = scrollXThisFrame;
-        scrollY = scrollYThisFrame;
-        scrollXThisFrame = 0;
-        scrollYThisFrame = 0;
+        scrollX = 0;
+        scrollY = 0;
 
         textInput.setLength(0);
     }
