@@ -24,6 +24,12 @@ public class SceneManager {
         }
     }
 
+    public void resize(int width, int height) {
+        if(currentScene != null) {
+            currentScene.resize(width, height);
+        }
+    }
+
     public void cleanup() {
         if(currentScene != null) {
             currentScene.cleanup();

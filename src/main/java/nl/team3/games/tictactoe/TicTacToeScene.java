@@ -17,13 +17,14 @@ import static org.lwjgl.opengl.GL11.glClear;
 import static org.lwjgl.opengl.GL11.glEnable;
 
 public class TicTacToeScene implements Scene {
-
     private ShaderProgram spriteShader;
     private SpriteRenderer spriteRenderer;
     private Texture testTexture;
     private Sprite testSprite;
 
     private float spriteX = 0f;
+    private int currentWidth;
+    private int currentHeight;
 
     @Override
     public void init() {
@@ -39,9 +40,13 @@ public class TicTacToeScene implements Scene {
 
         testSprite = new Sprite(testTexture);
         testSprite.setPosition(200, 150);
-        testSprite.setScale(0.1f);
+        testSprite.setScale(0.2f);
         testSprite.setRotation(0f);
         testSprite.setAlpha(1f);
+
+        // Fallback dimensions
+        currentWidth = Config.WINDOW_WIDTH;
+        currentHeight = Config.WINDOW_HEIGHT;
 
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -49,14 +54,32 @@ public class TicTacToeScene implements Scene {
 
     @Override
     public void update(float dt) {
-        spriteX += 100 * dt;
-        testSprite.setPosition(spriteX, Config.WINDOW_HEIGHT / 2.0f);
+        spriteX += 150 * dt;
+
+        // Wrap sprite around the screen using dynamic width
+        if (spriteX > currentWidth + (testTexture.getWidth() * testSprite.getScale().x)) {
+            spriteX = -(testTexture.getWidth() * testSprite.getScale().x);
+        }
+
+        // Center sprite using dynamic height
+        testSprite.setPosition(spriteX, currentHeight / 2.0f);
     }
 
     @Override
     public void render() {
         glClear(GL_COLOR_BUFFER_BIT);
         spriteRenderer.draw(testSprite);
+    }
+
+    @Override
+    public void resize(int width, int height) {
+        // Store new dimensions every time window resizes
+        this.currentWidth = width;
+        this.currentHeight = height;
+
+        if (spriteRenderer != null) {
+            spriteRenderer.setProjection(width, height);
+        }
     }
 
     @Override
