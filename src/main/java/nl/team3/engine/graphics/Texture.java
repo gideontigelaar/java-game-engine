@@ -1,88 +1,89 @@
 package nl.team3.engine.graphics;
 
+import org.lwjgl.stb.STBImage;
 import org.lwjgl.system.MemoryStack;
 
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
-import static org.lwjgl.opengl.ARBInternalformatQuery2.GL_TEXTURE_2D;
-import static org.lwjgl.opengl.GL11C.*;
-import static org.lwjgl.opengl.GL13C.GL_TEXTURE0;
-import static org.lwjgl.opengl.GL13C.glActiveTexture;
-import static org.lwjgl.opengl.GL30C.glGenerateMipmap;
-import static org.lwjgl.stb.STBImage.*;
-import static org.lwjgl.stb.STBImage.stbi_image_free;
-import static org.lwjgl.system.MemoryStack.stackPush;
+import static org.lwjgl.opengl.GL11.GL_NEAREST;
+import static org.lwjgl.opengl.GL11.GL_RGBA;
+import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
+import static org.lwjgl.opengl.GL11.GL_TEXTURE_MAG_FILTER;
+import static org.lwjgl.opengl.GL11.GL_TEXTURE_MIN_FILTER;
+import static org.lwjgl.opengl.GL11.GL_UNSIGNED_BYTE;
+import static org.lwjgl.opengl.GL11.glBindTexture;
+import static org.lwjgl.opengl.GL11.glDeleteTextures;
+import static org.lwjgl.opengl.GL11.glGenTextures;
+import static org.lwjgl.opengl.GL11.glTexImage2D;
+import static org.lwjgl.opengl.GL11.glTexParameteri;
+import static org.lwjgl.opengl.GL13.GL_TEXTURE0;
+import static org.lwjgl.opengl.GL13.glActiveTexture;
 
 public class Texture {
-
-    private final int id;
+    private final int textureId;
     private final int width;
     private final int height;
 
-    public Texture(int id, int width, int height) {
-        this.id = id;
+    public Texture(int textureId, int width, int height) {
+        this.textureId = textureId;
         this.width = width;
         this.height = height;
     }
 
-    public static Texture load(String path) {
-        int textureId;
-        int width, height;
-
-        try (MemoryStack stack = stackPush()) {
-            IntBuffer w = stack.mallocInt(1);
-            IntBuffer h = stack.mallocInt(1);
-            IntBuffer channels = stack.mallocInt(1);
-
-            stbi_set_flip_vertically_on_load(true);
-            ByteBuffer image = stbi_load(path, w, h, channels, 4);
-
-            if (image == null) {
-                throw new RuntimeException("Kon texture niet laden: " + path
-                        + " - " + stbi_failure_reason());
-            }
-
-            width = w.get(0);
-            height = h.get(0);
-
-            textureId = glGenTextures();
-            glBindTexture(GL_TEXTURE_2D, textureId);
-
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0,
-                    GL_RGBA, GL_UNSIGNED_BYTE, image);
-            glGenerateMipmap(GL_TEXTURE_2D);
-
-            stbi_image_free(image);
-            glBindTexture(GL_TEXTURE_2D, 0);
-        }
-
-        return new Texture(textureId, width, height);
-    }
-
     public void bind() {
-        glBindTexture(GL_TEXTURE_2D, id);
-    }
-
-    public void bind(int unit) {
-        glActiveTexture(GL_TEXTURE0 + unit);
-        glBindTexture(GL_TEXTURE_2D, id);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, textureId);
     }
 
     public void unbind() {
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 
-    public void cleanup() {
-        glDeleteTextures(id);
+    public int getWidth() {
+        return width;
     }
 
-    public int getId() { return id; }
-    public int getWidth() { return width; }
-    public int getHeight() { return height; }
+    public int getHeight() {
+        return height;
+    }
+
+    public void cleanup() {
+        glDeleteTextures(textureId);
+    }
+
+    public static Texture load(String filePath) {
+        ByteBuffer imageData;
+        int imgWidth, imgHeight;
+        ByteBuffer imageBuffer = ResourceLoader.loadResourceAsByteBuffer(filePath);
+
+        // Prevent memory leaks
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            IntBuffer widthBuffer = stack.mallocInt(1);
+            IntBuffer heightBuffer = stack.mallocInt(1);
+            IntBuffer channelsBuffer = stack.mallocInt(1);
+
+            STBImage.stbi_set_flip_vertically_on_load(true);
+            imageData = STBImage.stbi_load_from_memory(imageBuffer, widthBuffer, heightBuffer, channelsBuffer, 4);
+
+            if (imageData == null) {
+                throw new RuntimeException("Failed to decode texture: " + filePath + " - " + STBImage.stbi_failure_reason());
+            }
+
+            imgWidth = widthBuffer.get(0);
+            imgHeight = heightBuffer.get(0);
+        }
+
+        int textureId = glGenTextures();
+        glBindTexture(GL_TEXTURE_2D, textureId);
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, imgWidth, imgHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, imageData);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+        STBImage.stbi_image_free(imageData);
+
+        return new Texture(textureId, imgWidth, imgHeight);
+    }
 }

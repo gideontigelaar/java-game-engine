@@ -2,6 +2,10 @@ package nl.team3.engine.core;
 
 public class SceneManager {
     private Scene currentScene;
+    private long window;
+    public SceneManager(long window) {
+        this.window = window;
+    }
 
     public void changeScene(Scene newScene) {
         if(currentScene != null) {
@@ -21,6 +25,12 @@ public class SceneManager {
     public void render() {
         if(currentScene != null) {
             currentScene.render();
+        }
+    }
+
+    public void resize(int width, int height) {
+        if(currentScene != null) {
+            currentScene.resize(width, height);
         }
     }
 

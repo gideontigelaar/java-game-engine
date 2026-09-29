@@ -1,77 +1,119 @@
 package nl.team3.games.tictactoe;
 
-import org.joml.Matrix4f;
-
-import nl.team3.engine.core.Scene;
 import nl.team3.engine.core.Config;
-import nl.team3.engine.graphics.Mesh;
+import nl.team3.engine.core.Scene;
+import nl.team3.engine.input.ActionMap;
+import nl.team3.engine.input.InputManager;
 import nl.team3.engine.graphics.ResourceLoader;
 import nl.team3.engine.graphics.ShaderProgram;
+import nl.team3.engine.graphics.Sprite;
+import nl.team3.engine.graphics.SpriteRenderer;
+import nl.team3.engine.graphics.Texture;
+import nl.team3.engine.graphics.animation.Animation;
 
-import static org.lwjgl.opengl.GL11.GL_TRIANGLE_FAN;
+import static org.lwjgl.opengl.GL11.GL_BLEND;
+import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
+import static org.lwjgl.opengl.GL11.GL_ONE_MINUS_SRC_ALPHA;
+import static org.lwjgl.opengl.GL11.GL_SRC_ALPHA;
+import static org.lwjgl.opengl.GL11.glBlendFunc;
+import static org.lwjgl.opengl.GL11.glClear;
+import static org.lwjgl.opengl.GL11.glEnable;
+
+import org.joml.Vector2f;
 
 public class TicTacToeScene implements Scene {
-    private float x;
-    private float y;
-    private float speed;
+    private ShaderProgram spriteShader;
+    private SpriteRenderer spriteRenderer;
+    private Texture testTexture;
+    private Sprite testSprite;
 
-    private ShaderProgram shader;
-    private Mesh squareMesh;
-    private Matrix4f projectionMatrix;
+    private float spriteX = 0f;
+    private int currentWidth;
+    private int currentHeight;
+
+    private Animation movetest = new Animation(
+            new Vector2f(100, 100), //startpos
+            new Vector2f(400, 200),  //endpos
+            new Vector2f(0.1f,0.1f), //startscale
+            new Vector2f(0.3f, 0.3f), //endscale
+            0, 180, 2f, "ExponentialIn"); //startrot, endrot, duration
+
+    private final InputManager input;
+    private final ActionMap actions;
+
+    public TicTacToeScene(InputManager input, ActionMap actions) {
+        this.input = input;
+        this.actions = actions;
+    }
 
     @Override
     public void init() {
         System.out.println("TicTacToeScene loaded");
 
-        x = 0;
-        y = Config.WINDOW_HEIGHT / 2.0f; // Start vertically centered
-        speed = 200.0f; // Move 200 pixels per second
+        String vertexSource = ResourceLoader.readResource("/shaders/sprite.vert");
+        String fragmentSource = ResourceLoader.readResource("/shaders/sprite.frag");
 
-        // 1 unit = 1 pixel, (0,0) = top left corner
-        projectionMatrix = new Matrix4f().ortho(
-                0, Config.WINDOW_WIDTH,
-                Config.WINDOW_HEIGHT, 0,
-                -1, 1);
+        spriteShader = new ShaderProgram(vertexSource, fragmentSource);
+        testTexture = Texture.load("/images/testpng.png");
 
-        shader = new ShaderProgram(
-                ResourceLoader.readResource("/shaders/basic.vert"),
-                ResourceLoader.readResource("/shaders/basic.frag"));
+        spriteRenderer = new SpriteRenderer(spriteShader, Config.WINDOW_WIDTH, Config.WINDOW_HEIGHT);
 
-        // Square (x, y, r, g, b)
-        float[] vertices = {
-                0f, 0f, 1f, 1f, 1f,
-                50f, 0f, 1f, 1f, 1f,
-                50f, 50f, 1f, 1f, 1f,
-                0f, 50f, 1f, 1f, 1f,
-        };
-        squareMesh = new Mesh(vertices, GL_TRIANGLE_FAN);
+        testSprite = new Sprite(testTexture);
+        testSprite.setPosition(200, 150);
+        testSprite.setScale(0.2f);
+        testSprite.setRotation(0f);
+        testSprite.setAlpha(1f);
+
+        // Fallback dimensions
+        currentWidth = Config.WINDOW_WIDTH;
+        currentHeight = Config.WINDOW_HEIGHT;
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     }
 
     @Override
     public void update(float dt) {
-        // Move object to the right
-        x += speed * dt;
+        spriteX += 150 * dt;
 
-        if (x > Config.WINDOW_WIDTH) {
-            x = -50;
+        // Wrap sprite around the screen using dynamic width
+        if (spriteX > currentWidth + (testTexture.getWidth() * testSprite.getScale().x)) {
+            spriteX = -(testTexture.getWidth() * testSprite.getScale().x);
         }
+
+        movetest.UpdateAnimation(dt);
+        testSprite.setTransformation(movetest.getPosition(),movetest.getScale(), movetest.getRotation());
+
+        if(actions.isActionDown("pause")){
+            movetest.startAnimation();
+        }
+
+        // Center sprite using dynamic height
+        testSprite.setPosition(spriteX, currentHeight / 2.0f);
     }
+
 
     @Override
     public void render() {
-        Matrix4f modelMatrix = new Matrix4f().translate(x, y, 0);
-        Matrix4f mvp = new Matrix4f(projectionMatrix).mul(modelMatrix);
+        glClear(GL_COLOR_BUFFER_BIT);
+        spriteRenderer.draw(testSprite);
+    }
 
-        shader.bind();
-        shader.setUniformMat4("uMVP", mvp);
-        squareMesh.render();
-        shader.unbind();
+    @Override
+    public void resize(int width, int height) {
+        // Store new dimensions every time window resizes
+        this.currentWidth = width;
+        this.currentHeight = height;
+
+        if (spriteRenderer != null) {
+            spriteRenderer.setProjection(width, height);
+        }
     }
 
     @Override
     public void cleanup() {
         System.out.println("TicTacToeScene closed");
-        squareMesh.cleanup();
-        shader.cleanup();
+        testTexture.cleanup();
+        spriteShader.cleanup();
     }
 }
