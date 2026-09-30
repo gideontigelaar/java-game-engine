@@ -7,7 +7,7 @@ import nl.team3.engine.graphics.animation.*;
 import nl.team3.engine.input.ActionMap;
 import nl.team3.engine.input.InputManager;
 import org.joml.Vector2f;
-
+import nl.team3.engine.core.Config;
 import nl.team3.engine.graphics.Sprite;
 import nl.team3.engine.graphics.SpriteRenderer;
 import nl.team3.engine.graphics.Texture;
@@ -21,6 +21,9 @@ public class TicTacToeScene implements Scene {
     private ShaderProgram spriteShader;
     private SpriteRenderer spriteRenderer;
 
+    private int currentHeight = Config.WINDOW_HEIGHT;
+    private int currentWidth = Config.WINDOW_WIDTH;
+
     //mouse
 
     private Animation mouseGrabAnim;
@@ -32,8 +35,15 @@ public class TicTacToeScene implements Scene {
     private Sprite mouseGrab;
     private Vector2f mousePosition;
 
+    //board
+    private Vector2f screenCenter = new Vector2f(Math.round((float) currentWidth/2),Math.round((float) currentHeight/2));
+    private Sprite board;
+    private Texture boardTexture;
 
 
+    //pieceTest
+    private Sprite Xpiece;
+    private Texture XpieceTexture;
 
 
 
@@ -44,8 +54,7 @@ public class TicTacToeScene implements Scene {
 
     private final InputManager input;
     private final ActionMap actions;
-    private int currentHeight;
-    private int currentWidth;
+
 
     public TicTacToeScene(InputManager input, ActionMap actions) {
         this.input = input;
@@ -62,13 +71,38 @@ public class TicTacToeScene implements Scene {
         spriteRenderer = new SpriteRenderer(assets);
         input.setCursorVisible(false);
         mousePoint = new Sprite(mousePointTexture);
-        mousePoint.setScale(3f);
+        mousePoint.setScale(4f);
         mousePoint.setAlpha(1f);
 
-        //init anims
+        //init Mouseanims
+        mouseGrabAnim = Animation.builder()
+                .sprite(mousePoint)
+                .scale(new Vector2f(4f,4f), new Vector2f(3f,3f))
+                .duration(0.3f)
+                .easing("ExponentialOut")
+                .build();
+        mouseReleaseAnim = Animation.builder()
+                .sprite(mousePoint)
+                .scale(new Vector2f(3f,3f), new Vector2f(4f,4f))
+                .duration(0.3f)
+                .easing("ExponentialOut")
+                .build();
+
+        //init Board
+        boardTexture = assets.loadTexture("board", "/textures/tictactoe/board.png");
+        board = new Sprite(boardTexture);
+        board.setPosition(screenCenter);
+        board.setScale(8f);
+
+        //init Test piece
+        XpieceTexture = assets.loadTexture("Xpiece", "/textures/tictactoe/x.png");
+        Xpiece = new Sprite(XpieceTexture);
+        Xpiece.setPosition(screenCenter.get(0), screenCenter.get(1) - 8f);
+        Xpiece.setScale(8f);
+        }
 
 
-    }
+
 
     @Override
     public void update(float dt) {
@@ -77,11 +111,34 @@ public class TicTacToeScene implements Scene {
         mousePosition = new Vector2f(
                 (Math.round(input.getMouseX()/4) + 4f)*4,
                 (Math.round(input.getMouseY()/4) + 16f)*4);
+
+        if(input.isButtonPressed(GLFW_MOUSE_BUTTON_LEFT)){
+            mouseGrabAnim.startAnimation();
+        }
+        if(input.isButtonReleased(GLFW_MOUSE_BUTTON_LEFT)){
+            mouseReleaseAnim.startAnimation();
+        }
+
         if(input.isButtonDown(GLFW_MOUSE_BUTTON_LEFT)){
             mousePoint.setTexture(mouseGrabTexture);
+            mouseGrabAnim.UpdateAnimation(dt);
+            mouseGrabAnim.setScale();
         }
-        else{ mousePoint.setTexture(mousePointTexture);}
+        else{
+            mousePoint.setTexture(mousePointTexture);
+            mouseReleaseAnim.UpdateAnimation(dt);
+            mouseReleaseAnim.setScale();
+        }
         mousePoint.setPosition(mousePosition);
+
+        //board rendering
+        screenCenter = new Vector2f(Math.round((float) currentWidth/2),Math.round((float) currentHeight/2));
+
+
+
+
+
+
 
     }
 
@@ -89,7 +146,10 @@ public class TicTacToeScene implements Scene {
     @Override
     public void render() {
         glClear(GL_COLOR_BUFFER_BIT);
+        spriteRenderer.draw(board);
+        spriteRenderer.draw(Xpiece);
         spriteRenderer.draw(mousePoint);
+
     }
 
     @Override

@@ -1,5 +1,6 @@
 package nl.team3.engine.input;
 
+import org.joml.Vector2f;
 import org.lwjgl.glfw.GLFW;
 import java.util.Arrays;
 
@@ -172,4 +173,6 @@ public class InputManager {
     public void setCursorMode(int glfwCursorMode) {
         glfwSetInputMode(window, GLFW.GLFW_CURSOR, glfwCursorMode);
     }
+
+
 }
