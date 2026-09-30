@@ -1,9 +1,15 @@
 package nl.team3.games.tictactoe;
 
+import nl.team3.engine.graphics.*;
 import nl.team3.engine.assets.AssetManager;
 import nl.team3.engine.core.Scene;
+import nl.team3.engine.core.Config;
+import nl.team3.engine.graphics.animation.Animation;
+import nl.team3.engine.graphics.animation.AnimationSequence;
 import nl.team3.engine.input.ActionMap;
 import nl.team3.engine.input.InputManager;
+import org.joml.Vector2f;
+
 import nl.team3.engine.graphics.Sprite;
 import nl.team3.engine.graphics.SpriteRenderer;
 import nl.team3.engine.graphics.Texture;
@@ -12,23 +18,39 @@ import nl.team3.engine.graphics.animation.Animation;
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.glClear;
 
-import org.joml.Vector2f;
+import java.util.List;
+
+import static org.lwjgl.opengl.GL11C.*;
 
 public class TicTacToeScene implements Scene {
+
+    private ShaderProgram spriteShader;
     private SpriteRenderer spriteRenderer;
     private Texture testTexture;
     private Sprite testSprite;
 
-    private float spriteX = 0f;
-    private int currentWidth;
-    private int currentHeight;
+
+
+
 
     private Animation movetest = new Animation(
-            new Vector2f(100, 100), //startpos
+            new Vector2f(0, 200), //startpos
             new Vector2f(400, 200),  //endpos
-            new Vector2f(0.1f,0.1f), //startscale
-            new Vector2f(0.3f, 0.3f), //endscale
-            0, 180, 2f, "ExponentialIn"); //startrot, endrot, duration
+            new Vector2f(0.5f,0.02f), //startscale
+            new Vector2f(0.1f, 0.15f), //endscale
+            0, 0, 0.6f, "ExponentialOut", testSprite); //startrot, endrot, duration
+
+    private Animation movetest2 = new Animation(
+            new Vector2f(400, 200), //startpos
+            new Vector2f(390, 200),  //endpos
+            new Vector2f(0.1f,0.15f), //startscale
+            new Vector2f(0.1f, 0.1f), //endscale
+            0, 0, 0.1f, "Linear", testSprite); //startrot, endrot, duration
+
+    private AnimationSequence sequence = new AnimationSequence(List.of(movetest, movetest2));
+
+
+    int x = 0;
 
     private final InputManager input;
     private final ActionMap actions;
@@ -47,7 +69,7 @@ public class TicTacToeScene implements Scene {
 
         testSprite = new Sprite(testTexture);
         testSprite.setPosition(200, 150);
-        testSprite.setScale(0.2f);
+        testSprite.setScale(0.1f);
         testSprite.setRotation(0f);
         testSprite.setAlpha(1f);
     }
@@ -68,9 +90,6 @@ public class TicTacToeScene implements Scene {
         if(actions.isActionDown("pause")){
             movetest.startAnimation();
         }
-
-        // Center sprite using dynamic height
-        testSprite.setPosition(spriteX, currentHeight / 2.0f);
     }
 
 
@@ -92,5 +111,11 @@ public class TicTacToeScene implements Scene {
     @Override
     public void cleanup() {
         System.out.println("TicTacToeScene closed");
+    }
+
+    @Override
+    public void resize(int width, int height) {
+        glViewport(0, 0, width, height);
+
     }
 }
