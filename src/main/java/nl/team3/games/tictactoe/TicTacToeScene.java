@@ -29,25 +29,13 @@ public class TicTacToeScene implements Scene {
     private Texture testTexture;
     private Sprite testSprite;
 
+    private Animation anim1;
 
 
 
 
-    private Animation movetest = new Animation(
-            new Vector2f(0, 200), //startpos
-            new Vector2f(400, 200),  //endpos
-            new Vector2f(0.5f,0.02f), //startscale
-            new Vector2f(0.1f, 0.15f), //endscale
-            0, 0, 0.6f, "ExponentialOut", testSprite); //startrot, endrot, duration
 
-    private Animation movetest2 = new Animation(
-            new Vector2f(400, 200), //startpos
-            new Vector2f(390, 200),  //endpos
-            new Vector2f(0.1f,0.15f), //startscale
-            new Vector2f(0.1f, 0.1f), //endscale
-            0, 0, 0.1f, "Linear", testSprite); //startrot, endrot, duration
 
-    private AnimationSequence sequence = new AnimationSequence(List.of(movetest, movetest2));
 
 
     int x = 0;
@@ -62,6 +50,7 @@ public class TicTacToeScene implements Scene {
 
     @Override
     public void init(AssetManager assets) {
+
         System.out.println("TicTacToeScene loaded");
 
         testTexture = assets.loadTexture("test", "/images/testpng.png");
@@ -76,20 +65,7 @@ public class TicTacToeScene implements Scene {
 
     @Override
     public void update(float dt) {
-        spriteX += 150 * dt;
 
-        // Wrap sprite around the screen using dynamic width
-        float spriteWidth = testTexture.getWidth() * testSprite.getScale().x;
-        if (spriteX > currentWidth + spriteWidth) {
-            spriteX = -spriteWidth;
-        }
-
-        movetest.UpdateAnimation(dt);
-        testSprite.setTransformation(movetest.getPosition(),movetest.getScale(), movetest.getRotation());
-
-        if(actions.isActionDown("pause")){
-            movetest.startAnimation();
-        }
     }
 
 
@@ -99,14 +75,7 @@ public class TicTacToeScene implements Scene {
         spriteRenderer.draw(testSprite);
     }
 
-    @Override
-    public void resize(int width, int height) {
-        // Store new dimensions every time window resizes
-        this.currentWidth = width;
-        this.currentHeight = height;
 
-        spriteRenderer.setProjection(width, height);
-    }
 
     @Override
     public void cleanup() {
