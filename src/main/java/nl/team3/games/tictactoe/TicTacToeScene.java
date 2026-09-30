@@ -92,13 +92,13 @@ public class TicTacToeScene implements Scene {
         boardTexture = assets.loadTexture("board", "/textures/tictactoe/board.png");
         board = new Sprite(boardTexture);
         board.setPosition(screenCenter);
-        board.setScale(8f);
+        board.setScale(4f);
 
         //init Test piece
         XpieceTexture = assets.loadTexture("Xpiece", "/textures/tictactoe/x.png");
         Xpiece = new Sprite(XpieceTexture);
         Xpiece.setPosition(screenCenter.get(0), screenCenter.get(1) - 8f);
-        Xpiece.setScale(8f);
+        Xpiece.setScale(3f);
         }
 
 
