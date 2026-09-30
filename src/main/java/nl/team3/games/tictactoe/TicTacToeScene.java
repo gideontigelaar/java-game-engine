@@ -60,7 +60,7 @@ public class TicTacToeScene implements Scene {
         String fragmentSource = ResourceLoader.readResource("/shaders/sprite.frag");
         spriteShader = new ShaderProgram(vertexSource, fragmentSource);
 
-        testTexture = Texture.load("src/main/resources/images/testpng.png");
+        testTexture = Texture.load("/images/testpng.png");
 
         spriteRenderer = new SpriteRenderer(spriteShader, Config.WINDOW_WIDTH, Config.WINDOW_HEIGHT);
 
@@ -98,5 +98,11 @@ public class TicTacToeScene implements Scene {
         System.out.println("TicTacToeScene closed");
         testTexture.cleanup();
         spriteShader.cleanup();
+    }
+
+    @Override
+    public void resize(int width, int height) {
+        glViewport(0, 0, width, height);
+
     }
 }
