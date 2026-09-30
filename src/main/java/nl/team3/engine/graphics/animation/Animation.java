@@ -12,7 +12,6 @@ public class Animation {
     final private String easingType;
     final private int startRot;
     final private int endRot;
-    final private float duration;
     final private Timer timer;
     private Sprite sprite;
 
@@ -23,7 +22,6 @@ public class Animation {
         this.endScale = endScale;
         this.startRot = startRot;
         this.endRot = endRot;
-        this.duration = duration;
         this.easingType = easingType;
         this.timer = new Timer(this.duration);
         this.sprite = sprite;
@@ -37,20 +35,20 @@ public class Animation {
 
     public Vector2f getPosition() {
         return new Vector2f(
-                Interpolators.Easing(this.startPos.get(0), this.endPos.get(0), timer.getElapsed() / duration, easingType),
-                Interpolators.Easing(this.startPos.get(1), this.endPos.get(1), timer.getElapsed() / duration, easingType)
+                Interpolators.Easing(this.startPos.get(0), this.endPos.get(0), timer.getProgress(), easingType),
+                Interpolators.Easing(this.startPos.get(1), this.endPos.get(1), timer.getProgress(), easingType)
         );
     }
 
     public Vector2f getScale() {
         return new Vector2f(
-                Interpolators.Easing(this.startScale.get(0), this.endScale.get(0), timer.getElapsed() / duration, easingType),
-                Interpolators.Easing(this.startScale.get(1), this.endScale.get(1), timer.getElapsed() / duration, easingType)
+                Interpolators.Easing(this.startScale.get(0), this.endScale.get(0), timer.getProgress(), easingType),
+                Interpolators.Easing(this.startScale.get(1), this.endScale.get(1), timer.getProgress(), easingType)
         );
     }
 
     public float getRotation() {
-        return (float) (Interpolators.Easing(this.startRot, this.endRot, timer.getElapsed() / duration, easingType) * (Math.PI / 180));
+        return (float) (Interpolators.Easing(this.startRot, this.endRot, timer.getProgress(), easingType) * (Math.PI / 180));
     }
 
     public void startAnimation(){

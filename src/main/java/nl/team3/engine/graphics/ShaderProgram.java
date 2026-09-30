@@ -80,12 +80,7 @@ public class ShaderProgram {
     }
 
     public int getUniformLocation(String name) {
-        if (uniformCache.containsKey(name)) {
-            return uniformCache.get(name);
-        }
-        int location = glGetUniformLocation(programId, name);
-        uniformCache.put(name, location);
-        return location;
+        return uniformCache.computeIfAbsent(name, n -> glGetUniformLocation(programId, n));
     }
 
     public void setUniformMat4(String name, Matrix4f matrix) {

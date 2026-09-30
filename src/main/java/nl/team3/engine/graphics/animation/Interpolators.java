@@ -20,7 +20,7 @@ public class Interpolators {
                 return start + (end - start) * ease;
 
 
-            case "ExponentiaInOut":
+            case "ExponentialInOut":
                 if (t <= 0f) return start;
                 if (t >= 1f) return end;
 

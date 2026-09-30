@@ -1,6 +1,7 @@
 package nl.team3.games.tictactoe;
 
 import nl.team3.engine.graphics.*;
+import nl.team3.engine.assets.AssetManager;
 import nl.team3.engine.core.Scene;
 import nl.team3.engine.core.Config;
 import nl.team3.engine.graphics.animation.Animation;
@@ -9,6 +10,13 @@ import nl.team3.engine.input.ActionMap;
 import nl.team3.engine.input.InputManager;
 import org.joml.Vector2f;
 
+import nl.team3.engine.graphics.Sprite;
+import nl.team3.engine.graphics.SpriteRenderer;
+import nl.team3.engine.graphics.Texture;
+import nl.team3.engine.graphics.animation.Animation;
+
+import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
+import static org.lwjgl.opengl.GL11.glClear;
 
 import java.util.List;
 
@@ -53,34 +61,32 @@ public class TicTacToeScene implements Scene {
     }
 
     @Override
-    public void init() {
+    public void init(AssetManager assets) {
         System.out.println("TicTacToeScene loaded");
 
-        String vertexSource = ResourceLoader.readResource("/shaders/sprite.vert");
-        String fragmentSource = ResourceLoader.readResource("/shaders/sprite.frag");
-        spriteShader = new ShaderProgram(vertexSource, fragmentSource);
-
-        testTexture = Texture.load("/images/testpng.png");
-
-        spriteRenderer = new SpriteRenderer(spriteShader, Config.WINDOW_WIDTH, Config.WINDOW_HEIGHT);
+        testTexture = assets.loadTexture("test", "/images/testpng.png");
+        spriteRenderer = new SpriteRenderer(assets);
 
         testSprite = new Sprite(testTexture);
         testSprite.setPosition(200, 150);
         testSprite.setScale(0.1f);
         testSprite.setRotation(0f);
         testSprite.setAlpha(1f);
-
-        movetest.SetSprite(testSprite);
-        movetest2.SetSprite(testSprite);
-
-        sequence.startSequence();
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     }
 
     @Override
     public void update(float dt) {
-        sequence.Update(dt);
+        spriteX += 150 * dt;
+
+        // Wrap sprite around the screen using dynamic width
+        float spriteWidth = testTexture.getWidth() * testSprite.getScale().x;
+        if (spriteX > currentWidth + spriteWidth) {
+            spriteX = -spriteWidth;
+        }
+
+        movetest.UpdateAnimation(dt);
+        testSprite.setTransformation(movetest.getPosition(),movetest.getScale(), movetest.getRotation());
+
         if(actions.isActionDown("pause")){
             movetest.startAnimation();
         }
@@ -94,10 +100,17 @@ public class TicTacToeScene implements Scene {
     }
 
     @Override
+    public void resize(int width, int height) {
+        // Store new dimensions every time window resizes
+        this.currentWidth = width;
+        this.currentHeight = height;
+
+        spriteRenderer.setProjection(width, height);
+    }
+
+    @Override
     public void cleanup() {
         System.out.println("TicTacToeScene closed");
-        testTexture.cleanup();
-        spriteShader.cleanup();
     }
 
     @Override

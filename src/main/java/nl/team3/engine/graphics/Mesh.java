@@ -19,7 +19,6 @@ import static org.lwjgl.opengl.GL30.glGenVertexArrays;
 
 public class Mesh {
     private static final int FLOATS_PER_VERTEX = 4;
-    private static Mesh quadInstance;
 
     private final int vaoId;
     private final int vboId;
@@ -54,13 +53,6 @@ public class Mesh {
         glBindVertexArray(0);
     }
 
-    public static Mesh getQuad() {
-        if (quadInstance == null) {
-            quadInstance = createQuad();
-        }
-        return quadInstance;
-    }
-
     public static Mesh createQuad() {
         float[] vertices = {
                 // pos          // uv
@@ -74,18 +66,9 @@ public class Mesh {
         return new Mesh(vertices, indices);
     }
 
-    // Prevent memory leaks by cleaning up quad instance
-    public static void cleanupQuad() {
-        if (quadInstance != null) {
-            quadInstance.cleanup();
-            quadInstance = null;
-        }
-    }
-
     public void render() {
         glBindVertexArray(vaoId);
         glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
     }
 
     public void cleanup() {
