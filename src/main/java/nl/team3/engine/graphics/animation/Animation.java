@@ -12,6 +12,7 @@ public class Animation {
     final private String easingType;
     final private int startRot;
     final private int endRot;
+    final private float duration;
     final private Timer timer;
     private Sprite sprite;
 
@@ -23,6 +24,7 @@ public class Animation {
         this.startRot = startRot;
         this.endRot = endRot;
         this.easingType = easingType;
+        this.duration = duration;
         this.timer = new Timer(this.duration);
         this.sprite = sprite;
 

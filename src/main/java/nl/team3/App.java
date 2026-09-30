@@ -16,6 +16,8 @@ import nl.team3.games.tictactoe.TicTacToeScene;
 
 import java.nio.IntBuffer;
 
+import static org.lwjgl.glfw.GLFW.*;
+
 public class App {
     public static void main(String[] args) {
         Configuration.GLFW_CHECK_THREAD0.set(false);
@@ -31,6 +33,8 @@ public class App {
         GLFW.glfwWindowHint(GLFW.GLFW_CONTEXT_VERSION_MINOR, 3);
         GLFW.glfwWindowHint(GLFW.GLFW_OPENGL_PROFILE, GLFW.GLFW_OPENGL_CORE_PROFILE);
         GLFW.glfwWindowHint(GLFW.GLFW_OPENGL_FORWARD_COMPAT, GLFW.GLFW_TRUE);
+
+
 
         long window = GLFW.glfwCreateWindow(Config.WINDOW_WIDTH, Config.WINDOW_HEIGHT, Config.WINDOW_TITLE, MemoryUtil.NULL, MemoryUtil.NULL);
         if (window == MemoryUtil.NULL) {
@@ -55,6 +59,8 @@ public class App {
 
         // Create the SceneManager once
         SceneManager sceneManager = new SceneManager(assets);
+
+
 
         // Listen for window resize events
         GLFW.glfwSetFramebufferSizeCallback(window, (win, width, height) -> {
@@ -135,6 +141,8 @@ public class App {
         GLFW.glfwDestroyWindow(window);
         GLFW.glfwTerminate();
     }
+
+
 
     private static void printInputDebug(InputManager input, ActionMap actions) {
         StringBuilder line = new StringBuilder();

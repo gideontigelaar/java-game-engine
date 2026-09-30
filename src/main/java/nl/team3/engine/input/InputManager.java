@@ -3,6 +3,8 @@ package nl.team3.engine.input;
 import org.lwjgl.glfw.GLFW;
 import java.util.Arrays;
 
+import static org.lwjgl.glfw.GLFW.*;
+
 public class InputManager {
 
     private static final int MAX_KEYS = GLFW.GLFW_KEY_LAST + 1;
@@ -152,6 +154,11 @@ public class InputManager {
         return scrollY;
     }
 
+    public void setCursorVisible(boolean visible) {
+        glfwSetInputMode(window, GLFW_CURSOR,
+                visible ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_HIDDEN);
+    }
+
     // Returns text typed this frame
     public String getTextInput() {
         return textInput.toString();
@@ -163,6 +170,6 @@ public class InputManager {
 
     // Toggles OS cursor visibility
     public void setCursorMode(int glfwCursorMode) {
-        GLFW.glfwSetInputMode(window, GLFW.GLFW_CURSOR, glfwCursorMode);
+        glfwSetInputMode(window, GLFW.GLFW_CURSOR, glfwCursorMode);
     }
 }

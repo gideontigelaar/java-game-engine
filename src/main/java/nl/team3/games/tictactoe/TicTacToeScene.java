@@ -15,6 +15,8 @@ import nl.team3.engine.graphics.SpriteRenderer;
 import nl.team3.engine.graphics.Texture;
 import nl.team3.engine.graphics.animation.Animation;
 
+import static org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT;
+import static org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_RIGHT;
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.glClear;
 
@@ -26,34 +28,26 @@ public class TicTacToeScene implements Scene {
 
     private ShaderProgram spriteShader;
     private SpriteRenderer spriteRenderer;
-    private Texture testTexture;
-    private Sprite testSprite;
+    private Texture mousePointTexture;
+    private Texture mouseGrabTexture;
+    private Sprite mousePoint;
+    private Sprite mouseGrab;
+    private Vector2f mousePosition;
 
 
 
 
 
-    private Animation movetest = new Animation(
-            new Vector2f(0, 200), //startpos
-            new Vector2f(400, 200),  //endpos
-            new Vector2f(0.5f,0.02f), //startscale
-            new Vector2f(0.1f, 0.15f), //endscale
-            0, 0, 0.6f, "ExponentialOut", testSprite); //startrot, endrot, duration
 
-    private Animation movetest2 = new Animation(
-            new Vector2f(400, 200), //startpos
-            new Vector2f(390, 200),  //endpos
-            new Vector2f(0.1f,0.15f), //startscale
-            new Vector2f(0.1f, 0.1f), //endscale
-            0, 0, 0.1f, "Linear", testSprite); //startrot, endrot, duration
 
-    private AnimationSequence sequence = new AnimationSequence(List.of(movetest, movetest2));
 
 
     int x = 0;
 
     private final InputManager input;
     private final ActionMap actions;
+    private int currentHeight;
+    private int currentWidth;
 
     public TicTacToeScene(InputManager input, ActionMap actions) {
         this.input = input;
@@ -64,39 +58,34 @@ public class TicTacToeScene implements Scene {
     public void init(AssetManager assets) {
         System.out.println("TicTacToeScene loaded");
 
-        testTexture = assets.loadTexture("test", "/images/testpng.png");
+        mousePointTexture = assets.loadTexture("mousePoint", "/textures/tictactoe/ase/cursorPoint.png");
+        mouseGrabTexture = assets.loadTexture("mouseGrab", "/textures/tictactoe/ase/cursorGrab.png");
         spriteRenderer = new SpriteRenderer(assets);
+        input.setCursorVisible(false);
+        mousePoint = new Sprite(mousePointTexture);
+        mousePoint.setScale(3f);
+        mousePoint.setAlpha(1f);
 
-        testSprite = new Sprite(testTexture);
-        testSprite.setPosition(200, 150);
-        testSprite.setScale(0.1f);
-        testSprite.setRotation(0f);
-        testSprite.setAlpha(1f);
+
     }
 
     @Override
     public void update(float dt) {
-        spriteX += 150 * dt;
-
-        // Wrap sprite around the screen using dynamic width
-        float spriteWidth = testTexture.getWidth() * testSprite.getScale().x;
-        if (spriteX > currentWidth + spriteWidth) {
-            spriteX = -spriteWidth;
+        mousePosition = new Vector2f(
+                (Math.round(input.getMouseX()/3) + 3f)*3,
+                (Math.round(input.getMouseY()/3) + 12f)*3);
+        if(input.isButtonDown(GLFW_MOUSE_BUTTON_LEFT)){
+            mousePoint.setTexture(mouseGrabTexture);
         }
-
-        movetest.UpdateAnimation(dt);
-        testSprite.setTransformation(movetest.getPosition(),movetest.getScale(), movetest.getRotation());
-
-        if(actions.isActionDown("pause")){
-            movetest.startAnimation();
-        }
+        else{ mousePoint.setTexture(mousePointTexture);}
+        mousePoint.setPosition(mousePosition);
     }
 
 
     @Override
     public void render() {
         glClear(GL_COLOR_BUFFER_BIT);
-        spriteRenderer.draw(testSprite);
+        spriteRenderer.draw(mousePoint);
     }
 
     @Override
@@ -113,9 +102,5 @@ public class TicTacToeScene implements Scene {
         System.out.println("TicTacToeScene closed");
     }
 
-    @Override
-    public void resize(int width, int height) {
-        glViewport(0, 0, width, height);
 
-    }
 }
