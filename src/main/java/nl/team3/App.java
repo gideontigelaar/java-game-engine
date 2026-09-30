@@ -1,6 +1,5 @@
 package nl.team3;
 
-import nl.team3.engine.graphics.*;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
@@ -8,14 +7,16 @@ import org.lwjgl.system.Configuration;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 
+import nl.team3.engine.assets.AssetManager;
 import nl.team3.engine.core.Config;
 import nl.team3.engine.core.SceneManager;
-import nl.team3.engine.graphics.Mesh;
 import nl.team3.engine.input.InputManager;
 import nl.team3.engine.input.ActionMap;
 import nl.team3.games.tictactoe.TicTacToeScene;
 
 import java.nio.IntBuffer;
+
+import static org.lwjgl.glfw.GLFW.*;
 
 public class App {
     public static void main(String[] args) {
@@ -32,6 +33,8 @@ public class App {
         GLFW.glfwWindowHint(GLFW.GLFW_CONTEXT_VERSION_MINOR, 3);
         GLFW.glfwWindowHint(GLFW.GLFW_OPENGL_PROFILE, GLFW.GLFW_OPENGL_CORE_PROFILE);
         GLFW.glfwWindowHint(GLFW.GLFW_OPENGL_FORWARD_COMPAT, GLFW.GLFW_TRUE);
+
+
 
         long window = GLFW.glfwCreateWindow(Config.WINDOW_WIDTH, Config.WINDOW_HEIGHT, Config.WINDOW_TITLE, MemoryUtil.NULL, MemoryUtil.NULL);
         if (window == MemoryUtil.NULL) {
@@ -51,16 +54,19 @@ public class App {
         actions.bind("debugToggle", GLFW.GLFW_KEY_GRAVE_ACCENT);
         actions.bind("lockCursor", GLFW.GLFW_KEY_C);
 
+        // Central asset storage
+        AssetManager assets = new AssetManager();
+
         // Create the SceneManager once
-        SceneManager sceneManager = new SceneManager(window);
+        SceneManager sceneManager = new SceneManager(assets);
+
+
 
         // Listen for window resize events
         GLFW.glfwSetFramebufferSizeCallback(window, (win, width, height) -> {
             GL11.glViewport(0, 0, width, height);
             sceneManager.resize(width, height);
         });
-
-        sceneManager.changeScene(new TicTacToeScene(input, actions));
 
         // Set initial viewport and scene size
         try (MemoryStack stack = MemoryStack.stackPush()) {
@@ -71,6 +77,8 @@ public class App {
             sceneManager.resize(pWidth.get(0), pHeight.get(0));
         }
 
+        sceneManager.changeScene(new TicTacToeScene(input, actions));
+
         float fpsTimer = 0.0f;
         int frames = 0;
 
@@ -80,6 +88,8 @@ public class App {
         double lastTime = GLFW.glfwGetTime();
 
         while (!GLFW.glfwWindowShouldClose(window)) {
+            GLFW.glfwPollEvents();
+
             double currentTime = GLFW.glfwGetTime();
             float deltaTime = (float) (currentTime - lastTime);
             lastTime = currentTime;
@@ -98,15 +108,6 @@ public class App {
                 fpsTimer = 0.0f;
             }
 
-            GL11.glClearColor(Config.BG_COLOR.x, Config.BG_COLOR.y, Config.BG_COLOR.z, Config.BG_COLOR.w);
-            GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
-
-            sceneManager.update(deltaTime);
-            sceneManager.render();
-
-            GLFW.glfwSwapBuffers(window);
-            GLFW.glfwPollEvents();
-
             if (actions.isActionPressed("pause")) {
 
             }
@@ -122,15 +123,26 @@ public class App {
                 printInputDebug(input, actions);
             }
 
+            GL11.glClearColor(Config.BG_COLOR.x, Config.BG_COLOR.y, Config.BG_COLOR.z, Config.BG_COLOR.w);
+            GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
+
+            sceneManager.update(deltaTime);
+            sceneManager.render();
+
+            GLFW.glfwSwapBuffers(window);
+
             input.update();
         }
 
+        // First clean Scene, then assets
         sceneManager.cleanup();
-        Mesh.cleanupQuad();
+        assets.cleanup();
 
         GLFW.glfwDestroyWindow(window);
         GLFW.glfwTerminate();
     }
+
+
 
     private static void printInputDebug(InputManager input, ActionMap actions) {
         StringBuilder line = new StringBuilder();

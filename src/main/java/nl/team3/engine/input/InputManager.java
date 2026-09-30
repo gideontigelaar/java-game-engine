@@ -3,6 +3,8 @@ package nl.team3.engine.input;
 import org.lwjgl.glfw.GLFW;
 import java.util.Arrays;
 
+import static org.lwjgl.glfw.GLFW.*;
+
 public class InputManager {
 
     private static final int MAX_KEYS = GLFW.GLFW_KEY_LAST + 1;
@@ -18,7 +20,6 @@ public class InputManager {
     private double mouseX, mouseY;
     private double lastMouseX, lastMouseY;
     private double scrollX, scrollY;
-    private double scrollXThisFrame, scrollYThisFrame;
 
     private final StringBuilder textInput = new StringBuilder();
 
@@ -57,8 +58,8 @@ public class InputManager {
 
         GLFW.glfwSetScrollCallback(window, (win, xoffset, yoffset) -> {
             // Accumulate scroll events
-            scrollXThisFrame += xoffset;
-            scrollYThisFrame += yoffset;
+            scrollX += xoffset;
+            scrollY += yoffset;
         });
 
         GLFW.glfwSetCharCallback(window, (win, codepoint) -> {
@@ -84,10 +85,8 @@ public class InputManager {
         lastMouseX = mouseX;
         lastMouseY = mouseY;
 
-        scrollX = scrollXThisFrame;
-        scrollY = scrollYThisFrame;
-        scrollXThisFrame = 0;
-        scrollYThisFrame = 0;
+        scrollX = 0;
+        scrollY = 0;
 
         textInput.setLength(0);
     }
@@ -155,6 +154,11 @@ public class InputManager {
         return scrollY;
     }
 
+    public void setCursorVisible(boolean visible) {
+        glfwSetInputMode(window, GLFW_CURSOR,
+                visible ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_HIDDEN);
+    }
+
     // Returns text typed this frame
     public String getTextInput() {
         return textInput.toString();
@@ -166,6 +170,6 @@ public class InputManager {
 
     // Toggles OS cursor visibility
     public void setCursorMode(int glfwCursorMode) {
-        GLFW.glfwSetInputMode(window, GLFW.GLFW_CURSOR, glfwCursorMode);
+        glfwSetInputMode(window, GLFW.GLFW_CURSOR, glfwCursorMode);
     }
 }

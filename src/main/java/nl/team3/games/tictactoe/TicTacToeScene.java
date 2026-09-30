@@ -1,45 +1,53 @@
 package nl.team3.games.tictactoe;
 
-import nl.team3.engine.core.Config;
+import nl.team3.engine.graphics.*;
+import nl.team3.engine.assets.AssetManager;
 import nl.team3.engine.core.Scene;
+import nl.team3.engine.core.Config;
+import nl.team3.engine.graphics.animation.Animation;
+import nl.team3.engine.graphics.animation.AnimationSequence;
 import nl.team3.engine.input.ActionMap;
 import nl.team3.engine.input.InputManager;
-import nl.team3.engine.graphics.ResourceLoader;
-import nl.team3.engine.graphics.ShaderProgram;
+import org.joml.Vector2f;
+
 import nl.team3.engine.graphics.Sprite;
 import nl.team3.engine.graphics.SpriteRenderer;
 import nl.team3.engine.graphics.Texture;
 import nl.team3.engine.graphics.animation.Animation;
 
-import static org.lwjgl.opengl.GL11.GL_BLEND;
+import static org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT;
+import static org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_RIGHT;
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
-import static org.lwjgl.opengl.GL11.GL_ONE_MINUS_SRC_ALPHA;
-import static org.lwjgl.opengl.GL11.GL_SRC_ALPHA;
-import static org.lwjgl.opengl.GL11.glBlendFunc;
 import static org.lwjgl.opengl.GL11.glClear;
-import static org.lwjgl.opengl.GL11.glEnable;
 
-import org.joml.Vector2f;
+import java.util.List;
+
+import static org.lwjgl.opengl.GL11C.*;
 
 public class TicTacToeScene implements Scene {
+
     private ShaderProgram spriteShader;
     private SpriteRenderer spriteRenderer;
-    private Texture testTexture;
-    private Sprite testSprite;
+    private Texture mousePointTexture;
+    private Texture mouseGrabTexture;
+    private Sprite mousePoint;
+    private Sprite mouseGrab;
+    private Vector2f mousePosition;
 
-    private float spriteX = 0f;
-    private int currentWidth;
-    private int currentHeight;
 
-    private Animation movetest = new Animation(
-            new Vector2f(400, 400), //startpos
-            new Vector2f(400, 400),  //endpos
-            new Vector2f(100f,1f), //startscale
-            new Vector2f(10f, 10f), //endscale
-            0, 0, 0.2f, "ExponentialIn"); //startrot, endrot, duration
+
+
+
+
+
+
+
+    int x = 0;
 
     private final InputManager input;
     private final ActionMap actions;
+    private int currentHeight;
+    private int currentWidth;
 
     public TicTacToeScene(InputManager input, ActionMap actions) {
         this.input = input;
@@ -47,51 +55,37 @@ public class TicTacToeScene implements Scene {
     }
 
     @Override
-    public void init() {
+    public void init(AssetManager assets) {
         System.out.println("TicTacToeScene loaded");
 
-        String vertexSource = ResourceLoader.readResource("/shaders/sprite.vert");
-        String fragmentSource = ResourceLoader.readResource("/shaders/sprite.frag");
+        mousePointTexture = assets.loadTexture("mousePoint", "/textures/tictactoe/ase/cursorPoint.png");
+        mouseGrabTexture = assets.loadTexture("mouseGrab", "/textures/tictactoe/ase/cursorGrab.png");
+        spriteRenderer = new SpriteRenderer(assets);
+        input.setCursorVisible(false);
+        mousePoint = new Sprite(mousePointTexture);
+        mousePoint.setScale(3f);
+        mousePoint.setAlpha(1f);
 
-        spriteShader = new ShaderProgram(vertexSource, fragmentSource);
-        testTexture = Texture.load("/textures/tictactoe/o.png");
 
-        spriteRenderer = new SpriteRenderer(spriteShader, Config.WINDOW_WIDTH, Config.WINDOW_HEIGHT);
-
-        testSprite = new Sprite(testTexture);
-        testSprite.setPosition(200, 150);
-        testSprite.setScale(10f,0.1f);
-        testSprite.setRotation(0f);
-        testSprite.setAlpha(1f);
-
-        // Fallback dimensions
-        currentWidth = Config.WINDOW_WIDTH;
-        currentHeight = Config.WINDOW_HEIGHT;
-
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     }
 
     @Override
     public void update(float dt) {
-
-
-        movetest.UpdateAnimation(dt);
-        testSprite.setTransformation(movetest.getPosition(),movetest.getScale(), movetest.getRotation());
-
-        if(actions.isActionDown("pause")){
-            movetest.startAnimation();
+        mousePosition = new Vector2f(
+                (Math.round(input.getMouseX()/3) + 3f)*3,
+                (Math.round(input.getMouseY()/3) + 12f)*3);
+        if(input.isButtonDown(GLFW_MOUSE_BUTTON_LEFT)){
+            mousePoint.setTexture(mouseGrabTexture);
         }
-
-        // Center sprite using dynamic height
-        //testSprite.setPosition(spriteX, currentHeight / 2.0f);
+        else{ mousePoint.setTexture(mousePointTexture);}
+        mousePoint.setPosition(mousePosition);
     }
 
 
     @Override
     public void render() {
         glClear(GL_COLOR_BUFFER_BIT);
-        spriteRenderer.draw(testSprite);
+        spriteRenderer.draw(mousePoint);
     }
 
     @Override
@@ -100,15 +94,13 @@ public class TicTacToeScene implements Scene {
         this.currentWidth = width;
         this.currentHeight = height;
 
-        if (spriteRenderer != null) {
-            spriteRenderer.setProjection(width, height);
-        }
+        spriteRenderer.setProjection(width, height);
     }
 
     @Override
     public void cleanup() {
         System.out.println("TicTacToeScene closed");
-        testTexture.cleanup();
-        spriteShader.cleanup();
     }
+
+
 }
