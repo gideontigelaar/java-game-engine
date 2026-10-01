@@ -98,7 +98,7 @@ public class TicTacToeScene implements Scene {
         XpieceTexture = assets.loadTexture("Xpiece", "/textures/tictactoe/x.png");
         Xpiece = new Sprite(XpieceTexture);
         Xpiece.setPosition(screenCenter.get(0), screenCenter.get(1) - 8f);
-        Xpiece.setScale(3f);
+        Xpiece.setScale(4f);
         }
 
 
@@ -146,7 +146,7 @@ public class TicTacToeScene implements Scene {
     @Override
     public void render() {
         glClear(GL_COLOR_BUFFER_BIT);
-        spriteRenderer.draw(board);
+        //spriteRenderer.draw(board);
         spriteRenderer.draw(Xpiece);
         spriteRenderer.draw(mousePoint);
 
