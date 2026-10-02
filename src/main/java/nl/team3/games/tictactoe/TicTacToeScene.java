@@ -44,7 +44,7 @@ public class TicTacToeScene implements Scene {
     //pieceTest
     private Sprite Xpiece;
     private Texture XpieceTexture;
-
+    private BackgroundRenderer background;
 
 
 
@@ -99,6 +99,10 @@ public class TicTacToeScene implements Scene {
         Xpiece = new Sprite(XpieceTexture);
         Xpiece.setPosition(screenCenter.get(0), screenCenter.get(1) - 8f);
         Xpiece.setScale(4f);
+
+        //init background
+        background = new BackgroundRenderer(assets);
+
         }
 
 
@@ -133,7 +137,7 @@ public class TicTacToeScene implements Scene {
 
         //board rendering
         screenCenter = new Vector2f(Math.round((float) currentWidth/2),Math.round((float) currentHeight/2));
-
+        background.update(dt);
 
 
 
@@ -147,6 +151,7 @@ public class TicTacToeScene implements Scene {
     public void render() {
         glClear(GL_COLOR_BUFFER_BIT);
         //spriteRenderer.draw(board);
+        background.render(currentWidth,currentHeight);
         spriteRenderer.draw(Xpiece);
         spriteRenderer.draw(mousePoint);
 
@@ -164,6 +169,7 @@ public class TicTacToeScene implements Scene {
     @Override
     public void cleanup() {
         System.out.println("TicTacToeScene closed");
+        background.cleanup();
     }
 
 

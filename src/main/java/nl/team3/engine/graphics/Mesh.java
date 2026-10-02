@@ -19,6 +19,8 @@ import static org.lwjgl.opengl.GL30.glGenVertexArrays;
 
 public class Mesh {
     private static final int FLOATS_PER_VERTEX = 4;
+    private static Mesh quadInstance;
+
 
     private final int vaoId;
     private final int vboId;
@@ -64,6 +66,13 @@ public class Mesh {
 
         int[] indices = { 0, 1, 2, 2, 3, 0 };
         return new Mesh(vertices, indices);
+    }
+
+    public static Mesh getQuad() {
+        if (quadInstance == null) {
+            quadInstance = createQuad();
+        }
+        return quadInstance;
     }
 
     public void render() {
