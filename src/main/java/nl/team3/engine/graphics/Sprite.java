@@ -103,4 +103,15 @@ public class Sprite {
     public void setTint(float r, float g, float b, float a) {
         this.tint.set(r, g, b, a);
     }
+
+    public boolean contains(Vector2f point) {
+        float width = texture.getWidth() * scale.x;
+        float height = texture.getHeight() * scale.y;
+
+        float left = position.x - origin.x * width;
+        float top = position.y - origin.y * height;
+
+        return point.x >= left && point.x <= left + width
+                && point.y >= top && point.y <= top + height;
+    }
 }

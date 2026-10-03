@@ -12,6 +12,7 @@ import nl.team3.engine.graphics.Sprite;
 import nl.team3.engine.graphics.SpriteRenderer;
 import nl.team3.engine.graphics.Texture;
 
+import static org.lwjgl.glfw.GLFW.GLFW_KEY_2;
 import static org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT;
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.glClear;
@@ -47,7 +48,7 @@ public class TicTacToeScene implements Scene {
     private Texture XpieceTexture;
     private BackgroundRenderer background;
 
-
+    private Vector2f mousePosEffect;
 
 
 
@@ -78,32 +79,28 @@ public class TicTacToeScene implements Scene {
         //init Mouseanims
         mouseGrabAnim = Animation.builder()
                 .sprite(mousePoint)
-                .scale(new Vector2f(4f,4f), new Vector2f(3f,3f))
+                .scale(new Vector2f(8f,8f), new Vector2f(6f,6f))
                 .duration(0.3f)
                 .easing("ExponentialOut")
                 .build();
         mouseReleaseAnim = Animation.builder()
                 .sprite(mousePoint)
-                .scale(new Vector2f(3f,3f), new Vector2f(4f,4f))
+                .scale(new Vector2f(6f,6f), new Vector2f(8f,8f))
                 .duration(0.3f)
                 .easing("ExponentialOut")
                 .build();
 
-        //init Board
-        boardTexture = assets.loadTexture("board", "/textures/tictactoe/board.png");
-        board = new Sprite(boardTexture);
-        board.setPosition(screenCenter);
-        board.setScale(4f);
 
-        //init Test piece
-        XpieceTexture = assets.loadTexture("Xpiece", "/textures/tictactoe/x.png");
+
+        //board init
+        XpieceTexture = assets.loadTexture("Xpiece", "/textures/tictactoe/board.png");
         Xpiece = new Sprite(XpieceTexture);
         Xpiece.setPosition(screenCenter.get(0), screenCenter.get(1) - 8f);
-        Xpiece.setScale(4f);
+        Xpiece.setScale(8f);
 
         //init background
         background = new BackgroundRenderer(assets);
-
+        mousePosEffect = new Vector2f(0f,0f);
         }
 
 
@@ -111,7 +108,7 @@ public class TicTacToeScene implements Scene {
 
     @Override
     public void update(float dt) {
-        lastblue = blue;
+
         //mouse logic
         mousePosition = new Vector2f(
                 (Math.round(input.getMouseX()/4) + 4f)*4,
@@ -119,11 +116,12 @@ public class TicTacToeScene implements Scene {
 
         if(input.isButtonPressed(GLFW_MOUSE_BUTTON_LEFT)){
             mouseGrabAnim.startAnimation();
-            blue = true;
+
         }
         if(input.isButtonReleased(GLFW_MOUSE_BUTTON_LEFT)){
+
             mouseReleaseAnim.startAnimation();
-            blue = false;
+
         }
 
         if(input.isButtonDown(GLFW_MOUSE_BUTTON_LEFT)){
@@ -138,10 +136,16 @@ public class TicTacToeScene implements Scene {
         }
         mousePoint.setPosition(mousePosition);
 
+        //animation test
+        if(input.isKeyPressed(GLFW_KEY_2)){
+            blue = !blue;
+            mousePosEffect = mousePosition;
+            background.startAnimation();
+        }
+
         //board rendering
         screenCenter = new Vector2f(Math.round((float) currentWidth/2),Math.round((float) currentHeight/2));
-        background.update(dt, blue, lastblue);
-
+        background.update(dt, blue, (float) mousePosEffect.x, (float) mousePosEffect.y);
 
 
 
@@ -167,6 +171,7 @@ public class TicTacToeScene implements Scene {
         this.currentHeight = height;
 
         spriteRenderer.setProjection(width, height);
+        Xpiece.setPosition(new Vector2f(Math.round((float) width/2),Math.round((float) height/2)));
     }
 
     @Override

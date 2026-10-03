@@ -29,15 +29,15 @@ public class BackgroundRenderer {
             uniform float iTime;
             uniform vec2 iResolution;
             uniform bool transitionToBlue;
-            uniform bool lastTransitionToBlue;
-            
+            uniform float startTime;
+            uniform vec2 mousePosition;
             
             void main()
             {
                     vec2 fragCoord = vec2(vUV.x * iResolution.x, vUV.y * iResolution.y);
                     float blockPx = 4.0;
                     float GroupSize = 20.0;
-                    float amp = 10.0;
+                    float amp = 20.0;
                     float freq = 0.01;
                     float speed = 15.0;
                     float waveSpeed = 2.0;
@@ -48,20 +48,14 @@ public class BackgroundRenderer {
             
             
             
-                    vec3 colA = vec3(1, 0.824, 0.851);
-                    vec3 colB = vec3(1, 0.624, 0.678);
-                    vec3 colC = vec3(1, 0.396, 0.486);
-                    vec3 col2A = vec3(0.502,1.000,0.651);
-                    vec3 col2B = vec3(0.459,1.000,0.502);
-                    vec3 col2C = vec3(0.000,0.957,0.122);
+                    vec3 colA = vec3(1, 0.149, 0.455);
+                    vec3 colB = vec3(1, 0.502, 0.643);
+                    vec3 colC = vec3(0.58, 0.129, 0.416);
+                    vec3 col2A = vec3(0.063, 0.824, 0.459);
+                    vec3 col2B = vec3(0.749, 1, 0.235);
+                    vec3 col2C = vec3(0, 0.471, 0.6);
             
-                    vec2 transitionPosition = iResolution.xy / 2.0;
-            
-                    float startTime = 0.0;
-            
-                    if (lastTransitionToBlue != transitionToBlue) {
-                        startTime = iTime;
-                    }
+                    vec2 transitionPosition = mousePosition;
             
                     float expspeed = exp((iTime - startTime) * circleSpeed);
                     float changeValue = 10.0;
@@ -86,7 +80,8 @@ public class BackgroundRenderer {
                     {
                         if ( local.x > 1.0 && local.x < 18.0 && local.y > 1.0 && local.y < 18.0 )
                         {
-                            fragColor = vec4(colA, 1.0);
+                            if(transitionToBlue){fragColor = vec4(colA, 1.0);}
+                            if(!transitionToBlue){fragColor = vec4(col2A, 1.0);}
                             //blue transition
                             if (distance(snapped, transitionPosition) < (expspeed) && transitionToBlue) {fragColor = vec4(col2A, 1.0);}
                             //red transition
@@ -94,7 +89,12 @@ public class BackgroundRenderer {
             
                         }
                         else {
-                        fragColor = vec4(1.0,1.0,1.0,1.0);
+                            if(transitionToBlue){fragColor = vec4(colB, 1.0);}
+                            if(!transitionToBlue){fragColor = vec4(col2B, 1.0);}
+                            //blue transition
+                            if (distance(snapped, transitionPosition) < (expspeed) && transitionToBlue) {fragColor = vec4(col2B, 1.0);}
+                            //red transition
+                            if (distance(snapped, transitionPosition) < (expspeed) && !transitionToBlue) {fragColor = vec4(colB, 1.0);}
                         }
             
             
@@ -103,7 +103,9 @@ public class BackgroundRenderer {
                     {
                         if ( local.x > 1.0 && local.x < 18.0 && local.y > 1.0 && local.y < 18.0 )
                         {
-                            fragColor = vec4(colB, 1.0);
+                            if(transitionToBlue){fragColor = vec4(colB, 1.0);}
+                            if(!transitionToBlue){fragColor = vec4(col2B, 1.0);}
+            
                             //blue transition
                             if (distance(snapped, transitionPosition) < (expspeed) && transitionToBlue) {fragColor = vec4(col2B, 1.0);}
                             //red transition
@@ -111,8 +113,9 @@ public class BackgroundRenderer {
             
                         }
                         else {
-                        fragColor = vec4(colC,1.0);
-            
+                        if(transitionToBlue){fragColor = vec4(colC, 1.0);}
+                        if(!transitionToBlue){fragColor = vec4(col2C, 1.0);}
+                
                         //blue transition
                         if (distance(snapped, transitionPosition) < (expspeed) && transitionToBlue) {fragColor = vec4(col2C,1.0);}
                         //red transition
@@ -129,30 +132,35 @@ public class BackgroundRenderer {
     private final Mesh quad;
     private float time = 0f;
     private boolean blue = true;
-    private boolean lastblue = true;
-
+    private float startTime = 0f;
+    private float mouseX;
+    private float mouseY;
 
     public BackgroundRenderer(AssetManager assets) {
         this.shader = new ShaderProgram(VERTEX_SOURCE, FRAGMENT_SOURCE);
         this.quad = assets.getMesh(AssetManager.QUAD_MESH);
     }
 
-    public void update(float dt, boolean blue, boolean lastBlue) {
+    public void update(float dt, boolean blue, float x, float y) {
         time += dt;
         this.blue = blue;
-        this.lastblue = lastBlue;
+        this.mouseX = x;
+        this.mouseY = y;
     }
 
     public void render(int width, int height) {
         shader.bind();
         shader.setUniform1f("iTime", time);
         shader.setUniform1b("transitionToBlue", blue);
-        shader.setUniform1b("lastTransitionToBlue", lastblue);
+        shader.setUniform1f("startTime", startTime);
         shader.setUniform2f("iResolution", width, height);
+        shader.setUniform2f("mousePosition", mouseX,mouseY);
         quad.render();
         shader.unbind();
     }
     public void cleanup() {
         shader.cleanup();
     }
+
+    public void startAnimation() {startTime = time;}
 }
