@@ -25,7 +25,8 @@ public class TicTacToeScene implements Scene {
     private int currentWidth = Config.WINDOW_WIDTH;
 
     //mouse
-
+    private boolean blue = true;
+    private boolean lastblue = true;
     private Animation mouseGrabAnim;
     private Animation mouseReleaseAnim;
 
@@ -110,7 +111,7 @@ public class TicTacToeScene implements Scene {
 
     @Override
     public void update(float dt) {
-
+        lastblue = blue;
         //mouse logic
         mousePosition = new Vector2f(
                 (Math.round(input.getMouseX()/4) + 4f)*4,
@@ -118,9 +119,11 @@ public class TicTacToeScene implements Scene {
 
         if(input.isButtonPressed(GLFW_MOUSE_BUTTON_LEFT)){
             mouseGrabAnim.startAnimation();
+            blue = true;
         }
         if(input.isButtonReleased(GLFW_MOUSE_BUTTON_LEFT)){
             mouseReleaseAnim.startAnimation();
+            blue = false;
         }
 
         if(input.isButtonDown(GLFW_MOUSE_BUTTON_LEFT)){
@@ -137,7 +140,7 @@ public class TicTacToeScene implements Scene {
 
         //board rendering
         screenCenter = new Vector2f(Math.round((float) currentWidth/2),Math.round((float) currentHeight/2));
-        background.update(dt);
+        background.update(dt, blue, lastblue);
 
 
 

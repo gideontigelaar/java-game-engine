@@ -80,6 +80,10 @@ public class ShaderProgram {
         glUniform1i(getUniformLocation(name), value);
     }
 
+    public void setUniform1b(String name, boolean value) {
+        glUniform1i(getUniformLocation(name), value ? 1 : 0);
+    }
+
     public void setUniform2f(String name, float x, float y) {glUniform2f(getUniformLocation(name), x, y);}
 
     public void cleanup() {
