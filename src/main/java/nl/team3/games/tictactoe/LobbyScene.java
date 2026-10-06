@@ -19,6 +19,8 @@ import static org.lwjgl.opengl.GL11.glClear;
 public class LobbyScene implements Scene {
     private SpriteRenderer spriteRenderer;
     private TextRenderer textRenderer;
+    private BackgroundRenderer background;
+
     private Font gameFont;
     private Font smallFont;
 
@@ -34,14 +36,13 @@ public class LobbyScene implements Scene {
     private Texture mouseGrabTexture;
     private Sprite mousePoint;
     private Vector2f mousePosition;
-    private BackgroundRenderer background;
 
     private final InputManager input;
     private final ActionMap actions;
     private final SceneManager sceneManager;
     private final ServerConnection connection;
 
-    private String serverStatus = "Awaiting Server Response...";
+    private String serverStatus = "Connected. Awaiting actions...";
     private String playersList = "Players: []";
     private String gamesList = "Games: []";
 
@@ -56,9 +57,10 @@ public class LobbyScene implements Scene {
     public void init(AssetManager assets) {
         gameFont = assets.loadFont("gameFont", "/fonts/3x5-Microfont-Mono.ttf", 48f);
         smallFont = assets.loadFont("smallFont", "/fonts/3x5-Microfont-Mono.ttf", 24f);
-        textRenderer = new TextRenderer(assets);
-        spriteRenderer = new SpriteRenderer(assets);
-        background = new BackgroundRenderer(assets);
+
+        textRenderer = assets.getTextRenderer();
+        spriteRenderer = assets.getSpriteRenderer();
+        background = assets.getBackgroundRenderer();
 
         mousePointTexture = assets.loadTexture("mousePoint", "/textures/tictactoe/cursorPoint.png");
         mouseGrabTexture = assets.loadTexture("mouseGrab", "/textures/tictactoe/cursorGrab.png");
@@ -95,11 +97,8 @@ public class LobbyScene implements Scene {
         btnDisconnect.update(input);
         background.update(dt, false, mousePosition.x, mousePosition.y);
 
-        // Process network messages on main thread
         connection.update(msg -> {
-            if (msg.equals("OK")) {
-                // Command accepted
-            } else if (msg.startsWith("ERR")) {
+            if (msg.startsWith("ERR")) {
                 serverStatus = "Error: " + msg.substring(4);
             } else if (msg.startsWith("SVR PLAYERLIST")) {
                 playersList = "Players: " + msg.substring(15);
@@ -108,10 +107,14 @@ public class LobbyScene implements Scene {
             } else if (msg.startsWith("SVR GAME MATCH")) {
                 serverStatus = "Match found!";
                 sceneManager.changeScene(new TicTacToeScene(input, actions, sceneManager, connection));
-            } else {
-                serverStatus = "Status: " + msg;
+            } else if (msg.startsWith("SVR GAME CHALLENGE")) {
+                serverStatus = "Received a challenge!";
             }
         });
+
+        if (!connection.isConnected()) {
+            sceneManager.changeScene(new MainMenuScene(input, actions, sceneManager));
+        }
     }
 
     @Override
@@ -121,7 +124,6 @@ public class LobbyScene implements Scene {
 
         textRenderer.drawText(gameFont, "MULTIPLAYER LOBBY", 50, 80, new Vector4f(1, 1, 1, 1));
         textRenderer.drawText(smallFont, serverStatus, 50, 140, new Vector4f(1, 1, 0, 1));
-
         textRenderer.drawText(smallFont, playersList, 50, 220, new Vector4f(0.8f, 0.8f, 1, 1));
         textRenderer.drawText(smallFont, gamesList, 50, 280, new Vector4f(0.8f, 1, 0.8f, 1));
 
@@ -139,11 +141,5 @@ public class LobbyScene implements Scene {
         this.currentHeight = height;
         spriteRenderer.setProjection(width, height);
         textRenderer.setProjection(width, height);
-    }
-
-    @Override
-    public void cleanup() {
-        background.cleanup();
-        textRenderer.cleanup();
     }
 }

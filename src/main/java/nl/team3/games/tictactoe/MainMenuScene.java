@@ -20,9 +20,10 @@ import static org.lwjgl.opengl.GL11.glClear;
 public class MainMenuScene implements Scene {
     private SpriteRenderer spriteRenderer;
     private TextRenderer textRenderer;
+    private BackgroundRenderer background;
+
     private Font gameFont;
     private Font smallFont;
-
     private TextField usernameInput;
     private Button btnLoginOnline;
     private Button btnPlayOffline;
@@ -34,15 +35,14 @@ public class MainMenuScene implements Scene {
     private Texture mouseGrabTexture;
     private Sprite mousePoint;
     private Vector2f mousePosition;
-    private BackgroundRenderer background;
 
     private final InputManager input;
     private final ActionMap actions;
     private final SceneManager sceneManager;
 
-    // Server config
     private final String SERVER_HOST = "127.0.0.1";
     private final int SERVER_PORT = 7789;
+    private String statusMessage = "";
 
     public MainMenuScene(InputManager input, ActionMap actions, SceneManager sceneManager) {
         this.input = input;
@@ -55,9 +55,10 @@ public class MainMenuScene implements Scene {
         System.out.println("MainMenuScene loaded");
         gameFont = assets.loadFont("gameFont", "/fonts/3x5-Microfont-Mono.ttf", 48f);
         smallFont = assets.loadFont("smallFont", "/fonts/3x5-Microfont-Mono.ttf", 32f);
-        textRenderer = new TextRenderer(assets);
-        spriteRenderer = new SpriteRenderer(assets);
-        background = new BackgroundRenderer(assets);
+
+        textRenderer = assets.getTextRenderer();
+        spriteRenderer = assets.getSpriteRenderer();
+        background = assets.getBackgroundRenderer();
 
         mousePointTexture = assets.loadTexture("mousePoint", "/textures/tictactoe/cursorPoint.png");
         mouseGrabTexture = assets.loadTexture("mouseGrab", "/textures/tictactoe/cursorGrab.png");
@@ -67,26 +68,27 @@ public class MainMenuScene implements Scene {
         mousePoint.setAlpha(1f);
 
         float centerX = (currentWidth - 300f) / 2f;
-
         usernameInput = new TextField("player1", smallFont, new Vector2f(centerX, 250), new Vector2f(300, 50));
 
         btnLoginOnline = new Button("LOGIN ONLINE", smallFont, new Vector2f(centerX, 330), new Vector2f(300, 50));
         btnPlayOffline = new Button("PLAY OFFLINE", smallFont, new Vector2f(centerX, 410), new Vector2f(300, 50));
 
-        btnLoginOnline.setOnClick(() -> {
-            try {
-                ServerConnection connection = new ServerConnection(SERVER_HOST, SERVER_PORT);
-                connection.connect();
-                connection.sendCommand("login " + usernameInput.getText());
-                sceneManager.changeScene(new LobbyScene(input, actions, sceneManager, connection));
-            } catch (Exception e) {
-                System.out.println("Failed to connect to server: " + e.getMessage());
-            }
-        });
-
+        btnLoginOnline.setOnClick(this::attemptLogin);
         btnPlayOffline.setOnClick(() -> {
             sceneManager.changeScene(new TicTacToeScene(input, actions, sceneManager, null));
         });
+    }
+
+    private void attemptLogin() {
+        try {
+            ServerConnection connection = new ServerConnection(SERVER_HOST, SERVER_PORT);
+            connection.connect();
+            connection.sendCommand("login " + usernameInput.getText().toLowerCase());
+            sceneManager.changeScene(new LobbyScene(input, actions, sceneManager, connection));
+        } catch (Exception e) {
+            statusMessage = "Connection failed!";
+            System.out.println("Failed to connect to server: " + e.getMessage());
+        }
     }
 
     @Override
@@ -95,14 +97,14 @@ public class MainMenuScene implements Scene {
                 (Math.round(input.getMouseX() / 4) + 4f) * 4,
                 (Math.round(input.getMouseY() / 4) + 16f) * 4);
 
-        if (input.isButtonDown(GLFW_MOUSE_BUTTON_LEFT)) {
-            mousePoint.setTexture(mouseGrabTexture);
-        } else {
-            mousePoint.setTexture(mousePointTexture);
-        }
+        mousePoint.setTexture(input.isButtonDown(GLFW_MOUSE_BUTTON_LEFT) ? mouseGrabTexture : mousePointTexture);
         mousePoint.setPosition(mousePosition);
 
         usernameInput.update(input);
+        if (usernameInput.isSubmitPressed()) {
+            attemptLogin();
+        }
+
         btnLoginOnline.update(input);
         btnPlayOffline.update(input);
         background.update(dt, true, mousePosition.x, mousePosition.y);
@@ -116,13 +118,15 @@ public class MainMenuScene implements Scene {
         float titleWidth = gameFont.getTextWidth("TIC TAC TOE");
         float titleX = (currentWidth - titleWidth) / 2f;
         textRenderer.drawText(gameFont, "TIC TAC TOE", titleX, 150, new Vector4f(1, 1, 1, 1));
-
         textRenderer.drawText(smallFont, "Username:", (currentWidth - 300f) / 2f, 230, new Vector4f(0.8f, 0.8f, 0.8f, 1));
+
+        if (!statusMessage.isEmpty()) {
+            textRenderer.drawText(smallFont, statusMessage, (currentWidth - smallFont.getTextWidth(statusMessage)) / 2f, 500, new Vector4f(1, 0, 0, 1));
+        }
 
         usernameInput.render(textRenderer);
         btnLoginOnline.render(spriteRenderer, textRenderer);
         btnPlayOffline.render(spriteRenderer, textRenderer);
-
         spriteRenderer.draw(mousePoint);
     }
 
@@ -137,12 +141,5 @@ public class MainMenuScene implements Scene {
         usernameInput.setPosition(new Vector2f(centerX, 250));
         btnLoginOnline.setPosition(new Vector2f(centerX, 330));
         btnPlayOffline.setPosition(new Vector2f(centerX, 410));
-    }
-
-    @Override
-    public void cleanup() {
-        System.out.println("MainMenuScene closed");
-        background.cleanup();
-        textRenderer.cleanup();
     }
 }

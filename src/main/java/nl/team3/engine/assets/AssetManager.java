@@ -3,7 +3,10 @@ package nl.team3.engine.assets;
 import nl.team3.engine.graphics.Font;
 import nl.team3.engine.graphics.Mesh;
 import nl.team3.engine.graphics.ShaderProgram;
+import nl.team3.engine.graphics.SpriteRenderer;
+import nl.team3.engine.graphics.TextRenderer;
 import nl.team3.engine.graphics.Texture;
+import nl.team3.games.tictactoe.BackgroundRenderer;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -18,6 +21,10 @@ public final class AssetManager {
     private final Map<String, ShaderProgram> shaders = new HashMap<>();
     private final Map<String, Mesh> meshes = new HashMap<>();
     private final Map<String, Font> fonts = new HashMap<>();
+
+    private TextRenderer textRenderer;
+    private SpriteRenderer spriteRenderer;
+    private BackgroundRenderer backgroundRenderer;
 
     public AssetManager() {
         loadShader(SPRITE_SHADER, "/shaders/sprite.vert", "/shaders/sprite.frag");
@@ -60,6 +67,27 @@ public final class AssetManager {
         return get(meshes, "Mesh", key);
     }
 
+    public TextRenderer getTextRenderer() {
+        if (textRenderer == null) {
+            textRenderer = new TextRenderer(this);
+        }
+        return textRenderer;
+    }
+
+    public SpriteRenderer getSpriteRenderer() {
+        if (spriteRenderer == null) {
+            spriteRenderer = new SpriteRenderer(this);
+        }
+        return spriteRenderer;
+    }
+
+    public BackgroundRenderer getBackgroundRenderer() {
+        if (backgroundRenderer == null) {
+            backgroundRenderer = new BackgroundRenderer(this);
+        }
+        return backgroundRenderer;
+    }
+
     private static <T> T get(Map<String, T> assets, String type, String key) {
         T asset = assets.get(key);
         if (asset == null) {
@@ -69,6 +97,9 @@ public final class AssetManager {
     }
 
     public void cleanup() {
+        if (textRenderer != null) textRenderer.cleanup();
+        if (backgroundRenderer != null) backgroundRenderer.cleanup();
+
         textures.values().forEach(Texture::cleanup);
         shaders.values().forEach(ShaderProgram::cleanup);
         meshes.values().forEach(Mesh::cleanup);

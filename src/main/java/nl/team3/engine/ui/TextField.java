@@ -5,6 +5,7 @@ import nl.team3.engine.graphics.TextRenderer;
 import nl.team3.engine.input.InputManager;
 import org.joml.Vector2f;
 import org.joml.Vector4f;
+import org.lwjgl.glfw.GLFW;
 
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_BACKSPACE;
 import static org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT;
@@ -15,6 +16,7 @@ public class TextField {
     private String text;
     private Font font;
     private boolean isFocused;
+    private boolean submitPressed;
 
     public TextField(String defaultText, Font font, Vector2f position, Vector2f size) {
         this.text = defaultText;
@@ -26,6 +28,7 @@ public class TextField {
     public void update(InputManager input) {
         double mouseX = input.getMouseX();
         double mouseY = input.getMouseY();
+        submitPressed = false;
 
         boolean hovered = mouseX >= position.x && mouseX <= position.x + size.x && mouseY >= position.y && mouseY <= position.y + size.y;
 
@@ -37,6 +40,9 @@ public class TextField {
             text += input.getTextInput();
             if (input.isKeyPressed(GLFW_KEY_BACKSPACE) && text.length() > 0) {
                 text = text.substring(0, text.length() - 1);
+            }
+            if (input.isKeyPressed(GLFW.GLFW_KEY_ENTER) || input.isKeyPressed(GLFW.GLFW_KEY_KP_ENTER)) {
+                submitPressed = true;
             }
         }
     }
@@ -55,5 +61,9 @@ public class TextField {
 
     public void setPosition(Vector2f position) {
         this.position = position;
+    }
+
+    public boolean isSubmitPressed() {
+        return submitPressed;
     }
 }
