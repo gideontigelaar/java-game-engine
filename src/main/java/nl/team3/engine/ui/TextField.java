@@ -1,11 +1,12 @@
 package nl.team3.engine.ui;
 
 import nl.team3.engine.graphics.Font;
+import nl.team3.engine.graphics.Sprite;
+import nl.team3.engine.graphics.SpriteRenderer;
 import nl.team3.engine.graphics.TextRenderer;
 import nl.team3.engine.input.InputManager;
 import org.joml.Vector2f;
 import org.joml.Vector4f;
-import org.lwjgl.glfw.GLFW;
 
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_BACKSPACE;
 import static org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT;
@@ -17,6 +18,7 @@ public class TextField {
     private Font font;
     private boolean isFocused;
     private boolean submitPressed;
+    private Sprite backgroundSprite;
 
     public TextField(String defaultText, Font font, Vector2f position, Vector2f size) {
         this.text = defaultText;
@@ -41,18 +43,29 @@ public class TextField {
             if (input.isKeyPressed(GLFW_KEY_BACKSPACE) && text.length() > 0) {
                 text = text.substring(0, text.length() - 1);
             }
-            if (input.isKeyPressed(GLFW.GLFW_KEY_ENTER) || input.isKeyPressed(GLFW.GLFW_KEY_KP_ENTER)) {
+            if (input.isKeyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER) || input.isKeyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_KP_ENTER)) {
                 submitPressed = true;
             }
         }
     }
 
-    public void render(TextRenderer textRenderer) {
+    public void render(SpriteRenderer spriteRenderer, TextRenderer textRenderer) {
+        if (backgroundSprite != null && spriteRenderer != null) {
+            backgroundSprite.setPosition(position);
+            backgroundSprite.setScale(size.x);
+            spriteRenderer.draw(backgroundSprite);
+        }
+
         String cursor = (isFocused && (System.currentTimeMillis() % 1000 < 500)) ? "_" : "";
         String displayText = (isFocused ? "> " : "  ") + text + cursor;
 
         Vector4f color = isFocused ? new Vector4f(1.0f, 1.0f, 0.0f, 1.0f) : new Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
-        textRenderer.drawText(font, displayText, position.x, position.y + (size.y / 2.0f), color);
+        float textY = position.y + (size.y / 2.0f) + 8.0f;
+        textRenderer.drawText(font, displayText, position.x + 15f, textY, color);
+    }
+
+    public void setBackgroundSprite(Sprite backgroundSprite) {
+        this.backgroundSprite = backgroundSprite;
     }
 
     public String getText() {
