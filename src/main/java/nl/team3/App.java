@@ -12,7 +12,7 @@ import nl.team3.engine.core.Config;
 import nl.team3.engine.core.SceneManager;
 import nl.team3.engine.input.InputManager;
 import nl.team3.engine.input.ActionMap;
-import nl.team3.games.tictactoe.TicTacToeScene;
+import nl.team3.games.tictactoe.MainMenuScene;
 
 import java.nio.IntBuffer;
 
@@ -33,8 +33,6 @@ public class App {
         GLFW.glfwWindowHint(GLFW.GLFW_CONTEXT_VERSION_MINOR, 3);
         GLFW.glfwWindowHint(GLFW.GLFW_OPENGL_PROFILE, GLFW.GLFW_OPENGL_CORE_PROFILE);
         GLFW.glfwWindowHint(GLFW.GLFW_OPENGL_FORWARD_COMPAT, GLFW.GLFW_TRUE);
-
-
 
         long window = GLFW.glfwCreateWindow(Config.WINDOW_WIDTH, Config.WINDOW_HEIGHT, Config.WINDOW_TITLE, MemoryUtil.NULL, MemoryUtil.NULL);
         if (window == MemoryUtil.NULL) {
@@ -60,8 +58,6 @@ public class App {
         // Create the SceneManager once
         SceneManager sceneManager = new SceneManager(assets);
 
-
-
         // Listen for window resize events
         GLFW.glfwSetFramebufferSizeCallback(window, (win, width, height) -> {
             GL11.glViewport(0, 0, width, height);
@@ -77,7 +73,8 @@ public class App {
             sceneManager.resize(pWidth.get(0), pHeight.get(0));
         }
 
-        sceneManager.changeScene(new TicTacToeScene(input, actions));
+        // Start in Main Menu instead of directly in the game
+        sceneManager.changeScene(new MainMenuScene(input, actions, sceneManager));
 
         float fpsTimer = 0.0f;
         int frames = 0;
@@ -141,8 +138,6 @@ public class App {
         GLFW.glfwDestroyWindow(window);
         GLFW.glfwTerminate();
     }
-
-
 
     private static void printInputDebug(InputManager input, ActionMap actions) {
         StringBuilder line = new StringBuilder();

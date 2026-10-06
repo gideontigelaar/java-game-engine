@@ -31,6 +31,17 @@ public class Font {
         MemoryUtil.memFree(alphaBitmap);
     }
 
+    public float getTextWidth(String text) {
+        float width = 0;
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c >= 32 && c < 128) {
+                width += charData.get(c - 32).xadvance();
+            }
+        }
+        return width;
+    }
+
     public int getTextureId() {
         return textureId;
     }

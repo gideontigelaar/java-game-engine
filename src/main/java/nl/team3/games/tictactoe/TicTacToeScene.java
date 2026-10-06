@@ -140,7 +140,7 @@ public class TicTacToeScene implements Scene {
         background.render(currentWidth,currentHeight);
         spriteRenderer.draw(Xpiece);
         textRenderer.drawText(gameFont, "TIC TAC TOE", 20, 60, new Vector4f(1, 1, 1, 1));
-        textRenderer.drawText(gameFont, "Press '2' to toggle background", 20, 110, new Vector4f(0.8f, 0.8f, 0.8f, 1));
+
         spriteRenderer.draw(mousePoint);
     }
 
