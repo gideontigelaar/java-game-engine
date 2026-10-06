@@ -4,7 +4,6 @@ import nl.team3.engine.graphics.Sprite;
 import org.joml.Vector2f;
 
 public class Animation {
-
     final private Vector2f startPos;
     final private Vector2f endPos;
     final private Vector2f startScale;
@@ -17,7 +16,7 @@ public class Animation {
     private Sprite sprite;
 
     private Animation(Builder b) {
-        this.startPos = new Vector2f(b.startPos);   // kopieën, zodat aanpassen buiten de klasse niets kapotmaakt
+        this.startPos = new Vector2f(b.startPos);
         this.endPos = new Vector2f(b.endPos);
         this.startScale = new Vector2f(b.startScale);
         this.endScale = new Vector2f(b.endScale);
@@ -33,7 +32,7 @@ public class Animation {
         return new Builder();
     }
 
-    // ---------- Builder ----------
+    // Builder
     public static class Builder {
         private Vector2f startPos = new Vector2f(0, 0);
         private Vector2f endPos = new Vector2f(0, 0);
@@ -43,7 +42,7 @@ public class Animation {
         private float endRot = 0f;
         private float duration = 1f;
         private String easingType = "Linear";
-        private Sprite sprite;   // optioneel
+        private Sprite sprite; // optional
 
         private Builder() {}
 
@@ -104,7 +103,6 @@ public class Animation {
     public void setRotation(){
         sprite.setRotation(getRotation());
     }
-
 
     public Vector2f getPosition() {
         return new Vector2f(

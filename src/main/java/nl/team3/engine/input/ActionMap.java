@@ -34,6 +34,10 @@ public class ActionMap {
     }
 
     public boolean isActionDown(String action) {
+        if (input.isTextInputActive()) {
+            return false;
+        }
+
         List<Integer> keys = bindings.get(action);
         if (keys == null) {
             return false;
@@ -48,6 +52,10 @@ public class ActionMap {
     }
 
     public boolean isActionPressed(String action) {
+        if (input.isTextInputActive()) {
+            return false;
+        }
+
         List<Integer> keys = bindings.get(action);
         if (keys == null) {
             return false;
@@ -62,6 +70,10 @@ public class ActionMap {
     }
 
     public boolean isActionReleased(String action) {
+        if (input.isTextInputActive()) {
+            return false;
+        }
+
         List<Integer> keys = bindings.get(action);
         if (keys == null) {
             return false;
