@@ -1,77 +1,184 @@
 package nl.team3.games.tictactoe;
 
-import org.joml.Matrix4f;
-
+import nl.team3.engine.graphics.*;
+import nl.team3.engine.assets.AssetManager;
 import nl.team3.engine.core.Scene;
+import nl.team3.engine.graphics.animation.*;
+import nl.team3.engine.input.ActionMap;
+import nl.team3.engine.input.InputManager;
+import org.joml.Vector2f;
 import nl.team3.engine.core.Config;
-import nl.team3.engine.graphics.Mesh;
-import nl.team3.engine.graphics.ResourceLoader;
-import nl.team3.engine.graphics.ShaderProgram;
+import nl.team3.engine.graphics.Sprite;
+import nl.team3.engine.graphics.SpriteRenderer;
+import nl.team3.engine.graphics.Texture;
 
-import static org.lwjgl.opengl.GL11.GL_TRIANGLE_FAN;
+import static org.lwjgl.glfw.GLFW.GLFW_KEY_2;
+import static org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT;
+import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
+import static org.lwjgl.opengl.GL11.glClear;
 
 public class TicTacToeScene implements Scene {
-    private float x;
-    private float y;
-    private float speed;
 
-    private ShaderProgram shader;
-    private Mesh squareMesh;
-    private Matrix4f projectionMatrix;
+    private ShaderProgram spriteShader;
+    private SpriteRenderer spriteRenderer;
+
+    private int currentHeight = Config.WINDOW_HEIGHT;
+    private int currentWidth = Config.WINDOW_WIDTH;
+
+    //mouse
+    private boolean blue = true;
+    private boolean lastblue = true;
+    private Animation mouseGrabAnim;
+    private Animation mouseReleaseAnim;
+
+    private Texture mousePointTexture;
+    private Texture mouseGrabTexture;
+    private Sprite mousePoint;
+    private Sprite mouseGrab;
+    private Vector2f mousePosition;
+
+    //board
+    private Vector2f screenCenter = new Vector2f(Math.round((float) currentWidth/2),Math.round((float) currentHeight/2));
+    private Sprite board;
+    private Texture boardTexture;
+
+
+    //pieceTest
+    private Sprite Xpiece;
+    private Texture XpieceTexture;
+    private BackgroundRenderer background;
+
+    private Vector2f mousePosEffect;
+
+
+
+
+
+    private final InputManager input;
+    private final ActionMap actions;
+
+
+    public TicTacToeScene(InputManager input, ActionMap actions) {
+        this.input = input;
+        this.actions = actions;
+    }
 
     @Override
-    public void init() {
+    public void init(AssetManager assets) {
         System.out.println("TicTacToeScene loaded");
 
-        x = 0;
-        y = Config.WINDOW_HEIGHT / 2.0f; // Start vertically centered
-        speed = 200.0f; // Move 200 pixels per second
+        //initialize mouse
+        mousePointTexture = assets.loadTexture("mousePoint", "/textures/tictactoe/cursorPoint.png");
+        mouseGrabTexture = assets.loadTexture("mouseGrab", "/textures/tictactoe/cursorGrab.png");
+        spriteRenderer = new SpriteRenderer(assets);
+        input.setCursorVisible(false);
+        mousePoint = new Sprite(mousePointTexture);
+        mousePoint.setScale(4f);
+        mousePoint.setAlpha(1f);
 
-        // 1 unit = 1 pixel, (0,0) = top left corner
-        projectionMatrix = new Matrix4f().ortho(
-                0, Config.WINDOW_WIDTH,
-                Config.WINDOW_HEIGHT, 0,
-                -1, 1);
+        //init Mouseanims
+        mouseGrabAnim = Animation.builder()
+                .sprite(mousePoint)
+                .scale(new Vector2f(8f,8f), new Vector2f(6f,6f))
+                .duration(0.3f)
+                .easing("ExponentialOut")
+                .build();
+        mouseReleaseAnim = Animation.builder()
+                .sprite(mousePoint)
+                .scale(new Vector2f(6f,6f), new Vector2f(8f,8f))
+                .duration(0.3f)
+                .easing("ExponentialOut")
+                .build();
 
-        shader = new ShaderProgram(
-                ResourceLoader.readResource("/shaders/basic.vert"),
-                ResourceLoader.readResource("/shaders/basic.frag"));
 
-        // Square (x, y, r, g, b)
-        float[] vertices = {
-                0f, 0f, 1f, 1f, 1f,
-                50f, 0f, 1f, 1f, 1f,
-                50f, 50f, 1f, 1f, 1f,
-                0f, 50f, 1f, 1f, 1f,
-        };
-        squareMesh = new Mesh(vertices, GL_TRIANGLE_FAN);
-    }
+
+        //board init
+        XpieceTexture = assets.loadTexture("Xpiece", "/textures/tictactoe/board.png");
+        Xpiece = new Sprite(XpieceTexture);
+        Xpiece.setPosition(screenCenter.get(0), screenCenter.get(1) - 8f);
+        Xpiece.setScale(8f);
+
+        //init background
+        background = new BackgroundRenderer(assets);
+        mousePosEffect = new Vector2f(0f,0f);
+        }
+
+
+
 
     @Override
     public void update(float dt) {
-        // Move object to the right
-        x += speed * dt;
 
-        if (x > Config.WINDOW_WIDTH) {
-            x = -50;
+        //mouse logic
+        mousePosition = new Vector2f(
+                (Math.round(input.getMouseX()/4) + 4f)*4,
+                (Math.round(input.getMouseY()/4) + 16f)*4);
+
+        if(input.isButtonPressed(GLFW_MOUSE_BUTTON_LEFT)){
+            mouseGrabAnim.startAnimation();
+
         }
+        if(input.isButtonReleased(GLFW_MOUSE_BUTTON_LEFT)){
+
+            mouseReleaseAnim.startAnimation();
+
+        }
+
+        if(input.isButtonDown(GLFW_MOUSE_BUTTON_LEFT)){
+            mousePoint.setTexture(mouseGrabTexture);
+            mouseGrabAnim.UpdateAnimation(dt);
+            mouseGrabAnim.setScale();
+        }
+        else{
+            mousePoint.setTexture(mousePointTexture);
+            mouseReleaseAnim.UpdateAnimation(dt);
+            mouseReleaseAnim.setScale();
+        }
+        mousePoint.setPosition(mousePosition);
+
+        //animation test
+        if(input.isKeyPressed(GLFW_KEY_2)){
+            blue = !blue;
+            mousePosEffect = mousePosition;
+            background.startAnimation();
+        }
+
+        //board rendering
+        screenCenter = new Vector2f(Math.round((float) currentWidth/2),Math.round((float) currentHeight/2));
+        background.update(dt, blue, (float) mousePosEffect.x, (float) mousePosEffect.y);
+
+
+
+
+
     }
+
 
     @Override
     public void render() {
-        Matrix4f modelMatrix = new Matrix4f().translate(x, y, 0);
-        Matrix4f mvp = new Matrix4f(projectionMatrix).mul(modelMatrix);
+        glClear(GL_COLOR_BUFFER_BIT);
+        //spriteRenderer.draw(board);
+        background.render(currentWidth,currentHeight);
+        spriteRenderer.draw(Xpiece);
+        spriteRenderer.draw(mousePoint);
 
-        shader.bind();
-        shader.setUniformMat4("uMVP", mvp);
-        squareMesh.render();
-        shader.unbind();
+    }
+
+    @Override
+    public void resize(int width, int height) {
+        // Store new dimensions every time window resizes
+        this.currentWidth = width;
+        this.currentHeight = height;
+
+        spriteRenderer.setProjection(width, height);
+        Xpiece.setPosition(new Vector2f(Math.round((float) width/2),Math.round((float) height/2)));
     }
 
     @Override
     public void cleanup() {
         System.out.println("TicTacToeScene closed");
-        squareMesh.cleanup();
-        shader.cleanup();
+        background.cleanup();
     }
+
+
 }

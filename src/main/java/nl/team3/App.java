@@ -4,13 +4,19 @@ import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.system.Configuration;
+import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 
+import nl.team3.engine.assets.AssetManager;
 import nl.team3.engine.core.Config;
 import nl.team3.engine.core.SceneManager;
 import nl.team3.engine.input.InputManager;
 import nl.team3.engine.input.ActionMap;
 import nl.team3.games.tictactoe.TicTacToeScene;
+
+import java.nio.IntBuffer;
+
+import static org.lwjgl.glfw.GLFW.*;
 
 public class App {
     public static void main(String[] args) {
@@ -28,6 +34,8 @@ public class App {
         GLFW.glfwWindowHint(GLFW.GLFW_OPENGL_PROFILE, GLFW.GLFW_OPENGL_CORE_PROFILE);
         GLFW.glfwWindowHint(GLFW.GLFW_OPENGL_FORWARD_COMPAT, GLFW.GLFW_TRUE);
 
+
+
         long window = GLFW.glfwCreateWindow(Config.WINDOW_WIDTH, Config.WINDOW_HEIGHT, Config.WINDOW_TITLE, MemoryUtil.NULL, MemoryUtil.NULL);
         if (window == MemoryUtil.NULL) {
             throw new RuntimeException("Failed to create GLFW window");
@@ -36,43 +44,83 @@ public class App {
         GLFW.glfwMakeContextCurrent(window);
         GLFW.glfwSwapInterval(Config.VSYNC_ENABLED ? 1 : 0);
         GLFW.glfwShowWindow(window);
+
         GL.createCapabilities();
 
-        SceneManager sceneManager = new SceneManager();
-        sceneManager.changeScene(new TicTacToeScene());
-
-        double lastTime = GLFW.glfwGetTime();
-
-        // FPS tracking
-        float fpsTimer = 0.0f;
-        int frames = 0;
-
-        // Input manager setup
+        // Input first: the scene needs these
         InputManager input = new InputManager(window);
         ActionMap actions = new ActionMap(input);
-
         actions.bind("pause", GLFW.GLFW_KEY_ESCAPE);
         actions.bind("debugToggle", GLFW.GLFW_KEY_GRAVE_ACCENT);
         actions.bind("lockCursor", GLFW.GLFW_KEY_C);
 
-        boolean[] debugOverlay = {false};
-        boolean[] cursorLocked = {false};
+        // Central asset storage
+        AssetManager assets = new AssetManager();
+
+        // Create the SceneManager once
+        SceneManager sceneManager = new SceneManager(assets);
+
+
+
+        // Listen for window resize events
+        GLFW.glfwSetFramebufferSizeCallback(window, (win, width, height) -> {
+            GL11.glViewport(0, 0, width, height);
+            sceneManager.resize(width, height);
+        });
+
+        // Set initial viewport and scene size
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            IntBuffer pWidth = stack.mallocInt(1);
+            IntBuffer pHeight = stack.mallocInt(1);
+            GLFW.glfwGetFramebufferSize(window, pWidth, pHeight);
+            GL11.glViewport(0, 0, pWidth.get(0), pHeight.get(0));
+            sceneManager.resize(pWidth.get(0), pHeight.get(0));
+        }
+
+        sceneManager.changeScene(new TicTacToeScene(input, actions));
+
+        float fpsTimer = 0.0f;
+        int frames = 0;
+
+        boolean debugOverlay = false;
+        boolean cursorLocked = false;
+
+        double lastTime = GLFW.glfwGetTime();
 
         while (!GLFW.glfwWindowShouldClose(window)) {
-            // Calc delta time
+            GLFW.glfwPollEvents();
+
             double currentTime = GLFW.glfwGetTime();
             float deltaTime = (float) (currentTime - lastTime);
             lastTime = currentTime;
 
-            // Track frames and time
+            // Cap delta time
+            if (deltaTime > 0.1f) {
+                deltaTime = 0.1f;
+            }
+
             frames++;
             fpsTimer += deltaTime;
 
-            // Update window title every second
             if (fpsTimer >= 1.0f) {
                 GLFW.glfwSetWindowTitle(window, Config.WINDOW_TITLE + " | FPS: " + frames);
                 frames = 0;
                 fpsTimer = 0.0f;
+            }
+
+            if (actions.isActionPressed("pause")) {
+
+            }
+            if (actions.isActionPressed("debugToggle")) {
+                debugOverlay = !debugOverlay;
+                System.out.println("Input debug overlay: " + (debugOverlay ? "ON (` to hide)" : "OFF"));
+            }
+            if (actions.isActionPressed("lockCursor")) {
+                cursorLocked = !cursorLocked;
+                input.setCursorMode(cursorLocked ? GLFW.GLFW_CURSOR_DISABLED : GLFW.GLFW_CURSOR_NORMAL);
+            }
+            if (debugOverlay) {
+                printInputDebug(input, actions);
             }
 
             GL11.glClearColor(Config.BG_COLOR.x, Config.BG_COLOR.y, Config.BG_COLOR.z, Config.BG_COLOR.w);
@@ -82,33 +130,19 @@ public class App {
             sceneManager.render();
 
             GLFW.glfwSwapBuffers(window);
-            GLFW.glfwPollEvents();
-
-            if (actions.isActionPressed("pause")) {
-                GLFW.glfwSetWindowShouldClose(window, true);
-            }
-
-            if (actions.isActionPressed("debugToggle")) {
-                debugOverlay[0] = !debugOverlay[0];
-                System.out.println("Input debug overlay: " + (debugOverlay[0] ? "ON (` to hide)" : "OFF"));
-            }
-
-            if (actions.isActionPressed("lockCursor")) {
-                cursorLocked[0] = !cursorLocked[0];
-                input.setCursorMode(cursorLocked[0] ? GLFW.GLFW_CURSOR_DISABLED : GLFW.GLFW_CURSOR_NORMAL);
-            }
-
-            if (debugOverlay[0]) {
-                printInputDebug(input, actions);
-            }
 
             input.update();
         }
 
+        // First clean Scene, then assets
         sceneManager.cleanup();
+        assets.cleanup();
+
         GLFW.glfwDestroyWindow(window);
         GLFW.glfwTerminate();
     }
+
+
 
     private static void printInputDebug(InputManager input, ActionMap actions) {
         StringBuilder line = new StringBuilder();
@@ -130,10 +164,12 @@ public class App {
             line.append("LMB ");
             hasInput = true;
         }
+
         if (input.isButtonPressed(GLFW.GLFW_MOUSE_BUTTON_RIGHT)) {
             line.append("RMB-pressed ");
             hasInput = true;
         }
+
         if (input.isButtonReleased(GLFW.GLFW_MOUSE_BUTTON_RIGHT)) {
             line.append("RMB-released ");
             hasInput = true;
