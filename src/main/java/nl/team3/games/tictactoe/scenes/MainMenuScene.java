@@ -2,7 +2,6 @@ package nl.team3.games.tictactoe.scenes;
 
 import nl.team3.engine.assets.AssetManager;
 import nl.team3.engine.core.SceneManager;
-import nl.team3.engine.graphics.Sprite;
 import nl.team3.engine.input.ActionMap;
 import nl.team3.engine.input.InputManager;
 import nl.team3.engine.ui.Button;
@@ -15,6 +14,7 @@ public class MainMenuScene extends BaseScene {
     private TextField usernameInput;
     private Button btnLoginOnline;
     private Button btnPlayOffline;
+    private Button btnQuit;
 
     private final String SERVER_HOST = "127.0.0.1";
     private final int SERVER_PORT = 7789;
@@ -29,15 +29,16 @@ public class MainMenuScene extends BaseScene {
         System.out.println("MainMenuScene loaded");
 
         usernameInput = new TextField("player1", smallFont, new Vector2f(0, 0), new Vector2f(300, 50));
-        usernameInput.setBackgroundSprite(new Sprite(assets.loadTexture("buttonBg", "/textures/tictactoe/button.png")));
 
         btnLoginOnline = new Button("LOGIN ONLINE", smallFont, new Vector2f(0, 0), new Vector2f(300, 50));
         btnPlayOffline = new Button("PLAY OFFLINE", smallFont, new Vector2f(0, 0), new Vector2f(300, 50));
+        btnQuit = new Button("QUIT GAME", smallFont, new Vector2f(0, 0), new Vector2f(300, 50));
 
         btnLoginOnline.setOnClick(this::attemptLogin);
         btnPlayOffline.setOnClick(() -> {
             sceneManager.changeScene(new MatchScene(input, actions, sceneManager, null));
         });
+        btnQuit.setOnClick(input::requestClose);
     }
 
     private void attemptLogin() {
@@ -60,6 +61,7 @@ public class MainMenuScene extends BaseScene {
         }
         btnLoginOnline.update(input);
         btnPlayOffline.update(input);
+        btnQuit.update(input);
     }
 
     @Override
@@ -78,6 +80,7 @@ public class MainMenuScene extends BaseScene {
         usernameInput.render(spriteRenderer, textRenderer);
         btnLoginOnline.render(spriteRenderer, textRenderer);
         btnPlayOffline.render(spriteRenderer, textRenderer);
+        btnQuit.render(spriteRenderer, textRenderer);
     }
 
     @Override
@@ -86,5 +89,6 @@ public class MainMenuScene extends BaseScene {
         usernameInput.setPosition(new Vector2f(centerX, height * 0.40f));
         btnLoginOnline.setPosition(new Vector2f(centerX, height * 0.40f + 80f));
         btnPlayOffline.setPosition(new Vector2f(centerX, height * 0.40f + 160f));
+        btnQuit.setPosition(new Vector2f(centerX, height * 0.40f + 240f));
     }
 }

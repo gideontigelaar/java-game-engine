@@ -41,9 +41,6 @@ public abstract class BaseScene implements Scene {
     private Animation mouseGrabAnim;
     private Animation mouseReleaseAnim;
 
-    private boolean isBlueBackground = true;
-    private Vector2f bgEffectPos = new Vector2f();
-
     public BaseScene(InputManager input, ActionMap actions, SceneManager sceneManager, ServerConnection connection) {
         this.input = input;
         this.actions = actions;
@@ -94,13 +91,11 @@ public abstract class BaseScene implements Scene {
         }
         mousePoint.setPosition(mousePosition);
 
-        if (input.isKeyPressed(GLFW_KEY_2)) {
-            isBlueBackground = !isBlueBackground;
-            bgEffectPos.set(mousePosition);
-            background.startAnimation();
+        if (!input.isTextInputActive() && input.isKeyPressed(GLFW_KEY_2)) {
+            background.nextPalette(mousePosition.x, mousePosition.y);
         }
 
-        background.update(dt, isBlueBackground, bgEffectPos.x, bgEffectPos.y);
+        background.update(dt);
 
         onUpdate(dt);
     }

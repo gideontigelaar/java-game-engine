@@ -39,6 +39,7 @@ public class TextField {
         }
 
         if (isFocused) {
+            input.requestTextInput();
             text += input.getTextInput();
             if (input.isKeyPressed(GLFW_KEY_BACKSPACE) && text.length() > 0) {
                 text = text.substring(0, text.length() - 1);
@@ -51,8 +52,11 @@ public class TextField {
 
     public void render(SpriteRenderer spriteRenderer, TextRenderer textRenderer) {
         if (backgroundSprite != null && spriteRenderer != null) {
+            backgroundSprite.setOrigin(0f, 0f);
             backgroundSprite.setPosition(position);
-            backgroundSprite.setScale(size.x);
+            backgroundSprite.setScale(
+                    size.x / backgroundSprite.getTexture().getWidth(),
+                    size.y / backgroundSprite.getTexture().getHeight());
             spriteRenderer.draw(backgroundSprite);
         }
 

@@ -72,8 +72,11 @@ public class Button {
 
         // background sprite
         if (backgroundSprite != null && spriteRenderer != null) {
+            backgroundSprite.setOrigin(0f, 0f);
             backgroundSprite.setPosition(position);
-            backgroundSprite.setScale(size.x);
+            backgroundSprite.setScale(
+                    size.x / backgroundSprite.getTexture().getWidth(),
+                    size.y / backgroundSprite.getTexture().getHeight());
             spriteRenderer.draw(backgroundSprite);
         }
 

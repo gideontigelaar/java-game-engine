@@ -98,7 +98,6 @@ public final class AssetManager {
 
     public void cleanup() {
         if (textRenderer != null) textRenderer.cleanup();
-        if (backgroundRenderer != null) backgroundRenderer.cleanup();
 
         textures.values().forEach(Texture::cleanup);
         shaders.values().forEach(ShaderProgram::cleanup);

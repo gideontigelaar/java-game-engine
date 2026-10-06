@@ -23,6 +23,8 @@ public class InputManager {
     private double scrollX, scrollY;
     private final StringBuilder textInput = new StringBuilder();
     private boolean cursorInWindow = true;
+    private boolean textInputRequested;
+    private boolean textInputActive;
 
     private float contentScaleX = 1.0f;
     private float contentScaleY = 1.0f;
@@ -98,6 +100,8 @@ public class InputManager {
         scrollX = 0;
         scrollY = 0;
         textInput.setLength(0);
+        textInputActive = textInputRequested;
+        textInputRequested = false;
     }
 
     private void releaseAll() {
@@ -130,9 +134,15 @@ public class InputManager {
     }
 
     public String getTextInput() { return textInput.toString(); }
+    public void requestTextInput() { textInputRequested = true; }
+    public boolean isTextInputActive() { return textInputActive; }
     public boolean isCursorInWindow() { return cursorInWindow; }
 
     public void setCursorMode(int glfwCursorMode) {
         glfwSetInputMode(window, GLFW.GLFW_CURSOR, glfwCursorMode);
+    }
+
+    public void requestClose() {
+        glfwSetWindowShouldClose(window, true);
     }
 }
