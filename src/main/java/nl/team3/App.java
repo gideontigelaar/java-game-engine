@@ -11,8 +11,8 @@ import nl.team3.engine.assets.AssetManager;
 import nl.team3.engine.core.Config;
 import nl.team3.engine.core.SceneManager;
 import nl.team3.engine.input.InputManager;
+import nl.team3.games.tictactoe.scenes.MainMenuScene;
 import nl.team3.engine.input.ActionMap;
-import nl.team3.games.tictactoe.MainMenuScene;
 
 import java.nio.IntBuffer;
 

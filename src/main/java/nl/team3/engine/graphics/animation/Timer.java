@@ -7,7 +7,6 @@ public class Timer {
     private boolean finished = false;
     private Runnable onComplete;
 
-
     public Timer(float duration) {
         this.duration = duration;
     }
@@ -43,8 +42,6 @@ public class Timer {
             finished = true;
             if (onComplete != null) onComplete.run();
         }
-
-
     }
 
     public float getElapsed() {
