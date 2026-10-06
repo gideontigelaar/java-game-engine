@@ -63,6 +63,14 @@ public class TextField {
         this.position = position;
     }
 
+    public Vector2f getPosition() {
+        return position;
+    }
+
+    public Vector2f getSize() {
+        return size;
+    }
+
     public boolean isSubmitPressed() {
         return submitPressed;
     }

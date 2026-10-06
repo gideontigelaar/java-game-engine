@@ -42,7 +42,7 @@ public class TicTacToeScene implements Scene {
     private Font gameFont;
     private Font smallFont;
 
-    private Button btnAction; // Doubles as "FORFEIT" or "RETURN TO LOBBY"
+    private Button btnAction;
     private boolean matchEnded = false;
     private String gameStatusMessage = "";
 
@@ -60,7 +60,6 @@ public class TicTacToeScene implements Scene {
 
     @Override
     public void init(AssetManager assets) {
-        System.out.println("TicTacToeScene loaded");
         gameFont = assets.loadFont("gameFont", "/fonts/3x5-Microfont-Mono.ttf", 48f);
         smallFont = assets.loadFont("smallFont", "/fonts/3x5-Microfont-Mono.ttf", 24f);
 
@@ -85,18 +84,19 @@ public class TicTacToeScene implements Scene {
 
         mousePosEffect = new Vector2f(0f,0f);
 
-        btnAction = new Button(connection != null ? "FORFEIT" : "LEAVE GAME", smallFont, new Vector2f(20, 20), new Vector2f(200, 50));
+        btnAction = new Button(connection != null ? "FORFEIT" : "LEAVE GAME", smallFont, new Vector2f(0, 0), new Vector2f(200, 50));
         btnAction.setOnClick(this::handleGameAction);
 
         if (connection != null) gameStatusMessage = "Match Started!";
+
+        resize(currentWidth, currentHeight);
     }
 
     private void handleGameAction() {
         if (connection != null && !matchEnded) {
-            connection.sendCommand("forfeit"); // Send forfeit command to server
+            connection.sendCommand("forfeit");
         }
 
-        // Go back to lobby or main menu
         if (connection != null && connection.isConnected()) {
             sceneManager.changeScene(new LobbyScene(input, actions, sceneManager, connection));
         } else {
@@ -106,19 +106,19 @@ public class TicTacToeScene implements Scene {
 
     @Override
     public void update(float dt) {
-        mousePosition = new Vector2f(
-                (Math.round(input.getMouseX()/4) + 4f)*4,
-                (Math.round(input.getMouseY()/4) + 16f)*4);
+        mousePosition = new Vector2f((float) input.getMouseX(), (float) input.getMouseY());
 
         if (input.isButtonPressed(GLFW_MOUSE_BUTTON_LEFT)) mouseGrabAnim.startAnimation();
         if (input.isButtonReleased(GLFW_MOUSE_BUTTON_LEFT)) mouseReleaseAnim.startAnimation();
 
         if (input.isButtonDown(GLFW_MOUSE_BUTTON_LEFT)) {
             mousePoint.setTexture(mouseGrabTexture);
+            mousePoint.setOrigin(0.5f, 0.4f);
             mouseGrabAnim.UpdateAnimation(dt);
             mouseGrabAnim.setScale();
         } else {
             mousePoint.setTexture(mousePointTexture);
+            mousePoint.setOrigin(0.3f, 0.1f);
             mouseReleaseAnim.UpdateAnimation(dt);
             mouseReleaseAnim.setScale();
         }
@@ -146,8 +146,6 @@ public class TicTacToeScene implements Scene {
                 } else if (msg.startsWith("SVR GAME DRAW")) {
                     gameStatusMessage = "DRAW! " + extractComment(msg);
                     endMatch();
-                } else if (msg.startsWith("SVR GAME MOVE")) {
-                    // To-do: Parse opponent move
                 } else if (msg.startsWith("SVR GAME YOURTURN")) {
                     gameStatusMessage = "Your turn!";
                 }
@@ -183,11 +181,12 @@ public class TicTacToeScene implements Scene {
         spriteRenderer.draw(Xpiece);
 
         String mode = connection != null ? "ONLINE" : "OFFLINE";
-        textRenderer.drawText(gameFont, mode, currentWidth / 2f - 70, 60, new Vector4f(1, 1, 1, 1));
+        float modeW = gameFont.getTextWidth(mode);
+        textRenderer.drawText(gameFont, mode, (currentWidth - modeW) / 2f, currentHeight * 0.1f, new Vector4f(1, 1, 1, 1));
 
         if (!gameStatusMessage.isEmpty()) {
             float textW = smallFont.getTextWidth(gameStatusMessage);
-            textRenderer.drawText(smallFont, gameStatusMessage, (currentWidth - textW) / 2f, 100, new Vector4f(1, 1, 0, 1));
+            textRenderer.drawText(smallFont, gameStatusMessage, (currentWidth - textW) / 2f, currentHeight * 0.15f, new Vector4f(1, 1, 0, 1));
         }
 
         btnAction.render(spriteRenderer, textRenderer);
@@ -201,5 +200,6 @@ public class TicTacToeScene implements Scene {
         spriteRenderer.setProjection(width, height);
         textRenderer.setProjection(width, height);
         Xpiece.setPosition(new Vector2f(Math.round((float) width/2), Math.round((float) height/2)));
+        btnAction.setPosition(new Vector2f((width - 200f) / 2f, height - 100f));
     }
 }

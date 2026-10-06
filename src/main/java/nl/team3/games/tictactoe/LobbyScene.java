@@ -68,10 +68,10 @@ public class LobbyScene implements Scene {
         mousePoint = new Sprite(mousePointTexture);
         mousePoint.setScale(4f);
 
-        btnGetPlayers = new Button("GET PLAYERS", smallFont, new Vector2f(50, 600), new Vector2f(180, 50));
-        btnGetGames = new Button("GET GAMES", smallFont, new Vector2f(250, 600), new Vector2f(180, 50));
-        btnSubscribe = new Button("FIND MATCH", smallFont, new Vector2f(450, 600), new Vector2f(180, 50));
-        btnDisconnect = new Button("DISCONNECT", smallFont, new Vector2f(250, 660), new Vector2f(180, 50));
+        btnGetPlayers = new Button("GET PLAYERS", smallFont, new Vector2f(0, 0), new Vector2f(250, 50));
+        btnGetGames = new Button("GET GAMES", smallFont, new Vector2f(0, 0), new Vector2f(250, 50));
+        btnSubscribe = new Button("FIND MATCH", smallFont, new Vector2f(0, 0), new Vector2f(250, 50));
+        btnDisconnect = new Button("DISCONNECT", smallFont, new Vector2f(0, 0), new Vector2f(250, 50));
 
         btnGetPlayers.setOnClick(() -> connection.sendCommand("get playerlist"));
         btnGetGames.setOnClick(() -> connection.sendCommand("get gamelist"));
@@ -80,15 +80,21 @@ public class LobbyScene implements Scene {
             connection.disconnect();
             sceneManager.changeScene(new MainMenuScene(input, actions, sceneManager));
         });
+
+        resize(currentWidth, currentHeight);
     }
 
     @Override
     public void update(float dt) {
-        mousePosition = new Vector2f(
-                (Math.round(input.getMouseX() / 4) + 4f) * 4,
-                (Math.round(input.getMouseY() / 4) + 16f) * 4);
+        mousePosition = new Vector2f((float) input.getMouseX(), (float) input.getMouseY());
 
-        mousePoint.setTexture(input.isButtonDown(GLFW_MOUSE_BUTTON_LEFT) ? mouseGrabTexture : mousePointTexture);
+        if (input.isButtonDown(GLFW_MOUSE_BUTTON_LEFT)) {
+            mousePoint.setTexture(mouseGrabTexture);
+            mousePoint.setOrigin(0.5f, 0.4f);
+        } else {
+            mousePoint.setTexture(mousePointTexture);
+            mousePoint.setOrigin(0.3f, 0.1f);
+        }
         mousePoint.setPosition(mousePosition);
 
         btnGetPlayers.update(input);
@@ -122,10 +128,17 @@ public class LobbyScene implements Scene {
         glClear(GL_COLOR_BUFFER_BIT);
         background.render(currentWidth, currentHeight);
 
-        textRenderer.drawText(gameFont, "MULTIPLAYER LOBBY", 50, 80, new Vector4f(1, 1, 1, 1));
-        textRenderer.drawText(smallFont, serverStatus, 50, 140, new Vector4f(1, 1, 0, 1));
-        textRenderer.drawText(smallFont, playersList, 50, 220, new Vector4f(0.8f, 0.8f, 1, 1));
-        textRenderer.drawText(smallFont, gamesList, 50, 280, new Vector4f(0.8f, 1, 0.8f, 1));
+        float titleW = gameFont.getTextWidth("MULTIPLAYER LOBBY");
+        textRenderer.drawText(gameFont, "MULTIPLAYER LOBBY", (currentWidth - titleW) / 2f, currentHeight * 0.10f, new Vector4f(1, 1, 1, 1));
+
+        float statusW = smallFont.getTextWidth(serverStatus);
+        textRenderer.drawText(smallFont, serverStatus, (currentWidth - statusW) / 2f, currentHeight * 0.20f, new Vector4f(1, 1, 0, 1));
+
+        float playersW = smallFont.getTextWidth(playersList);
+        textRenderer.drawText(smallFont, playersList, (currentWidth - playersW) / 2f, currentHeight * 0.30f, new Vector4f(0.8f, 0.8f, 1, 1));
+
+        float gamesW = smallFont.getTextWidth(gamesList);
+        textRenderer.drawText(smallFont, gamesList, (currentWidth - gamesW) / 2f, currentHeight * 0.40f, new Vector4f(0.8f, 1, 0.8f, 1));
 
         btnGetPlayers.render(spriteRenderer, textRenderer);
         btnGetGames.render(spriteRenderer, textRenderer);
@@ -141,5 +154,12 @@ public class LobbyScene implements Scene {
         this.currentHeight = height;
         spriteRenderer.setProjection(width, height);
         textRenderer.setProjection(width, height);
+
+        float btnWidth = 250f;
+        float centerX = (width - btnWidth) / 2f;
+        btnGetPlayers.setPosition(new Vector2f(centerX, height * 0.55f));
+        btnGetGames.setPosition(new Vector2f(centerX, height * 0.55f + 70f));
+        btnSubscribe.setPosition(new Vector2f(centerX, height * 0.55f + 140f));
+        btnDisconnect.setPosition(new Vector2f(centerX, height * 0.55f + 210f));
     }
 }

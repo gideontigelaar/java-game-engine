@@ -67,16 +67,16 @@ public class MainMenuScene implements Scene {
         mousePoint.setScale(4f);
         mousePoint.setAlpha(1f);
 
-        float centerX = (currentWidth - 300f) / 2f;
-        usernameInput = new TextField("player1", smallFont, new Vector2f(centerX, 250), new Vector2f(300, 50));
-
-        btnLoginOnline = new Button("LOGIN ONLINE", smallFont, new Vector2f(centerX, 330), new Vector2f(300, 50));
-        btnPlayOffline = new Button("PLAY OFFLINE", smallFont, new Vector2f(centerX, 410), new Vector2f(300, 50));
+        usernameInput = new TextField("player1", smallFont, new Vector2f(0, 0), new Vector2f(300, 50));
+        btnLoginOnline = new Button("LOGIN ONLINE", smallFont, new Vector2f(0, 0), new Vector2f(300, 50));
+        btnPlayOffline = new Button("PLAY OFFLINE", smallFont, new Vector2f(0, 0), new Vector2f(300, 50));
 
         btnLoginOnline.setOnClick(this::attemptLogin);
         btnPlayOffline.setOnClick(() -> {
             sceneManager.changeScene(new TicTacToeScene(input, actions, sceneManager, null));
         });
+
+        resize(currentWidth, currentHeight);
     }
 
     private void attemptLogin() {
@@ -93,11 +93,15 @@ public class MainMenuScene implements Scene {
 
     @Override
     public void update(float dt) {
-        mousePosition = new Vector2f(
-                (Math.round(input.getMouseX() / 4) + 4f) * 4,
-                (Math.round(input.getMouseY() / 4) + 16f) * 4);
+        mousePosition = new Vector2f((float) input.getMouseX(), (float) input.getMouseY());
 
-        mousePoint.setTexture(input.isButtonDown(GLFW_MOUSE_BUTTON_LEFT) ? mouseGrabTexture : mousePointTexture);
+        if (input.isButtonDown(GLFW_MOUSE_BUTTON_LEFT)) {
+            mousePoint.setTexture(mouseGrabTexture);
+            mousePoint.setOrigin(0.5f, 0.4f);
+        } else {
+            mousePoint.setTexture(mousePointTexture);
+            mousePoint.setOrigin(0.3f, 0.1f);
+        }
         mousePoint.setPosition(mousePosition);
 
         usernameInput.update(input);
@@ -116,12 +120,14 @@ public class MainMenuScene implements Scene {
         background.render(currentWidth, currentHeight);
 
         float titleWidth = gameFont.getTextWidth("TIC TAC TOE");
-        float titleX = (currentWidth - titleWidth) / 2f;
-        textRenderer.drawText(gameFont, "TIC TAC TOE", titleX, 150, new Vector4f(1, 1, 1, 1));
-        textRenderer.drawText(smallFont, "Username:", (currentWidth - 300f) / 2f, 230, new Vector4f(0.8f, 0.8f, 0.8f, 1));
+        textRenderer.drawText(gameFont, "TIC TAC TOE", (currentWidth - titleWidth) / 2f, currentHeight * 0.15f, new Vector4f(1, 1, 1, 1));
+
+        float labelWidth = smallFont.getTextWidth("Username:");
+        textRenderer.drawText(smallFont, "Username:", (currentWidth - labelWidth) / 2f, usernameInput.getPosition().y - 15, new Vector4f(0.8f, 0.8f, 0.8f, 1));
 
         if (!statusMessage.isEmpty()) {
-            textRenderer.drawText(smallFont, statusMessage, (currentWidth - smallFont.getTextWidth(statusMessage)) / 2f, 500, new Vector4f(1, 0, 0, 1));
+            float statusWidth = smallFont.getTextWidth(statusMessage);
+            textRenderer.drawText(smallFont, statusMessage, (currentWidth - statusWidth) / 2f, currentHeight * 0.7f, new Vector4f(1, 0, 0, 1));
         }
 
         usernameInput.render(textRenderer);
@@ -138,8 +144,8 @@ public class MainMenuScene implements Scene {
         textRenderer.setProjection(width, height);
 
         float centerX = (width - 300f) / 2f;
-        usernameInput.setPosition(new Vector2f(centerX, 250));
-        btnLoginOnline.setPosition(new Vector2f(centerX, 330));
-        btnPlayOffline.setPosition(new Vector2f(centerX, 410));
+        usernameInput.setPosition(new Vector2f(centerX, height * 0.40f));
+        btnLoginOnline.setPosition(new Vector2f(centerX, height * 0.40f + 80f));
+        btnPlayOffline.setPosition(new Vector2f(centerX, height * 0.40f + 160f));
     }
 }
