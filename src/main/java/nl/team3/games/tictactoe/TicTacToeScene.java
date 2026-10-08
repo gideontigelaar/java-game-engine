@@ -12,8 +12,10 @@ import nl.team3.engine.graphics.Sprite;
 import nl.team3.engine.graphics.SpriteRenderer;
 import nl.team3.engine.graphics.Texture;
 
-import static org.lwjgl.glfw.GLFW.GLFW_KEY_2;
-import static org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.glClear;
 
@@ -39,24 +41,34 @@ public class TicTacToeScene implements Scene {
 
     //board
     private Vector2f screenCenter = new Vector2f(Math.round((float) currentWidth/2),Math.round((float) currentHeight/2));
-    private Sprite board;
-    private Texture boardTexture;
-
-
-    //pieceTest
     private Sprite Xpiece;
     private Texture XpieceTexture;
     private BackgroundRenderer background;
 
     private Vector2f mousePosEffect;
 
+    //xPieces
 
+    private Sprite Xpiece1;
+    private Sprite Xpiece2;
+    private Sprite Xpiece3;
+    private Sprite Xpiece4;
+    private Sprite Xpiece5;
 
+    private Animation grabPiece;
+    private Animation releasePiece;
 
+    private Texture redPiece;
+    private Texture redStack;
+
+    private List<Sprite> redPieces = new ArrayList<Sprite>();
+    private List<Vector2f> gridLocations = new ArrayList<Vector2f>();
 
     private final InputManager input;
     private final ActionMap actions;
 
+
+    private boolean isPickedUp = false;
 
     public TicTacToeScene(InputManager input, ActionMap actions) {
         this.input = input;
@@ -101,18 +113,92 @@ public class TicTacToeScene implements Scene {
         //init background
         background = new BackgroundRenderer(assets);
         mousePosEffect = new Vector2f(0f,0f);
+
+
+        //red pieces
+        redPiece = assets.loadTexture("redPieceTexture", "/textures/tictactoe/x.png");
+        redStack = assets.loadTexture("redPieceStackTexture", "/textures/tictactoe/xStack.png");
+
+        //animations
+        grabPiece = Animation.builder()
+                .scale(new Vector2f(8f,8f), new Vector2f(9f,9f))
+                .duration(0.3f)
+                .easing("ExponentialOut")
+                .build();
+
+
+        releasePiece = Animation.builder()
+                .scale(new Vector2f(9f,9f), new Vector2f(8f,8f))
+                .duration(0.3f)
+                .easing("ExponentialOut")
+                .build();
+
+        float offset = 0f;
+        for (int i = 0; i < 5; i++) {
+            Sprite s = new Sprite(redPiece);
+            s.setScale(8f);
+            s.setPosition(screenCenter.x - 240, (screenCenter.y) - offset + 108);
+            redPieces.add(s);
+            offset += 32f;
+        }
+        grabPiece.SetSprite(redPieces.get(4));
+        releasePiece.SetSprite(redPieces.get(4));
+
+        float gridOffsetx = 104f;
+        float gridOffsety = 116f;
+        //init grid positions
+        gridLocations.add(new Vector2f(screenCenter.x,screenCenter.y + 108));
+        gridLocations.add(new Vector2f(screenCenter.x,screenCenter.y-4f));
+        gridLocations.add(new Vector2f(screenCenter.x,screenCenter.y - 116));
+
+        gridLocations.add(new Vector2f(screenCenter.x + gridOffsetx,screenCenter.y + 108));
+        gridLocations.add(new Vector2f(screenCenter.x + gridOffsetx,screenCenter.y-4f));
+        gridLocations.add(new Vector2f(screenCenter.x + gridOffsetx,screenCenter.y - 116));
+
+        gridLocations.add(new Vector2f(screenCenter.x - gridOffsetx,screenCenter.y + 108));
+        gridLocations.add(new Vector2f(screenCenter.x - gridOffsetx,screenCenter.y-4f));
+        gridLocations.add(new Vector2f(screenCenter.x - gridOffsetx,screenCenter.y - 116));
+
         }
 
 
 
+    private int getClosestGridIndex(Vector2f point) {
+        int closest = -1;
+        float bestDist = Float.MAX_VALUE;
+
+        for (int i = 0; i < gridLocations.size(); i++) {
+            float d = point.distanceSquared(gridLocations.get(i));
+            if (d < bestDist) {
+                bestDist = d;
+                closest = i;
+            }
+        }
+        return closest;
+    }
+
+    private void setGrid(){
+
+        gridLocations.set(0, new Vector2f(screenCenter.x,               screenCenter.y + 108));
+        gridLocations.set(1, new Vector2f(screenCenter.x,               screenCenter.y - 4f));
+        gridLocations.set(2, new Vector2f(screenCenter.x,               screenCenter.y - 116));
+
+        gridLocations.set(3, new Vector2f(screenCenter.x + 104, screenCenter.y + 108));
+        gridLocations.set(4, new Vector2f(screenCenter.x + 104, screenCenter.y - 4f));
+        gridLocations.set(5, new Vector2f(screenCenter.x + 104, screenCenter.y - 116));
+
+        gridLocations.set(6, new Vector2f(screenCenter.x - 104, screenCenter.y + 108));
+        gridLocations.set(7, new Vector2f(screenCenter.x -  104, screenCenter.y - 4f));
+        gridLocations.set(8, new Vector2f(screenCenter.x - 104, screenCenter.y - 116));
+    }
 
     @Override
     public void update(float dt) {
 
         //mouse logic
         mousePosition = new Vector2f(
-                (Math.round(input.getMouseX()/4) + 4f)*4,
-                (Math.round(input.getMouseY()/4) + 16f)*4);
+                (Math.round(input.getMouseX()/4) + 2f)*4,
+                (Math.round(input.getMouseY()/4) + 6f)*4);
 
         if(input.isButtonPressed(GLFW_MOUSE_BUTTON_LEFT)){
             mouseGrabAnim.startAnimation();
@@ -147,8 +233,41 @@ public class TicTacToeScene implements Scene {
         screenCenter = new Vector2f(Math.round((float) currentWidth/2),Math.round((float) currentHeight/2));
         background.update(dt, blue, (float) mousePosEffect.x, (float) mousePosEffect.y);
 
+        //red pieces
 
+        //set correct sprites to pieces
+        for(int i = 0; i < 4; i++)
+        {
+            redPieces.get(i).setTexture(redStack);
+        }
 
+        //pickup logic
+
+        if(redPieces.get(4).contains(new Vector2f((float) input.getMouseX(), (float) input.getMouseY() )))
+        {
+            if(input.isButtonPressed(GLFW_MOUSE_BUTTON_1)){
+                grabPiece.startAnimation();
+                isPickedUp = true;
+            }
+        }
+        if(isPickedUp) {
+            if (input.isButtonDown(GLFW_MOUSE_BUTTON_1)) {
+                grabPiece.UpdateAnimation(dt);
+                grabPiece.setScale();
+                redPieces.get(4).setPosition((float) (redPieces.get(4).getXPosition() + input.getMouseDeltaX()), (float) (redPieces.get(4).getYPosition() + input.getMouseDeltaY()));
+            } else {
+                isPickedUp = false;
+
+                Vector2f target = gridLocations.get(getClosestGridIndex(redPieces.get(4).getPosition()));
+                redPieces.get(4).setPosition(new Vector2f(target));
+
+                releasePiece.startAnimation();
+            }
+        }
+        else{
+            releasePiece.UpdateAnimation(dt);
+            releasePiece.setScale();
+        }
 
 
     }
@@ -160,6 +279,12 @@ public class TicTacToeScene implements Scene {
         //spriteRenderer.draw(board);
         background.render(currentWidth,currentHeight);
         spriteRenderer.draw(Xpiece);
+
+
+        for (Sprite s : redPieces) {
+            spriteRenderer.draw(s);
+        }
+
         spriteRenderer.draw(mousePoint);
 
     }
@@ -169,7 +294,8 @@ public class TicTacToeScene implements Scene {
         // Store new dimensions every time window resizes
         this.currentWidth = width;
         this.currentHeight = height;
-
+        screenCenter = new Vector2f(Math.round((float) currentWidth/2),Math.round((float) currentHeight/2));
+        setGrid();
         spriteRenderer.setProjection(width, height);
         Xpiece.setPosition(new Vector2f(Math.round((float) width/2),Math.round((float) height/2)));
     }
