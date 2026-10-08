@@ -1,9 +1,7 @@
 package nl.team3.engine.input;
 
+import nl.team3.engine.core.Viewport;
 import org.lwjgl.glfw.GLFW;
-import org.lwjgl.system.MemoryStack;
-
-import java.nio.FloatBuffer;
 import java.util.Arrays;
 
 import static org.lwjgl.glfw.GLFW.*;
@@ -13,37 +11,23 @@ public class InputManager {
     private static final int MAX_BUTTONS = GLFW.GLFW_MOUSE_BUTTON_LAST + 1;
 
     private final long window;
+    private final Viewport viewport;
     private final boolean[] keysDown = new boolean[MAX_KEYS];
     private final boolean[] keysDownLastFrame = new boolean[MAX_KEYS];
     private final boolean[] buttonsDown = new boolean[MAX_BUTTONS];
     private final boolean[] buttonsDownLastFrame = new boolean[MAX_BUTTONS];
 
-    private double mouseX, mouseY;
-    private double lastMouseX, lastMouseY;
+    private double rawMouseX, rawMouseY;
+    private double lastRawMouseX, lastRawMouseY;
     private double scrollX, scrollY;
     private final StringBuilder textInput = new StringBuilder();
     private boolean cursorInWindow = true;
     private boolean textInputRequested;
     private boolean textInputActive;
 
-    private float contentScaleX = 1.0f;
-    private float contentScaleY = 1.0f;
-
-    public InputManager(long window) {
+    public InputManager(long window, Viewport viewport) {
         this.window = window;
-
-        try (MemoryStack stack = MemoryStack.stackPush()) {
-            FloatBuffer px = stack.mallocFloat(1);
-            FloatBuffer py = stack.mallocFloat(1);
-            GLFW.glfwGetWindowContentScale(window, px, py);
-            contentScaleX = px.get(0);
-            contentScaleY = py.get(0);
-        }
-
-        GLFW.glfwSetWindowContentScaleCallback(window, (win, xscale, yscale) -> {
-            contentScaleX = xscale;
-            contentScaleY = yscale;
-        });
+        this.viewport = viewport;
 
         GLFW.glfwSetKeyCallback(window, (win, key, scancode, action, mods) -> {
             if (key < 0 || key >= MAX_KEYS) {
@@ -68,8 +52,8 @@ public class InputManager {
         });
 
         GLFW.glfwSetCursorPosCallback(window, (win, xpos, ypos) -> {
-            mouseX = xpos * contentScaleX;
-            mouseY = ypos * contentScaleY;
+            rawMouseX = xpos;
+            rawMouseY = ypos;
         });
 
         GLFW.glfwSetScrollCallback(window, (win, xoffset, yoffset) -> {
@@ -95,8 +79,8 @@ public class InputManager {
     public void update() {
         System.arraycopy(keysDown, 0, keysDownLastFrame, 0, MAX_KEYS);
         System.arraycopy(buttonsDown, 0, buttonsDownLastFrame, 0, MAX_BUTTONS);
-        lastMouseX = mouseX;
-        lastMouseY = mouseY;
+        lastRawMouseX = rawMouseX;
+        lastRawMouseY = rawMouseY;
         scrollX = 0;
         scrollY = 0;
         textInput.setLength(0);
@@ -122,10 +106,10 @@ public class InputManager {
     public boolean isButtonPressed(int button) { return buttonsDown[button] && !buttonsDownLastFrame[button]; }
     public boolean isButtonReleased(int button) { return !buttonsDown[button] && buttonsDownLastFrame[button]; }
 
-    public double getMouseX() { return mouseX; }
-    public double getMouseY() { return mouseY; }
-    public double getMouseDeltaX() { return mouseX - lastMouseX; }
-    public double getMouseDeltaY() { return mouseY - lastMouseY; }
+    public double getMouseX() { return viewport.toVirtualX(rawMouseX); }
+    public double getMouseY() { return viewport.toVirtualY(rawMouseY); }
+    public double getMouseDeltaX() { return viewport.deltaToVirtualX(rawMouseX - lastRawMouseX); }
+    public double getMouseDeltaY() { return viewport.deltaToVirtualY(rawMouseY - lastRawMouseY); }
     public double getScrollX() { return scrollX; }
     public double getScrollY() { return scrollY; }
 

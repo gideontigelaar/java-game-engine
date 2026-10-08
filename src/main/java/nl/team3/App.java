@@ -10,6 +10,7 @@ import org.lwjgl.system.MemoryUtil;
 import nl.team3.engine.assets.AssetManager;
 import nl.team3.engine.core.Config;
 import nl.team3.engine.core.SceneManager;
+import nl.team3.engine.core.Viewport;
 import nl.team3.engine.input.InputManager;
 import nl.team3.games.tictactoe.scenes.MainMenuScene;
 import nl.team3.engine.input.ActionMap;
@@ -38,6 +39,8 @@ public class App {
         if (window == MemoryUtil.NULL) {
             throw new RuntimeException("Failed to create GLFW window");
         }
+        fitAndCenterWindow(window);
+        GLFW.glfwSetWindowSizeLimits(window, Config.MIN_WINDOW_WIDTH, Config.MIN_WINDOW_HEIGHT, GLFW.GLFW_DONT_CARE, GLFW.GLFW_DONT_CARE);
 
         GLFW.glfwMakeContextCurrent(window);
         GLFW.glfwSwapInterval(Config.VSYNC_ENABLED ? 1 : 0);
@@ -45,8 +48,11 @@ public class App {
 
         GL.createCapabilities();
 
+        Viewport viewport = new Viewport();
+        updateViewport(window, viewport);
+
         // Input first: the scene needs these
-        InputManager input = new InputManager(window);
+        InputManager input = new InputManager(window, viewport);
         ActionMap actions = new ActionMap(input);
         actions.bind("pause", GLFW.GLFW_KEY_ESCAPE);
         actions.bind("debugToggle", GLFW.GLFW_KEY_GRAVE_ACCENT);
@@ -59,19 +65,15 @@ public class App {
         SceneManager sceneManager = new SceneManager(assets);
 
         // Listen for window resize events
-        GLFW.glfwSetFramebufferSizeCallback(window, (win, width, height) -> {
-            GL11.glViewport(0, 0, width, height);
-            sceneManager.resize(width, height);
-        });
+        Runnable refreshViewport = () -> {
+            updateViewport(window, viewport);
+            sceneManager.resize(viewport.getScaledWidth(), viewport.getScaledHeight());
+        };
+        GLFW.glfwSetFramebufferSizeCallback(window, (win, width, height) -> refreshViewport.run());
+        GLFW.glfwSetWindowSizeCallback(window, (win, width, height) -> refreshViewport.run());
 
         // Set initial viewport and scene size
-        try (MemoryStack stack = MemoryStack.stackPush()) {
-            IntBuffer pWidth = stack.mallocInt(1);
-            IntBuffer pHeight = stack.mallocInt(1);
-            GLFW.glfwGetFramebufferSize(window, pWidth, pHeight);
-            GL11.glViewport(0, 0, pWidth.get(0), pHeight.get(0));
-            sceneManager.resize(pWidth.get(0), pHeight.get(0));
-        }
+        sceneManager.resize(viewport.getScaledWidth(), viewport.getScaledHeight());
 
         // Start in Main Menu instead of directly in the game
         sceneManager.changeScene(new MainMenuScene(input, actions, sceneManager));
@@ -120,6 +122,7 @@ public class App {
                 printInputDebug(input, actions);
             }
 
+            viewport.apply();
             GL11.glClearColor(Config.BG_COLOR.x, Config.BG_COLOR.y, Config.BG_COLOR.z, Config.BG_COLOR.w);
             GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
 
@@ -137,6 +140,53 @@ public class App {
 
         GLFW.glfwDestroyWindow(window);
         GLFW.glfwTerminate();
+    }
+
+    private static void updateViewport(long window, Viewport viewport) {
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            IntBuffer winW = stack.mallocInt(1);
+            IntBuffer winH = stack.mallocInt(1);
+            IntBuffer fbW = stack.mallocInt(1);
+            IntBuffer fbH = stack.mallocInt(1);
+            GLFW.glfwGetWindowSize(window, winW, winH);
+            GLFW.glfwGetFramebufferSize(window, fbW, fbH);
+            viewport.update(winW.get(0), winH.get(0), fbW.get(0), fbH.get(0));
+        }
+    }
+
+    private static void fitAndCenterWindow(long window) {
+        long monitor = GLFW.glfwGetPrimaryMonitor();
+        if (monitor == MemoryUtil.NULL) {
+            return;
+        }
+
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            IntBuffer areaX = stack.mallocInt(1);
+            IntBuffer areaY = stack.mallocInt(1);
+            IntBuffer areaW = stack.mallocInt(1);
+            IntBuffer areaH = stack.mallocInt(1);
+            GLFW.glfwGetMonitorWorkarea(monitor, areaX, areaY, areaW, areaH);
+
+            IntBuffer left = stack.mallocInt(1);
+            IntBuffer top = stack.mallocInt(1);
+            IntBuffer right = stack.mallocInt(1);
+            IntBuffer bottom = stack.mallocInt(1);
+            GLFW.glfwGetWindowFrameSize(window, left, top, right, bottom);
+
+            int frameW = left.get(0) + right.get(0);
+            int frameH = top.get(0) + bottom.get(0);
+
+            float fit = Math.min(1f, Math.min(
+                    (areaW.get(0) - frameW) / (float) Config.WINDOW_WIDTH,
+                    (areaH.get(0) - frameH) / (float) Config.WINDOW_HEIGHT));
+            int width = Math.max(1, Math.round(Config.WINDOW_WIDTH * fit));
+            int height = Math.max(1, Math.round(Config.WINDOW_HEIGHT * fit));
+            GLFW.glfwSetWindowSize(window, width, height);
+
+            int posX = areaX.get(0) + (areaW.get(0) - frameW - width) / 2 + left.get(0);
+            int posY = areaY.get(0) + (areaH.get(0) - frameH - height) / 2 + top.get(0);
+            GLFW.glfwSetWindowPos(window, posX, posY);
+        }
     }
 
     private static void printInputDebug(InputManager input, ActionMap actions) {
