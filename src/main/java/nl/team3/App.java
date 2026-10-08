@@ -17,8 +17,6 @@ import nl.team3.engine.input.ActionMap;
 
 import java.nio.IntBuffer;
 
-import static org.lwjgl.glfw.GLFW.*;
-
 public class App {
     public static void main(String[] args) {
         Configuration.GLFW_CHECK_THREAD0.set(false);
