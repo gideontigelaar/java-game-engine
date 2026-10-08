@@ -33,10 +33,6 @@ public class Sprite {
         return position;
     }
 
-    public float getXPosition(){ return position.x;}
-
-    public float getYPosition(){ return position.y;}
-
     public void setPosition(Vector2f position) {
         this.position = position;
     }
@@ -49,7 +45,6 @@ public class Sprite {
         this.position.set(position);
         this.scale.set(scale);
         this.rotation = rotation;
-
     }
 
     public Vector2f getScale() {

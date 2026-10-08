@@ -4,7 +4,6 @@ import nl.team3.engine.graphics.Sprite;
 import org.joml.Vector2f;
 
 public class Animation {
-
     final private Vector2f startPos;
     final private Vector2f endPos;
     final private Vector2f startScale;
@@ -16,13 +15,8 @@ public class Animation {
     private float duration;
     private Sprite sprite;
 
-    // playback state
-    private boolean started = false;
-    private boolean playing = false;
-    private float elapsed = 0f;
-
     private Animation(Builder b) {
-        this.startPos = new Vector2f(b.startPos);   // kopieën, zodat aanpassen buiten de klasse niets kapotmaakt
+        this.startPos = new Vector2f(b.startPos);
         this.endPos = new Vector2f(b.endPos);
         this.startScale = new Vector2f(b.startScale);
         this.endScale = new Vector2f(b.endScale);
@@ -48,7 +42,7 @@ public class Animation {
         private float endRot = 0f;
         private float duration = 1f;
         private String easingType = "Linear";
-        private Sprite sprite;   // optioneel
+        private Sprite sprite;
 
         private Builder() {}
 
@@ -93,37 +87,31 @@ public class Animation {
         }
     }
 
-
-
-
     public void startAnimation() {
-        elapsed = 0f;
-        started = true;
-        playing = true;
-        timer.start();
+        this.timer.start();
     }
-
 
     public void UpdateAnimation(float dt) {
         timer.update(dt);
+    }
 
-    }
     public void setTransformation(){
-        sprite.setTransformation(getPosition(),getScale(), getRotation());
+        sprite.setTransformation(getPosition(), getScale(), getRotation());
     }
+
     public void setPosition(){
         sprite.setPosition(getPosition());
     }
+
     public void setScale(){
         sprite.setScale(getScale());
     }
+
     public void setRotation(){
         sprite.setRotation(getRotation());
     }
 
-
     public Vector2f getPosition() {
-        float p = getProgress();
         return new Vector2f(
                 Interpolators.Easing(this.startPos.get(0), this.endPos.get(0), timer.getProgress(), easingType),
                 Interpolators.Easing(this.startPos.get(1), this.endPos.get(1), timer.getProgress(), easingType)
@@ -131,7 +119,6 @@ public class Animation {
     }
 
     public Vector2f getScale() {
-        float p = getProgress();
         return new Vector2f(
                 Interpolators.Easing(this.startScale.get(0), this.endScale.get(0), timer.getProgress(), easingType),
                 Interpolators.Easing(this.startScale.get(1), this.endScale.get(1), timer.getProgress(), easingType)
@@ -142,13 +129,11 @@ public class Animation {
         return (float) (Interpolators.Easing(this.startRot, this.endRot, timer.getProgress(), easingType) * (Math.PI / 180));
     }
 
-    public void startAnimation(){
-        this.timer.start();
+    public Timer getTimer() {
+        return timer;
     }
 
-    public Timer getTimer(){return timer;}
-
-    public void SetSprite(Sprite sprite){
+    public void SetSprite(Sprite sprite) {
         this.sprite = sprite;
     }
 }
