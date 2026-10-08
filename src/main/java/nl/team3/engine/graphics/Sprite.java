@@ -45,7 +45,6 @@ public class Sprite {
         this.position.set(position);
         this.scale.set(scale);
         this.rotation = rotation;
-
     }
 
     public Vector2f getScale() {
