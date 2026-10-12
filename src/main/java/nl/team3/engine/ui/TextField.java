@@ -1,6 +1,7 @@
 package nl.team3.engine.ui;
 
 import nl.team3.engine.graphics.Font;
+import nl.team3.engine.graphics.NineSlice;
 import nl.team3.engine.graphics.Sprite;
 import nl.team3.engine.graphics.SpriteRenderer;
 import nl.team3.engine.graphics.TextRenderer;
@@ -19,6 +20,7 @@ public class TextField {
     private boolean isFocused;
     private boolean submitPressed;
     private Sprite backgroundSprite;
+    private NineSlice nineSlice;
 
     public TextField(String defaultText, Font font, Vector2f position, Vector2f size) {
         this.text = defaultText;
@@ -52,12 +54,16 @@ public class TextField {
 
     public void render(SpriteRenderer spriteRenderer, TextRenderer textRenderer) {
         if (backgroundSprite != null && spriteRenderer != null) {
-            backgroundSprite.setOrigin(0f, 0f);
-            backgroundSprite.setPosition(position);
-            backgroundSprite.setScale(
-                    size.x / backgroundSprite.getTexture().getWidth(),
-                    size.y / backgroundSprite.getTexture().getHeight());
-            spriteRenderer.draw(backgroundSprite);
+            if (nineSlice != null) {
+                spriteRenderer.drawNineSlice(backgroundSprite, position.x, position.y, size.x, size.y, nineSlice);
+            } else {
+                backgroundSprite.setOrigin(0f, 0f);
+                backgroundSprite.setPosition(position);
+                backgroundSprite.setScale(
+                        size.x / backgroundSprite.getTexture().getWidth(),
+                        size.y / backgroundSprite.getTexture().getHeight());
+                spriteRenderer.draw(backgroundSprite);
+            }
         }
 
         String cursor = (isFocused && (System.currentTimeMillis() % 1000 < 500)) ? "_" : "";
@@ -70,6 +76,10 @@ public class TextField {
 
     public void setBackgroundSprite(Sprite backgroundSprite) {
         this.backgroundSprite = backgroundSprite;
+    }
+
+    public void setNineSlice(NineSlice nineSlice) {
+        this.nineSlice = nineSlice;
     }
 
     public String getText() {
