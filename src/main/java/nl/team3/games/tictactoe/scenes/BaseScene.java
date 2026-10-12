@@ -36,6 +36,9 @@ public abstract class BaseScene implements Scene {
     private Texture mousePointTexture;
     private Texture mouseGrabTexture;
     private Sprite mousePoint;
+
+
+
     protected Vector2f mousePosition = new Vector2f();
 
     private Animation mouseGrabAnim;
@@ -57,9 +60,12 @@ public abstract class BaseScene implements Scene {
         gameFont = assets.loadFont("gameFont", "/fonts/3x5-Microfont-Mono.ttf", 48f);
         smallFont = assets.loadFont("smallFont", "/fonts/3x5-Microfont-Mono.ttf", 24f);
 
+
+
         mousePointTexture = assets.loadTexture("mousePoint", "/textures/tictactoe/cursorPoint.png");
         mouseGrabTexture = assets.loadTexture("mouseGrab", "/textures/tictactoe/cursorGrab.png");
         input.setCursorVisible(false);
+
         mousePoint = new Sprite(mousePointTexture);
         mousePoint.setScale(4f);
         mousePoint.setAlpha(1f);
@@ -108,6 +114,7 @@ public abstract class BaseScene implements Scene {
         onRender();
 
         spriteRenderer.draw(mousePoint);
+
     }
 
     @Override

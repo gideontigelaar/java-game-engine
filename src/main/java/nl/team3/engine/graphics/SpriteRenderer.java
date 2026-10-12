@@ -46,19 +46,20 @@ public class SpriteRenderer {
         quad.render();
     }
 
-    public void drawNineSlice(Sprite sprite, float x, float y, float targetWidth, float targetHeight, NineSlice slice) {
+    public void drawNineSlice(Sprite sprite, float x, float y, float targetWidth, float targetHeight,
+                              NineSlice slice, float pixelScale) {
         Texture texture = sprite.getTexture();
         float texW = texture.getWidth();
         float texH = texture.getHeight();
 
-        float leftW = Math.min(slice.left, targetWidth * 0.5f);
-        float rightW = Math.min(slice.right, targetWidth * 0.5f);
-        float topH = Math.min(slice.top, targetHeight * 0.5f);
-        float bottomH = Math.min(slice.bottom, targetHeight * 0.5f);
+        float leftW   = Math.min(slice.left   * pixelScale, targetWidth  * 0.5f);
+        float rightW  = Math.min(slice.right  * pixelScale, targetWidth  * 0.5f);
+        float topH    = Math.min(slice.top    * pixelScale, targetHeight * 0.5f);
+        float bottomH = Math.min(slice.bottom * pixelScale, targetHeight * 0.5f);
 
         // Screen positions according to 3x3 grid
         float[] destX = { x, x + leftW, x + targetWidth - rightW, x + targetWidth };
-        float[] destY = { y, y + bottomH, y + targetHeight - topH, y + targetHeight };
+        float[] destY = { y, y + topH, y + targetHeight - bottomH, y + targetHeight };
 
         float uLeft = slice.left / texW;
         float uRight = (texW - slice.right) / texW;
@@ -84,7 +85,9 @@ public class SpriteRenderer {
 
                 if (segW <= 0 || segH <= 0) continue;
 
-                Mesh segmentMesh = Mesh.createQuad(uvsX[col], uvsY[row], uvsX[col + 1], uvsY[row + 1]);
+                Mesh segmentMesh = Mesh.createQuad(
+                        uvsX[col],     1f - uvsY[row + 1],
+                        uvsX[col + 1], 1f - uvsY[row]);
 
                 Matrix4f model = new Matrix4f()
                         .translate(segX + segW * 0.5f, segY + segH * 0.5f, 0)

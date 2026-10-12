@@ -19,6 +19,7 @@ public class Button {
 
     private Sprite backgroundSprite;
     private NineSlice nineSlice;
+    private int pixelSize;
     private Runnable onClick;
 
     private boolean isHovered;
@@ -75,7 +76,7 @@ public class Button {
         // background sprite / nine-slice rendering
         if (backgroundSprite != null && spriteRenderer != null) {
             if (nineSlice != null) {
-                spriteRenderer.drawNineSlice(backgroundSprite, position.x, position.y, size.x, size.y, nineSlice);
+                spriteRenderer.drawNineSlice(backgroundSprite, position.x, position.y, size.x, size.y, nineSlice, pixelSize);
             } else {
                 backgroundSprite.setOrigin(0f, 0f);
                 backgroundSprite.setPosition(position);
@@ -99,8 +100,9 @@ public class Button {
         this.backgroundSprite = backgroundSprite;
     }
 
-    public void setNineSlice(NineSlice nineSlice) {
+    public void setNineSlice(NineSlice nineSlice, int pixelSize) {
         this.nineSlice = nineSlice;
+        this.pixelSize = pixelSize;
     }
 
     public void setOnClick(Runnable onClick) {

@@ -21,6 +21,7 @@ public class TextField {
     private boolean submitPressed;
     private Sprite backgroundSprite;
     private NineSlice nineSlice;
+    private int pixelSize;
 
     public TextField(String defaultText, Font font, Vector2f position, Vector2f size) {
         this.text = defaultText;
@@ -55,7 +56,7 @@ public class TextField {
     public void render(SpriteRenderer spriteRenderer, TextRenderer textRenderer) {
         if (backgroundSprite != null && spriteRenderer != null) {
             if (nineSlice != null) {
-                spriteRenderer.drawNineSlice(backgroundSprite, position.x, position.y, size.x, size.y, nineSlice);
+                spriteRenderer.drawNineSlice(backgroundSprite, position.x, position.y, size.x, size.y, nineSlice, pixelSize);
             } else {
                 backgroundSprite.setOrigin(0f, 0f);
                 backgroundSprite.setPosition(position);
@@ -78,8 +79,9 @@ public class TextField {
         this.backgroundSprite = backgroundSprite;
     }
 
-    public void setNineSlice(NineSlice nineSlice) {
+    public void setNineSlice(NineSlice nineSlice, int pixelSize) {
         this.nineSlice = nineSlice;
+        this.pixelSize = pixelSize;
     }
 
     public String getText() {
