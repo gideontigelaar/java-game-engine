@@ -1,6 +1,7 @@
 package nl.team3.engine.ui;
 
 import nl.team3.engine.graphics.Font;
+import nl.team3.engine.graphics.NineSlice;
 import nl.team3.engine.graphics.Sprite;
 import nl.team3.engine.graphics.SpriteRenderer;
 import nl.team3.engine.graphics.TextRenderer;
@@ -17,6 +18,7 @@ public class Button {
     private Font font;
 
     private Sprite backgroundSprite;
+    private NineSlice nineSlice;
     private Runnable onClick;
 
     private boolean isHovered;
@@ -70,14 +72,18 @@ public class Button {
             currentColor = hoverColor;
         }
 
-        // background sprite
+        // background sprite / nine-slice rendering
         if (backgroundSprite != null && spriteRenderer != null) {
-            backgroundSprite.setOrigin(0f, 0f);
-            backgroundSprite.setPosition(position);
-            backgroundSprite.setScale(
-                    size.x / backgroundSprite.getTexture().getWidth(),
-                    size.y / backgroundSprite.getTexture().getHeight());
-            spriteRenderer.draw(backgroundSprite);
+            if (nineSlice != null) {
+                spriteRenderer.drawNineSlice(backgroundSprite, position.x, position.y, size.x, size.y, nineSlice);
+            } else {
+                backgroundSprite.setOrigin(0f, 0f);
+                backgroundSprite.setPosition(position);
+                backgroundSprite.setScale(
+                        size.x / backgroundSprite.getTexture().getWidth(),
+                        size.y / backgroundSprite.getTexture().getHeight());
+                spriteRenderer.draw(backgroundSprite);
+            }
         }
 
         // text rendering
@@ -91,6 +97,10 @@ public class Button {
 
     public void setBackgroundSprite(Sprite backgroundSprite) {
         this.backgroundSprite = backgroundSprite;
+    }
+
+    public void setNineSlice(NineSlice nineSlice) {
+        this.nineSlice = nineSlice;
     }
 
     public void setOnClick(Runnable onClick) {
