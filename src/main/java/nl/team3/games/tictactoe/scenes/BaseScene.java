@@ -61,11 +61,11 @@ public abstract class BaseScene implements Scene {
         mouseGrabTexture = assets.loadTexture("mouseGrab", "/textures/tictactoe/cursorGrab.png");
         input.setCursorVisible(false);
         mousePoint = new Sprite(mousePointTexture);
-        mousePoint.setScale(2.5f);
+        mousePoint.setScale(4f);
         mousePoint.setAlpha(1f);
 
-        mouseGrabAnim = Animation.builder().sprite(mousePoint).scale(new Vector2f(2.5f, 2.5f), new Vector2f(2.0f, 2.0f)).duration(0.3f).easing("ExponentialOut").build();
-        mouseReleaseAnim = Animation.builder().sprite(mousePoint).scale(new Vector2f(2.0f, 2.0f), new Vector2f(2.5f, 2.5f)).duration(0.3f).easing("ExponentialOut").build();
+        mouseGrabAnim = Animation.builder().sprite(mousePoint).scale(new Vector2f(4f, 4f), new Vector2f(3f, 3f)).duration(0.3f).easing("ExponentialOut").build();
+        mouseReleaseAnim = Animation.builder().sprite(mousePoint).scale(new Vector2f(3f, 3f), new Vector2f(4f, 4f)).duration(0.3f).easing("ExponentialOut").build();
 
         onInit(assets);
         resize(currentWidth, currentHeight);
@@ -80,16 +80,16 @@ public abstract class BaseScene implements Scene {
 
         if (input.isButtonDown(GLFW_MOUSE_BUTTON_LEFT)) {
             mousePoint.setTexture(mouseGrabTexture);
-            mousePoint.setOrigin(0.5f, 0.4f);
+            //mousePoint.setOrigin(0.5f, 0.4f);
             mouseGrabAnim.UpdateAnimation(dt);
             mouseGrabAnim.setScale();
         } else {
             mousePoint.setTexture(mousePointTexture);
-            mousePoint.setOrigin(0.3f, 0.1f);
+            //mousePoint.setOrigin(0.3f, 0.1f);
             mouseReleaseAnim.UpdateAnimation(dt);
             mouseReleaseAnim.setScale();
         }
-        mousePoint.setPosition(mousePosition);
+        mousePoint.setPosition(mousePosition.x + 4f, mousePosition.y + 20f);
 
         if (!input.isTextInputActive() && input.isKeyPressed(GLFW_KEY_2)) {
             background.nextPalette(mousePosition.x, mousePosition.y);
