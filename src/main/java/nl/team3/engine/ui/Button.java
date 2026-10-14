@@ -117,6 +117,10 @@ public class Button {
         return isHovered;
     }
 
+    public boolean isPressed() {
+        return isPressed;
+    }
+
     public Vector2f getPosition() {
         return position;
     }

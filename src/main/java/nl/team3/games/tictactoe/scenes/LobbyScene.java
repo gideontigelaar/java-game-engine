@@ -2,6 +2,9 @@ package nl.team3.games.tictactoe.scenes;
 
 import nl.team3.engine.assets.AssetManager;
 import nl.team3.engine.core.SceneManager;
+import nl.team3.engine.graphics.NineSlice;
+import nl.team3.engine.graphics.Sprite;
+import nl.team3.engine.graphics.Texture;
 import nl.team3.engine.input.ActionMap;
 import nl.team3.engine.input.InputManager;
 import nl.team3.engine.ui.Button;
@@ -15,6 +18,8 @@ public class LobbyScene extends BaseScene {
     private Button btnSubscribe;
     private Button btnDisconnect;
 
+
+
     private String serverStatus = "Connected. Awaiting actions...";
     private String playersList = "Players: []";
     private String gamesList = "Games: []";
@@ -25,6 +30,7 @@ public class LobbyScene extends BaseScene {
 
     @Override
     protected void onInit(AssetManager assets) {
+
         btnGetPlayers = new Button("GET PLAYERS", smallFont, new Vector2f(0, 0), new Vector2f(250, 50));
         btnGetGames = new Button("GET GAMES", smallFont, new Vector2f(0, 0), new Vector2f(250, 50));
         btnSubscribe = new Button("FIND MATCH", smallFont, new Vector2f(0, 0), new Vector2f(250, 50));
@@ -68,6 +74,7 @@ public class LobbyScene extends BaseScene {
 
     @Override
     protected void onRender() {
+
         float titleW = gameFont.getTextWidth("MULTIPLAYER LOBBY");
         textRenderer.drawText(gameFont, "MULTIPLAYER LOBBY", (currentWidth - titleW) / 2f, currentHeight * 0.10f, new Vector4f(1, 1, 1, 1));
 
@@ -79,6 +86,8 @@ public class LobbyScene extends BaseScene {
 
         float gamesW = smallFont.getTextWidth(gamesList);
         textRenderer.drawText(smallFont, gamesList, (currentWidth - gamesW) / 2f, currentHeight * 0.40f, new Vector4f(0.8f, 1, 0.8f, 1));
+
+
 
         btnGetPlayers.render(spriteRenderer, textRenderer);
         btnGetGames.render(spriteRenderer, textRenderer);

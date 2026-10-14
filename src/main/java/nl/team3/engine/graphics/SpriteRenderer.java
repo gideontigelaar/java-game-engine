@@ -48,6 +48,10 @@ public class SpriteRenderer {
 
     public void drawNineSlice(Sprite sprite, float x, float y, float targetWidth, float targetHeight,
                               NineSlice slice, float pixelScale) {
+
+        x -= sprite.getOrigin().x * targetWidth;
+        y -= sprite.getOrigin().y * targetHeight;
+
         Texture texture = sprite.getTexture();
         float texW = texture.getWidth();
         float texH = texture.getHeight();
