@@ -17,15 +17,16 @@ public class LobbyScene extends BaseScene {
     private Button btnGetGames;
     private Button btnSubscribe;
     private Button btnDisconnect;
-
+    private long window;
 
 
     private String serverStatus = "Connected. Awaiting actions...";
     private String playersList = "Players: []";
     private String gamesList = "Games: []";
 
-    public LobbyScene(InputManager input, ActionMap actions, SceneManager sceneManager, ServerConnection connection) {
+    public LobbyScene(InputManager input, ActionMap actions, SceneManager sceneManager, ServerConnection connection, long window) {
         super(input, actions, sceneManager, connection);
+        this.window = window;
     }
 
     @Override
@@ -41,7 +42,7 @@ public class LobbyScene extends BaseScene {
         btnSubscribe.setOnClick(() -> connection.sendCommand("subscribe Tic-tac-toe"));
         btnDisconnect.setOnClick(() -> {
             connection.disconnect();
-            sceneManager.changeScene(new MainMenuScene(input, actions, sceneManager));
+            sceneManager.changeScene(new MainMenuScene(input, actions, sceneManager, window));
         });
     }
 
@@ -61,14 +62,14 @@ public class LobbyScene extends BaseScene {
                 gamesList = "Games: " + msg.substring(13);
             } else if (msg.startsWith("SVR GAME MATCH")) {
                 serverStatus = "Match found!";
-                sceneManager.changeScene(new MatchScene(input, actions, sceneManager, connection));
+                sceneManager.changeScene(new MatchScene(input, actions, sceneManager, connection, window));
             } else if (msg.startsWith("SVR GAME CHALLENGE")) {
                 serverStatus = "Received a challenge!";
             }
         });
 
         if (!connection.isConnected()) {
-            sceneManager.changeScene(new MainMenuScene(input, actions, sceneManager));
+            sceneManager.changeScene(new MainMenuScene(input, actions, sceneManager, window));
         }
     }
 

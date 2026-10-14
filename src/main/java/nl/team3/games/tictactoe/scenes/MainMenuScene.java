@@ -1,17 +1,21 @@
 package nl.team3.games.tictactoe.scenes;
 
 import nl.team3.engine.assets.AssetManager;
+import nl.team3.engine.core.Config;
 import nl.team3.engine.core.SceneManager;
 import nl.team3.engine.graphics.NineSlice;
 import nl.team3.engine.graphics.Sprite;
 import nl.team3.engine.graphics.Texture;
+import nl.team3.engine.graphics.animation.Animation;
 import nl.team3.engine.input.ActionMap;
 import nl.team3.engine.input.InputManager;
 import nl.team3.engine.ui.Button;
 import nl.team3.engine.ui.TextField;
 import nl.team3.games.tictactoe.network.ServerConnection;
 import org.joml.Vector2f;
+import org.joml.Vector2i;
 import org.joml.Vector4f;
+import org.lwjgl.glfw.GLFW;
 
 public class MainMenuScene extends BaseScene {
     private TextField usernameInput;
@@ -28,7 +32,8 @@ public class MainMenuScene extends BaseScene {
     private Texture btnTexture;
     private Texture btnDownTexture;
     private Texture anonUserProfile;
-
+    private Texture tripleTlogo;
+    private Sprite logo;
     private Sprite User;
     private Sprite btn1;
     private Sprite btn2;
@@ -36,24 +41,35 @@ public class MainMenuScene extends BaseScene {
     private int heightMod1;
     private int heightMod2;
     private int heightMod3;
-
+    //animations
+    private Animation windowWiden;
+    private boolean transitionToGame;
+    private long window;
     private int windowWidth;
     private int windowHeight;
-    public MainMenuScene(InputManager input, ActionMap actions, SceneManager sceneManager) {
+    private int oldwindowX;
+    private int oldwindowY;
+    private boolean hasChangedPalette = false;
+    public MainMenuScene(InputManager input, ActionMap actions, SceneManager sceneManager, long window) {
         super(input, actions, sceneManager, null);
+        this.window = window;
     }
 
     @Override
     protected void onInit(AssetManager assets) {
+        windowWiden = new Animation(Config.WINDOW_WIDTH, Config.WINDOW_HEIGHT, "ExponentialInOut", 1f);
         System.out.println("MainMenuScene loaded");
         btnTexture = assets.loadTexture("btnTexture", "/textures/tictactoe/button.png");
         btnDownTexture = assets.loadTexture("btnPressedTexture", "/textures/tictactoe/buttonPressed.png");
         anonUserProfile = assets.loadTexture("anonUserProfile", "/textures/tictactoe/anonUserProfile.png");
+        tripleTlogo = assets.loadTexture("tripleTlogo", "/textures/tictactoe/tripleTlogo.png");
         btn1 = new Sprite(btnTexture);
         btn2 = new Sprite(btnTexture);
         btn3 = new Sprite(btnTexture);
         User = new Sprite(anonUserProfile);
         User.setScale(4f);
+        logo = new Sprite(tripleTlogo);
+        logo.setScale(4f);
 
         usernameInput = new TextField("player1", smallFont, new Vector2f(0, 0), new Vector2f(300, 50));
 
@@ -63,7 +79,12 @@ public class MainMenuScene extends BaseScene {
 
         btnLoginOnline.setOnClick(this::attemptLogin);
         btnPlayOffline.setOnClick(() -> {
-            sceneManager.changeScene(new MatchScene(input, actions, sceneManager, null));
+            windowWiden.startAnimation();
+            transitionToGame = true;
+            int[] x = new int[1], y = new int[1];
+            GLFW.glfwGetWindowPos(window, x,y);
+            oldwindowX = x[0];
+            oldwindowY = y[0];
         });
         btnQuit.setOnClick(input::requestClose);
 
@@ -74,15 +95,45 @@ public class MainMenuScene extends BaseScene {
             ServerConnection newConnection = new ServerConnection(SERVER_HOST, SERVER_PORT);
             newConnection.connect();
             newConnection.sendCommand("login " + usernameInput.getText().toLowerCase());
-            sceneManager.changeScene(new LobbyScene(input, actions, sceneManager, newConnection));
+            sceneManager.changeScene(new LobbyScene(input, actions, sceneManager, newConnection, window));
         } catch (Exception e) {
             statusMessage = "Connection failed!";
             System.out.println("Failed to connect to server: " + e.getMessage());
         }
     }
 
+
+    //handles transition animation to next scene
+    private void transition(float dt){
+
+        windowWiden.UpdateAnimation(dt);
+
+        GLFW.glfwSetWindowPos(window,oldwindowX - (Math.round(windowWiden.getValue()) - 600)/2,oldwindowY);
+        GLFW.glfwSetWindowSize(window, Math.round(windowWiden.getValue()), windowHeight);
+
+        if(windowWiden.getProgress() > 0.2f){
+            if(!hasChangedPalette){
+                background = getBackground();
+                background.setPalette(0,0, 1);
+                hasChangedPalette = true;
+            }
+
+        }
+
+        if(windowWiden.getProgress() > 0.7f){
+            sceneManager.changeScene(new MatchScene(input, actions, sceneManager, null, window));
+            GLFW.glfwSetWindowSize(window, 800, windowHeight);
+
+        }
+
+    }
+
     @Override
     protected void onUpdate(float dt) {
+        if(transitionToGame){
+            transition(dt);
+        }
+
         usernameInput.update(input);
         if (usernameInput.isSubmitPressed()) {
             attemptLogin();
@@ -108,11 +159,7 @@ public class MainMenuScene extends BaseScene {
 
         spriteRenderer.drawNineSlice(btn3,(windowWidth) / 2f,windowHeight * 0.40f + 110f + 160f,200,68,buttonSlice, 4);
 
-        float titleWidth = gameFont.getTextWidth("TIC TAC TOE");
-        textRenderer.drawText(gameFont, "TIC TAC TOE", (currentWidth - titleWidth) / 2f, currentHeight * 0.15f , new Vector4f(1, 1, 1, 1));
-
-        //float labelWidth = smallFont.getTextWidth("Username:");
-        //textRenderer.drawText(smallFont, "Username:", (currentWidth - labelWidth) / 2f, usernameInput.getPosition().y - 15, new Vector4f(0.8f, 0.8f, 0.8f, 1));
+        spriteRenderer.draw(logo);
 
         if (!statusMessage.isEmpty()) {
             float statusWidth = smallFont.getTextWidth(statusMessage);
@@ -137,5 +184,6 @@ public class MainMenuScene extends BaseScene {
         btnPlayOffline.setPosition(new Vector2f(centerX, height * 0.40f + 160f  + heightMod2));
         btnQuit.setPosition(new Vector2f(centerX, height * 0.40f + 240f + heightMod3));
         User.setPosition(new Vector2f(width / 2, height * 0.40f - 60f));
+        logo.setPosition((currentWidth) / 2f, currentHeight * 0.15f );
     }
 }

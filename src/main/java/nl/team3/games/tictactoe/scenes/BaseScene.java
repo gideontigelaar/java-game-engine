@@ -5,7 +5,7 @@ import nl.team3.engine.core.Config;
 import nl.team3.engine.core.Scene;
 import nl.team3.engine.core.SceneManager;
 import nl.team3.engine.graphics.*;
-import nl.team3.engine.graphics.animation.Animation;
+import nl.team3.engine.graphics.animation.SpriteAnimation;
 import nl.team3.engine.input.ActionMap;
 import nl.team3.engine.input.InputManager;
 import nl.team3.games.tictactoe.BackgroundRenderer;
@@ -41,8 +41,8 @@ public abstract class BaseScene implements Scene {
 
     protected Vector2f mousePosition = new Vector2f();
 
-    private Animation mouseGrabAnim;
-    private Animation mouseReleaseAnim;
+    private SpriteAnimation mouseGrabAnim;
+    private SpriteAnimation mouseReleaseAnim;
 
     public BaseScene(InputManager input, ActionMap actions, SceneManager sceneManager, ServerConnection connection) {
         this.input = input;
@@ -70,8 +70,8 @@ public abstract class BaseScene implements Scene {
         mousePoint.setScale(4f);
         mousePoint.setAlpha(1f);
 
-        mouseGrabAnim = Animation.builder().sprite(mousePoint).scale(new Vector2f(4f, 4f), new Vector2f(3f, 3f)).duration(0.3f).easing("ExponentialOut").build();
-        mouseReleaseAnim = Animation.builder().sprite(mousePoint).scale(new Vector2f(3f, 3f), new Vector2f(4f, 4f)).duration(0.3f).easing("ExponentialOut").build();
+        mouseGrabAnim = SpriteAnimation.builder().sprite(mousePoint).scale(new Vector2f(4f, 4f), new Vector2f(3f, 3f)).duration(0.3f).easing("ExponentialOut").build();
+        mouseReleaseAnim = SpriteAnimation.builder().sprite(mousePoint).scale(new Vector2f(3f, 3f), new Vector2f(4f, 4f)).duration(0.3f).easing("ExponentialOut").build();
 
         onInit(assets);
         resize(currentWidth, currentHeight);
@@ -125,6 +125,10 @@ public abstract class BaseScene implements Scene {
         textRenderer.setProjection(width, height);
 
         onResize(width, height);
+    }
+
+    public BackgroundRenderer getBackground() {
+        return background;
     }
 
     protected abstract void onInit(AssetManager assets);

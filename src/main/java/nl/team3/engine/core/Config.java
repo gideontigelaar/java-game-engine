@@ -5,9 +5,9 @@ import org.joml.Vector4f;
 public class Config {
     // Window
     public static final String WINDOW_TITLE = "Game Engine";
-    public static final int WINDOW_WIDTH = 800;
+    public static final int WINDOW_WIDTH = 600;
     public static final int WINDOW_HEIGHT = 800;
-    public static final int MIN_WINDOW_WIDTH = 800;
+    public static final int MIN_WINDOW_WIDTH = 600;
     public static final int MIN_WINDOW_HEIGHT = 800;
     public static final int GUI_SCALE_OVERRIDE = 0; // 0: auto, 1+: fixed scale (capped to what fits the window)
     public static final int MIN_GUI_WIDTH = 1280;

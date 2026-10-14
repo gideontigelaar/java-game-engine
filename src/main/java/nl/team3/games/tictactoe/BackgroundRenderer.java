@@ -13,8 +13,8 @@ public class BackgroundRenderer {
     private final ShaderProgram shader;
     private final Mesh quad;
     private float time = 0f;
-    private int palette = 0;
-    private int previousPalette = 0;
+    private int palette = 2;
+    private int previousPalette = 2;
     private float startTime = 0f;
     private float mouseX;
     private float mouseY;
@@ -31,6 +31,13 @@ public class BackgroundRenderer {
     public void nextPalette(float x, float y) {
         previousPalette = palette;
         palette = (palette + 1) % PALETTE_COUNT;
+        mouseX = x;
+        mouseY = y;
+        startTime = time;
+    }
+    public void setPalette(float x, float y, int num) {
+        previousPalette = palette;
+        palette = num;
         mouseX = x;
         mouseY = y;
         startTime = time;

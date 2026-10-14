@@ -1,16 +1,19 @@
 package nl.team3.games.tictactoe.scenes;
 
 import nl.team3.engine.assets.AssetManager;
+import nl.team3.engine.core.Config;
 import nl.team3.engine.core.SceneManager;
 import nl.team3.engine.graphics.Sprite;
 import nl.team3.engine.graphics.Texture;
 import nl.team3.engine.graphics.animation.Animation;
+import nl.team3.engine.graphics.animation.SpriteAnimation;
 import nl.team3.engine.input.ActionMap;
 import nl.team3.engine.input.InputManager;
 import nl.team3.engine.ui.Button;
 import nl.team3.games.tictactoe.network.ServerConnection;
 import org.joml.Vector2f;
 import org.joml.Vector4f;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -45,20 +48,31 @@ public class MatchScene extends BaseScene {
     private PieceSide xSide;
     private PieceSide oSide;
     private final Sprite[][] boardPieces = new Sprite[3][3];
-
+    private long window;
     private Button btnAction;
     private boolean matchEnded = false;
     private String gameStatusMessage = "";
+
+    private Animation windowWiden;
+    private boolean transitionToGame;
+    private int windowWidth;
+    private int windowHeight;
+    private int oldwindowX;
+    private int oldwindowY;
+    private boolean hasChangedPalette = false;
 
     private class PieceSide {
         private final float direction;
         private final Texture pieceTexture;
         private final List<Sprite> stack = new ArrayList<>();
-        private final List<Animation> settling = new ArrayList<>();
+        private final List<SpriteAnimation> settling = new ArrayList<>();
         private Sprite active;
-        private Animation grabAnim;
-        private Animation releaseAnim;
+        private SpriteAnimation grabAnim;
+        private SpriteAnimation releaseAnim;
         private boolean pickedUp = false;
+
+
+
 
         private PieceSide(float direction, Texture pieceTexture, Texture stackTexture) {
             this.direction = direction;
@@ -74,8 +88,8 @@ public class MatchScene extends BaseScene {
         }
 
         private void setupAnimations() {
-            grabAnim = Animation.builder().sprite(active).scale(new Vector2f(BOARD_SCALE, BOARD_SCALE), new Vector2f(GRAB_SCALE, GRAB_SCALE)).duration(0.3f).easing("ExponentialOut").build();
-            releaseAnim = Animation.builder().sprite(active).scale(new Vector2f(GRAB_SCALE, GRAB_SCALE), new Vector2f(BOARD_SCALE, BOARD_SCALE)).duration(0.3f).easing("ExponentialOut").build();
+            grabAnim = SpriteAnimation.builder().sprite(active).scale(new Vector2f(BOARD_SCALE, BOARD_SCALE), new Vector2f(GRAB_SCALE, GRAB_SCALE)).duration(0.3f).easing("ExponentialOut").build();
+            releaseAnim = SpriteAnimation.builder().sprite(active).scale(new Vector2f(GRAB_SCALE, GRAB_SCALE), new Vector2f(BOARD_SCALE, BOARD_SCALE)).duration(0.3f).easing("ExponentialOut").build();
         }
 
         private void spawnNext() {
@@ -131,13 +145,43 @@ public class MatchScene extends BaseScene {
         }
     }
 
-    public MatchScene(InputManager input, ActionMap actions, SceneManager sceneManager, ServerConnection connection) {
+    public MatchScene(InputManager input, ActionMap actions, SceneManager sceneManager, ServerConnection connection, long window) {
         super(input, actions, sceneManager, connection);
+        this.window = window;
+    }
+
+    public void transition(float dt){
+
+        int[] w = new int[1], h = new int[1];
+        GLFW.glfwGetWindowSize(window, w,h);
+        windowWidth = w[0];
+        windowHeight = h[0];
+        windowWiden.UpdateAnimation(dt);
+
+        GLFW.glfwSetWindowPos(window,oldwindowX - (Math.round(windowWiden.getValue()) - 800)/2,oldwindowY);
+        GLFW.glfwSetWindowSize(window, Math.round(windowWiden.getValue()), windowHeight);
+
+        if(windowWiden.getProgress() > 0.2f){
+            if(!hasChangedPalette){
+                background = getBackground();
+                background.setPalette(0,0, 2);
+                hasChangedPalette = true;
+            }
+
+        }
+
+        if(windowWiden.getProgress() > 0.7f){
+            sceneManager.changeScene(new MainMenuScene(input, actions, sceneManager, window));
+            GLFW.glfwSetWindowSize(window, 600, windowHeight);
+
+        }
+
     }
 
     @Override
     protected void onInit(AssetManager assets) {
         System.out.println("Game loaded");
+        windowWiden = new Animation(800, 600, "ExponentialInOut", 1f);
 
         boardTexture = assets.loadTexture("board", "/textures/tictactoe/board.png");
         boardSprite = new Sprite(boardTexture);
@@ -177,14 +221,24 @@ public class MatchScene extends BaseScene {
             connection.sendCommand("forfeit");
         }
         if (connection != null && connection.isConnected()) {
-            sceneManager.changeScene(new LobbyScene(input, actions, sceneManager, connection));
+            sceneManager.changeScene(new LobbyScene(input, actions, sceneManager, connection, window));
         } else {
-            sceneManager.changeScene(new MainMenuScene(input, actions, sceneManager));
+            windowWiden.startAnimation();
+            transitionToGame = true;
+            int[] x = new int[1], y = new int[1];
+            GLFW.glfwGetWindowPos(window, x,y);
+
+            oldwindowX = x[0];
+            oldwindowY = y[0];
+
         }
     }
 
     @Override
     protected void onUpdate(float dt) {
+        if(transitionToGame){
+            transition(dt);
+        }
         btnAction.update(input);
 
         updateSide(xSide, oSide, dt);
@@ -210,7 +264,7 @@ public class MatchScene extends BaseScene {
             });
 
             if (!connection.isConnected()) {
-                sceneManager.changeScene(new MainMenuScene(input, actions, sceneManager));
+                sceneManager.changeScene(new MainMenuScene(input, actions, sceneManager, window));
             }
         }
     }
@@ -282,7 +336,7 @@ public class MatchScene extends BaseScene {
         piece.setPosition(getGridCenter(col, row));
         boardPieces[col][row] = piece;
 
-        Animation settle = Animation.builder().sprite(piece).scale(new Vector2f(GRAB_SCALE, GRAB_SCALE), new Vector2f(BOARD_SCALE, BOARD_SCALE)).duration(0.3f).easing("ExponentialOut").build();
+        SpriteAnimation settle = SpriteAnimation.builder().sprite(piece).scale(new Vector2f(GRAB_SCALE, GRAB_SCALE), new Vector2f(BOARD_SCALE, BOARD_SCALE)).duration(0.3f).easing("ExponentialOut").build();
         settle.startAnimation();
         side.settling.add(settle);
 
@@ -290,9 +344,9 @@ public class MatchScene extends BaseScene {
     }
 
     private void updateSettling(PieceSide side, float dt) {
-        Iterator<Animation> it = side.settling.iterator();
+        Iterator<SpriteAnimation> it = side.settling.iterator();
         while (it.hasNext()) {
-            Animation settle = it.next();
+            SpriteAnimation settle = it.next();
             settle.UpdateAnimation(dt);
             settle.setScale();
             if (settle.getTimer().isFinished()) {
@@ -346,6 +400,8 @@ public class MatchScene extends BaseScene {
 
     @Override
     protected void onResize(int width, int height) {
+        windowWidth = width;
+        windowHeight = height;
         boardSprite.setPosition(new Vector2f(Math.round((float) width / 2), Math.round((float) height / 2)));
         btnAction.setPosition(new Vector2f((width - 200f) / 2f, height - 100f));
 

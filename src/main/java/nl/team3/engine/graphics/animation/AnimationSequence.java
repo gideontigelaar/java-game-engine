@@ -3,11 +3,11 @@ package nl.team3.engine.graphics.animation;
 import java.util.List;
 
 public class AnimationSequence {
-    private final List<Animation> animationList;
+    private final List<SpriteAnimation> animationList;
     private int currentAnimation = 0;
     private boolean running = false;
 
-    public AnimationSequence(List<Animation> animationList) {
+    public AnimationSequence(List<SpriteAnimation> animationList) {
         this.animationList = animationList;
     }
 
@@ -25,7 +25,7 @@ public class AnimationSequence {
             return;
         }
 
-        Animation current = animationList.get(currentAnimation);
+        SpriteAnimation current = animationList.get(currentAnimation);
         current.UpdateAnimation(dt);
 
         if (current.getTimer().isFinished()) {

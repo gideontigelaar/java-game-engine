@@ -4,13 +4,9 @@ import nl.team3.engine.graphics.Sprite;
 import org.joml.Vector2f;
 
 public class Animation {
+    private final float startValue;
+    private final float endValue;
 
-    private final Vector2f startPos;
-    private final Vector2f endPos;
-    private final Vector2f startScale;
-    private final Vector2f endScale;
-    private final float startRot;
-    private final float endRot;
     private final String easingType;
     private final float duration;
     private final Timer timer;
@@ -22,80 +18,13 @@ public class Animation {
     private boolean playing = false;
     private float elapsed = 0f;
 
-    private Animation(Builder b) {
-        this.startPos = new Vector2f(b.startPos);
-        this.endPos = new Vector2f(b.endPos);
-        this.startScale = new Vector2f(b.startScale);
-        this.endScale = new Vector2f(b.endScale);
-        this.startRot = b.startRot;
-        this.endRot = b.endRot;
-        this.duration = b.duration;
-        this.easingType = b.easingType;
-        this.sprite = b.sprite;
-        this.timer = new Timer(this.duration);
+    public Animation(float startValue, float endValue, String easingType, float duration) {
+        this.startValue = startValue;
+        this.endValue = endValue;
+        this.easingType = easingType;
+        this.duration = duration;
+        this.timer = new Timer(duration);
     }
-
-    public static Builder builder() {
-        return new Builder();
-    }
-
-
-    public static class Builder {
-        private Vector2f startPos = new Vector2f(0, 0);
-        private Vector2f endPos = new Vector2f(0, 0);
-        private Vector2f startScale = new Vector2f(1, 1);
-        private Vector2f endScale = new Vector2f(1, 1);
-        private float startRot = 0f;
-        private float endRot = 0f;
-        private float duration = 1f;
-        private String easingType = "Linear";
-        private Sprite sprite;   // optional
-
-        private Builder() {}
-
-        public Builder position(Vector2f start, Vector2f end) {
-            this.startPos = start;
-            this.endPos = end;
-            return this;
-        }
-
-        public Builder scale(Vector2f start, Vector2f end) {
-            this.startScale = start;
-            this.endScale = end;
-            return this;
-        }
-
-        public Builder rotation(float start, float end) {
-            this.startRot = start;
-            this.endRot = end;
-            return this;
-        }
-
-        public Builder duration(float seconds) {
-            this.duration = seconds;
-            return this;
-        }
-
-        public Builder easing(String easingType) {
-            this.easingType = easingType;
-            return this;
-        }
-
-        public Builder sprite(Sprite sprite) {
-            this.sprite = sprite;
-            return this;
-        }
-
-        public Animation build() {
-            if (duration < 0f) {
-                throw new IllegalStateException("duration must not be negative");
-            }
-            return new Animation(this);
-        }
-    }
-
-
-
 
     public void startAnimation() {
         elapsed = 0f;
@@ -128,56 +57,8 @@ public class Animation {
         return Math.min(elapsed / duration, 1f);
     }
 
-
-
-    public void setTransformation() {
-        if (!started || sprite == null) return;
-        sprite.setTransformation(getPosition(), getScale(), getRotation());
-    }
-
-    public void setPosition() {
-        if (!started || sprite == null) return;
-        sprite.setPosition(getPosition());
-    }
-
-    public void setScale() {
-        if (!started || sprite == null) return;
-        sprite.setScale(getScale());
-    }
-
-    public void setRotation() {
-        if (!started || sprite == null) return;
-        sprite.setRotation(getRotation());
-    }
-
-
-
-    public Vector2f getPosition() {
+    public float getValue() {
         float p = getProgress();
-        return new Vector2f(
-                Interpolators.Easing(startPos.x, endPos.x, p, easingType),
-                Interpolators.Easing(startPos.y, endPos.y, p, easingType)
-        );
-    }
-
-    public Vector2f getScale() {
-        float p = getProgress();
-        return new Vector2f(
-                Interpolators.Easing(startScale.x, endScale.x, p, easingType),
-                Interpolators.Easing(startScale.y, endScale.y, p, easingType)
-        );
-    }
-
-
-    public float getRotation() {
-        float deg = Interpolators.Easing(startRot, endRot, getProgress(), easingType);
-        return (float) (deg * (Math.PI / 180));
-    }
-
-
-    public Timer getTimer() { return timer; }
-
-    public void SetSprite(Sprite sprite) {
-        this.sprite = sprite;
+        return Interpolators.Easing(startValue, endValue, p, easingType);
     }
 }
