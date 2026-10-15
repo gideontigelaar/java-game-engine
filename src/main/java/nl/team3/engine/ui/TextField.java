@@ -100,6 +100,8 @@ public class TextField {
         return size;
     }
 
+    public void setSize(Vector2f size) {this.size = size; }
+
     public boolean isSubmitPressed() {
         return submitPressed;
     }

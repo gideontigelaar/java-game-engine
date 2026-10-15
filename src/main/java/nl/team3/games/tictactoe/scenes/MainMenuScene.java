@@ -43,12 +43,21 @@ public class MainMenuScene extends BaseScene {
     private int heightMod3;
     //animations
     private Animation windowWiden;
+
+    private Animation buttonTransition;
+    private Animation button2Transition;
+    private Animation button3Transition;
+    private float scaleModifier = 1f;
+    private float scale2Modifier = 1f;
+    private float scale3Modifier = 1f;
+
     private boolean transitionToGame;
     private long window;
     private int windowWidth;
     private int windowHeight;
     private int oldwindowX;
     private int oldwindowY;
+
     private boolean hasChangedPalette = false;
     public MainMenuScene(InputManager input, ActionMap actions, SceneManager sceneManager, long window) {
         super(input, actions, sceneManager, null);
@@ -57,7 +66,13 @@ public class MainMenuScene extends BaseScene {
 
     @Override
     protected void onInit(AssetManager assets) {
+        //animation setup
         windowWiden = new Animation(Config.WINDOW_WIDTH, Config.WINDOW_HEIGHT, "ExponentialInOut", 1f);
+        buttonTransition = new Animation(1, 0, "ExponentialIn", 0.5f);
+        button2Transition = new Animation(1, 0, "ExponentialIn", 0.4f);
+        button3Transition = new Animation(1, 0, "ExponentialIn", 0.3f);
+
+
         System.out.println("MainMenuScene loaded");
         btnTexture = assets.loadTexture("btnTexture", "/textures/tictactoe/button.png");
         btnDownTexture = assets.loadTexture("btnPressedTexture", "/textures/tictactoe/buttonPressed.png");
@@ -79,6 +94,10 @@ public class MainMenuScene extends BaseScene {
 
         btnLoginOnline.setOnClick(this::attemptLogin);
         btnPlayOffline.setOnClick(() -> {
+            buttonTransition.startAnimation();
+            button2Transition.startAnimation();
+            button3Transition.startAnimation();
+
             windowWiden.startAnimation();
             transitionToGame = true;
             int[] x = new int[1], y = new int[1];
@@ -107,6 +126,14 @@ public class MainMenuScene extends BaseScene {
     private void transition(float dt){
 
         windowWiden.UpdateAnimation(dt);
+        buttonTransition.UpdateAnimation(dt);
+        button2Transition.UpdateAnimation(dt);
+        button3Transition.UpdateAnimation(dt);
+        scaleModifier = buttonTransition.getValue();
+        scale2Modifier = button2Transition.getValue();
+        scale3Modifier = button3Transition.getValue();
+
+        btnLoginOnline.setSize(new Vector2f(300 * scaleModifier, 50 * scaleModifier));
 
         GLFW.glfwSetWindowPos(window,oldwindowX - (Math.round(windowWiden.getValue()) - 600)/2,oldwindowY);
         GLFW.glfwSetWindowSize(window, Math.round(windowWiden.getValue()), windowHeight);
@@ -153,11 +180,11 @@ public class MainMenuScene extends BaseScene {
 
         spriteRenderer.draw(User);
 
-        spriteRenderer.drawNineSlice(btn1,(windowWidth) / 2f,windowHeight * 0.40f + 110f,300,68,buttonSlice, 4);
+        spriteRenderer.drawNineSlice(btn1,(windowWidth) / 2f,windowHeight * 0.40f + 110f,300 * scaleModifier,68 * scaleModifier,buttonSlice, 4);
 
-        spriteRenderer.drawNineSlice(btn2,(windowWidth) / 2f,windowHeight * 0.40f + 110f + 80f,300,68,buttonSlice, 4);
+        spriteRenderer.drawNineSlice(btn2,(windowWidth) / 2f,windowHeight * 0.40f + 110f + 80f,300 * scale2Modifier,68 * scale2Modifier,buttonSlice, 4);
 
-        spriteRenderer.drawNineSlice(btn3,(windowWidth) / 2f,windowHeight * 0.40f + 110f + 160f,200,68,buttonSlice, 4);
+        spriteRenderer.drawNineSlice(btn3,(windowWidth) / 2f,windowHeight * 0.40f + 110f + 160f,200 * scale3Modifier,68 * scale3Modifier,buttonSlice, 4);
 
         spriteRenderer.draw(logo);
 
