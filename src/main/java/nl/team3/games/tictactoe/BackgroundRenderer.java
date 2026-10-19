@@ -5,6 +5,10 @@ import nl.team3.engine.graphics.Mesh;
 import nl.team3.engine.graphics.ShaderProgram;
 
 public class BackgroundRenderer {
+    public static final int PALETTE_PINK = 0;
+    public static final int PALETTE_GREEN = 1;
+    public static final int PALETTE_BLUE = 2;
+
     private static final String SHADER_KEY = "background";
     private static final String VERTEX_PATH = "/shaders/tictactoe/background.vert";
     private static final String FRAGMENT_PATH = "/shaders/tictactoe/background.frag";
@@ -13,8 +17,8 @@ public class BackgroundRenderer {
     private final ShaderProgram shader;
     private final Mesh quad;
     private float time = 0f;
-    private int palette = 2;
-    private int previousPalette = 2;
+    private int palette = PALETTE_BLUE;
+    private int previousPalette = PALETTE_BLUE;
     private float startTime = 0f;
     private float mouseX;
     private float mouseY;

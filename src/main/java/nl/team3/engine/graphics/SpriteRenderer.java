@@ -4,6 +4,9 @@ import nl.team3.engine.assets.AssetManager;
 import org.joml.Matrix4f;
 import org.joml.Vector4f;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import static org.lwjgl.opengl.GL11.GL_BLEND;
 import static org.lwjgl.opengl.GL11.GL_ONE_MINUS_SRC_ALPHA;
 import static org.lwjgl.opengl.GL11.GL_SRC_ALPHA;
@@ -16,6 +19,11 @@ public class SpriteRenderer {
 
     private final Matrix4f projection = new Matrix4f();
     private final Matrix4f transformMatrix = new Matrix4f();
+
+    // Nine-slice segment meshes, reused between frames
+    private final Map<SliceUv, Mesh> sliceMeshes = new HashMap<>();
+
+    private record SliceUv(float u0, float v0, float u1, float v1) {}
 
     public SpriteRenderer(AssetManager assets) {
         this.shader = assets.getShader(AssetManager.SPRITE_SHADER);
@@ -89,18 +97,16 @@ public class SpriteRenderer {
 
                 if (segW <= 0 || segH <= 0) continue;
 
-                Mesh segmentMesh = Mesh.createQuad(
-                        uvsX[col],     1f - uvsY[row + 1],
-                        uvsX[col + 1], 1f - uvsY[row]);
+                Mesh segmentMesh = sliceMeshes.computeIfAbsent(
+                        new SliceUv(uvsX[col], 1f - uvsY[row + 1], uvsX[col + 1], 1f - uvsY[row]),
+                        uv -> Mesh.createQuad(uv.u0(), uv.v0(), uv.u1(), uv.v1()));
 
-                Matrix4f model = new Matrix4f()
+                transformMatrix.identity()
                         .translate(segX + segW * 0.5f, segY + segH * 0.5f, 0)
                         .scale(segW, segH, 1);
 
-                shader.setUniformMat4("uModel", model);
+                shader.setUniformMat4("uModel", transformMatrix);
                 segmentMesh.render();
-
-                segmentMesh.cleanup();
             }
         }
     }
@@ -117,5 +123,10 @@ public class SpriteRenderer {
                 .rotateZ(sprite.getRotation())
                 .translate(pivotOffsetX, pivotOffsetY, 0)
                 .scale(width, height, 1);
+    }
+
+    public void cleanup() {
+        sliceMeshes.values().forEach(Mesh::cleanup);
+        sliceMeshes.clear();
     }
 }

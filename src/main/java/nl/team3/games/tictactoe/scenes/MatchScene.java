@@ -1,23 +1,24 @@
 package nl.team3.games.tictactoe.scenes;
 
 import nl.team3.engine.assets.AssetManager;
-import nl.team3.engine.core.Config;
 import nl.team3.engine.core.SceneManager;
 import nl.team3.engine.graphics.Sprite;
 import nl.team3.engine.graphics.Texture;
-import nl.team3.engine.graphics.animation.Animation;
+import nl.team3.engine.graphics.animation.AnimationSequence;
 import nl.team3.engine.graphics.animation.SpriteAnimation;
 import nl.team3.engine.input.ActionMap;
 import nl.team3.engine.input.InputManager;
 import nl.team3.engine.ui.Button;
+import nl.team3.games.tictactoe.BackgroundRenderer;
+import nl.team3.games.tictactoe.Board;
 import nl.team3.games.tictactoe.network.ServerConnection;
 import org.joml.Vector2f;
 import org.joml.Vector4f;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT;
 
@@ -37,33 +38,38 @@ public class MatchScene extends BaseScene {
     private static final float STACK_STRIDE = 4f * BOARD_SCALE;
     private static final float STACK_TEXTURE_HEIGHT = 11f * BOARD_SCALE;
 
+    private static final float WIN_POP_SCALE = BOARD_SCALE + 2f;
+    private static final float WIN_POP_TIME = 0.4f;
+    private static final float WIN_HIGHLIGHT_PAUSE = 0.6f;
+    private static final Vector4f STATUS_COLOR = new Vector4f(1, 1, 0, 1);
+
     private Sprite boardSprite;
     private Texture boardTexture;
-
-    private Texture xPieceTexture;
-    private Texture xStackTexture;
-    private Texture oPieceTexture;
-    private Texture oStackTexture;
+    private final Vector2f boardTopLeft = new Vector2f();
+    private Sprite logo;
+    private boolean logoVisible;
 
     private PieceSide xSide;
     private PieceSide oSide;
-    private final Sprite[][] boardPieces = new Sprite[3][3];
-    private long window;
+    private final Sprite[][] boardPieces = new Sprite[Board.SIZE][Board.SIZE];
+
+    // Random player starts
+    private final Board board = new Board(ThreadLocalRandom.current().nextBoolean() ? Board.Mark.X : Board.Mark.O);
+    private final List<SpriteAnimation> winPops = new ArrayList<>();
+    private AnimationSequence winHighlight;
+    private float winHighlightDelay;
+
     private Button btnAction;
+    private Button btnPlayAgain;
     private boolean matchEnded = false;
     private String gameStatusMessage = "";
-
-    private Animation windowWiden;
-    private boolean transitionToGame;
-    private int windowWidth;
-    private int windowHeight;
-    private int oldwindowX;
-    private int oldwindowY;
-    private boolean hasChangedPalette = false;
+    private float statusY;
 
     private class PieceSide {
+        private final Board.Mark mark;
         private final float direction;
         private final Texture pieceTexture;
+        private final Texture stackTexture;
         private final List<Sprite> stack = new ArrayList<>();
         private final List<SpriteAnimation> settling = new ArrayList<>();
         private Sprite active;
@@ -71,12 +77,11 @@ public class MatchScene extends BaseScene {
         private SpriteAnimation releaseAnim;
         private boolean pickedUp = false;
 
-
-
-
-        private PieceSide(float direction, Texture pieceTexture, Texture stackTexture) {
+        private PieceSide(Board.Mark mark, float direction, Texture pieceTexture, Texture stackTexture) {
+            this.mark = mark;
             this.direction = direction;
             this.pieceTexture = pieceTexture;
+            this.stackTexture = stackTexture;
 
             for (int i = 0; i < PIECES_PER_SIDE; i++) {
                 Sprite s = new Sprite(stackTexture);
@@ -114,21 +119,42 @@ public class MatchScene extends BaseScene {
                 releaseAnim.getTimer().reset();
             }
 
-            snapActiveToStack();
+            layout();
+        }
+
+        private void pickUp() {
+            pickedUp = true;
+            grabAnim.startAnimation();
+            layout();
+        }
+
+        private void putBack() {
+            pickedUp = false;
+            releaseAnim.startAnimation();
+            layout();
+        }
+
+        // Rounded like the board, half pixels make scaled sprites shimmer
+        private float stackX() {
+            return Math.round(currentWidth / 2f) + direction * STACK_OFFSET_X;
         }
 
         private float levelY(int level) {
-            return currentHeight / 2f + STACK_BASE_OFFSET_Y - level * STACK_STRIDE;
+            return Math.round(currentHeight / 2f) + STACK_BASE_OFFSET_Y - level * STACK_STRIDE;
         }
 
         private void snapActiveToStack() {
-            active.setPosition(currentWidth / 2f + direction * STACK_OFFSET_X, levelY(stack.size()));
+            active.setPosition(stackX(), levelY(stack.size()));
         }
 
         private void layout() {
-            float centerX = currentWidth / 2f + direction * STACK_OFFSET_X;
+            float centerX = stackX();
             for (int i = 0; i < stack.size(); i++) {
-                stack.get(i).setPosition(centerX, levelY(i) + STACK_TEXTURE_HEIGHT / 2f);
+                // Top of the stack shows the full piece once the piece above it is picked up
+                boolean exposed = pickedUp && i == stack.size() - 1;
+                Sprite piece = stack.get(i);
+                piece.setTexture(exposed ? pieceTexture : stackTexture);
+                piece.setPosition(centerX, levelY(i) + STACK_TEXTURE_HEIGHT / 2f);
             }
             if (active != null && !pickedUp) {
                 snapActiveToStack();
@@ -145,73 +171,44 @@ public class MatchScene extends BaseScene {
         }
     }
 
-    public MatchScene(InputManager input, ActionMap actions, SceneManager sceneManager, ServerConnection connection, long window) {
+    public MatchScene(InputManager input, ActionMap actions, SceneManager sceneManager, ServerConnection connection) {
         super(input, actions, sceneManager, connection);
-        this.window = window;
-    }
-
-    public void transition(float dt){
-
-        int[] w = new int[1], h = new int[1];
-        GLFW.glfwGetWindowSize(window, w,h);
-        windowWidth = w[0];
-        windowHeight = h[0];
-        windowWiden.UpdateAnimation(dt);
-
-        GLFW.glfwSetWindowPos(window,oldwindowX - (Math.round(windowWiden.getValue()) - 800)/2,oldwindowY);
-        GLFW.glfwSetWindowSize(window, Math.round(windowWiden.getValue()), windowHeight);
-
-        if(windowWiden.getProgress() > 0.2f){
-            if(!hasChangedPalette){
-                background = getBackground();
-                background.setPalette(0,0, 2);
-                hasChangedPalette = true;
-            }
-
-        }
-
-        if(windowWiden.getProgress() > 0.7f){
-            sceneManager.changeScene(new MainMenuScene(input, actions, sceneManager, window));
-            GLFW.glfwSetWindowSize(window, 600, windowHeight);
-
-        }
-
     }
 
     @Override
     protected void onInit(AssetManager assets) {
         System.out.println("Game loaded");
-        windowWiden = new Animation(800, 600, "ExponentialInOut", 1f);
 
         boardTexture = assets.loadTexture("board", "/textures/tictactoe/board.png");
         boardSprite = new Sprite(boardTexture);
         boardSprite.setScale(BOARD_SCALE);
+        logo = createLogo();
 
-        xPieceTexture = assets.loadTexture("xPiece", "/textures/tictactoe/x.png");
-        xStackTexture = assets.loadTexture("xStack", "/textures/tictactoe/xStack.png");
-        oPieceTexture = assets.loadTexture("oPiece", "/textures/tictactoe/o.png");
-        oStackTexture = assets.loadTexture("oStack", "/textures/tictactoe/oStack.png");
+        Texture xPieceTexture = assets.loadTexture("xPiece", "/textures/tictactoe/x.png");
+        Texture xStackTexture = assets.loadTexture("xStack", "/textures/tictactoe/xStack.png");
+        Texture oPieceTexture = assets.loadTexture("oPiece", "/textures/tictactoe/o.png");
+        Texture oStackTexture = assets.loadTexture("oStack", "/textures/tictactoe/oStack.png");
 
-        xSide = new PieceSide(-1f, xPieceTexture, xStackTexture);
-        oSide = new PieceSide(1f, oPieceTexture, oStackTexture);
+        xSide = new PieceSide(Board.Mark.X, -1f, xPieceTexture, xStackTexture);
+        oSide = new PieceSide(Board.Mark.O, 1f, oPieceTexture, oStackTexture);
 
         xSide.setupAnimations();
         oSide.setupAnimations();
 
-        btnAction = new Button(connection != null ? "FORFEIT" : "LEAVE GAME", smallFont, new Vector2f(0, 0), new Vector2f(200, 50));
-        btnAction.setOnClick(this::handleGameAction);
+        btnAction = createButton(connection != null ? "FORFEIT" : "LEAVE GAME", BUTTON_WIDTH, this::handleGameAction);
+        btnPlayAgain = createButton("PLAY AGAIN", BUTTON_WIDTH,
+                () -> sceneManager.changeScene(new MatchScene(input, actions, sceneManager, null)));
 
-        if (connection != null) gameStatusMessage = "Match Started!";
+        if (connection != null) {
+            gameStatusMessage = "Match Started!";
+        } else {
+            updateStatus();
+        }
     }
 
     private Vector2f getGridCenter(int col, int row) {
-        float boardW = boardTexture.getWidth() * BOARD_SCALE;
-        float boardH = boardTexture.getHeight() * BOARD_SCALE;
-        float boardTopLeftX = boardSprite.getPosition().x - (boardW * boardSprite.getOrigin().x);
-        float boardTopLeftY = boardSprite.getPosition().y - (boardH * boardSprite.getOrigin().y);
-
-        float cellTopLeftX = boardTopLeftX + START_OFFSET_X + (col * STRIDE_X);
-        float cellTopLeftY = boardTopLeftY + START_OFFSET_Y + (row * STRIDE_Y);
+        float cellTopLeftX = boardTopLeft.x + START_OFFSET_X + (col * STRIDE_X);
+        float cellTopLeftY = boardTopLeft.y + START_OFFSET_Y + (row * STRIDE_Y);
 
         return new Vector2f(cellTopLeftX + CELL_HALF_W, cellTopLeftY + CELL_HALF_H);
     }
@@ -221,31 +218,39 @@ public class MatchScene extends BaseScene {
             connection.sendCommand("forfeit");
         }
         if (connection != null && connection.isConnected()) {
-            sceneManager.changeScene(new LobbyScene(input, actions, sceneManager, connection, window));
+            sceneManager.changeScene(new LobbyScene(input, actions, sceneManager, connection));
+        } else if (isPlayAgainShown()) {
+            transitionTo(this::createMainMenu, BackgroundRenderer.PALETTE_BLUE, btnPlayAgain, btnAction);
         } else {
-            windowWiden.startAnimation();
-            transitionToGame = true;
-            int[] x = new int[1], y = new int[1];
-            GLFW.glfwGetWindowPos(window, x,y);
-
-            oldwindowX = x[0];
-            oldwindowY = y[0];
-
+            transitionTo(this::createMainMenu, BackgroundRenderer.PALETTE_BLUE, btnAction);
         }
+    }
+
+    private MainMenuScene createMainMenu() {
+        return new MainMenuScene(input, actions, sceneManager);
+    }
+
+    // Offline only, the server decides what happens after an online match
+    private boolean isPlayAgainShown() {
+        return connection == null && board.isGameOver();
     }
 
     @Override
     protected void onUpdate(float dt) {
-        if(transitionToGame){
-            transition(dt);
+        if (!isTransitioning()) {
+            btnAction.update(input);
+            if (isPlayAgainShown()) {
+                btnPlayAgain.update(input);
+            }
         }
-        btnAction.update(input);
 
         updateSide(xSide, oSide, dt);
         updateSide(oSide, xSide, dt);
 
         updateSettling(xSide, dt);
         updateSettling(oSide, dt);
+
+        updateWinHighlight(dt);
 
         if (connection != null) {
             connection.update(msg -> {
@@ -264,28 +269,29 @@ public class MatchScene extends BaseScene {
             });
 
             if (!connection.isConnected()) {
-                sceneManager.changeScene(new MainMenuScene(input, actions, sceneManager, window));
+                sceneManager.changeScene(new MainMenuScene(input, actions, sceneManager));
             }
         }
+    }
+
+    private boolean canPickUp(PieceSide side, PieceSide other) {
+        return !other.pickedUp && !isTransitioning() && !matchEnded && !board.isGameOver() && board.getTurn() == side.mark;
     }
 
     private void updateSide(PieceSide side, PieceSide other, float dt) {
         if (side.active == null) return;
 
-        if (!other.pickedUp && side.active.contains(new Vector2f((float) input.getMouseX(), (float) input.getMouseY()))) {
-            if (input.isButtonPressed(GLFW_MOUSE_BUTTON_LEFT)) {
-                side.grabAnim.startAnimation();
-                side.pickedUp = true;
-            }
+        if (canPickUp(side, other) && input.isButtonPressed(GLFW_MOUSE_BUTTON_LEFT) && side.active.contains(mousePosition)) {
+            side.pickUp();
         }
 
         if (side.pickedUp) {
             if (input.isButtonDown(GLFW_MOUSE_BUTTON_LEFT)) {
                 side.grabAnim.UpdateAnimation(dt);
                 side.grabAnim.setScale();
-                side.active.setPosition((float) (side.active.getPosition().x + input.getMouseDeltaX()), (float) (side.active.getPosition().y + input.getMouseDeltaY()));
+                Vector2f position = side.active.getPosition();
+                side.active.setPosition(position.x + (float) input.getMouseDeltaX(), position.y + (float) input.getMouseDeltaY());
             } else {
-                side.pickedUp = false;
                 dropPiece(side);
             }
         } else {
@@ -300,20 +306,16 @@ public class MatchScene extends BaseScene {
     private void dropPiece(PieceSide side) {
         float boardW = boardTexture.getWidth() * BOARD_SCALE;
         float boardH = boardTexture.getHeight() * BOARD_SCALE;
-        float left = boardSprite.getPosition().x - (boardW * 0.5f);
-        float right = left + boardW;
-        float top = boardSprite.getPosition().y - (boardH * 0.5f);
-        float bottom = top + boardH;
 
         Vector2f dropPos = side.active.getPosition();
-        if (dropPos.x >= left && dropPos.x <= right && dropPos.y >= top && dropPos.y <= bottom) {
+        if (dropPos.x >= boardTopLeft.x && dropPos.x <= boardTopLeft.x + boardW
+                && dropPos.y >= boardTopLeft.y && dropPos.y <= boardTopLeft.y + boardH) {
             int bestCol = 0;
             int bestRow = 0;
             float bestDist = Float.MAX_VALUE;
-            for (int c = 0; c < 3; c++) {
-                for (int r = 0; r < 3; r++) {
-                    Vector2f cellCenter = getGridCenter(c, r);
-                    float dist = dropPos.distanceSquared(cellCenter);
+            for (int c = 0; c < Board.SIZE; c++) {
+                for (int r = 0; r < Board.SIZE; r++) {
+                    float dist = dropPos.distanceSquared(getGridCenter(c, r));
                     if (dist < bestDist) {
                         bestDist = dist;
                         bestCol = c;
@@ -322,25 +324,72 @@ public class MatchScene extends BaseScene {
                 }
             }
 
-            if (boardPieces[bestCol][bestRow] == null) {
+            if (board.canPlace(bestCol, bestRow)) {
                 placePiece(side, bestCol, bestRow);
                 return;
             }
         }
 
-        side.releaseAnim.startAnimation();
+        side.putBack();
     }
 
     private void placePiece(PieceSide side, int col, int row) {
         Sprite piece = side.active;
         piece.setPosition(getGridCenter(col, row));
         boardPieces[col][row] = piece;
+        board.place(col, row);
 
         SpriteAnimation settle = SpriteAnimation.builder().sprite(piece).scale(new Vector2f(GRAB_SCALE, GRAB_SCALE), new Vector2f(BOARD_SCALE, BOARD_SCALE)).duration(0.3f).easing("ExponentialOut").build();
         settle.startAnimation();
         side.settling.add(settle);
 
         side.spawnNext();
+
+        if (board.getWinner() != null) {
+            startWinHighlight();
+        }
+        if (connection == null) {
+            updateStatus();
+        }
+        if (board.isGameOver()) {
+            layoutButtons();
+        }
+    }
+
+    // Winning pieces pop one after another, repeating while the win is shown
+    private void startWinHighlight() {
+        for (int[] cell : board.getWinningLine()) {
+            winPops.add(SpriteAnimation.builder().sprite(boardPieces[cell[0]][cell[1]]).scale(new Vector2f(WIN_POP_SCALE, WIN_POP_SCALE), new Vector2f(BOARD_SCALE, BOARD_SCALE)).duration(WIN_POP_TIME).easing("ExponentialInOut").build());
+        }
+        winHighlight = new AnimationSequence(winPops);
+        winHighlightDelay = WIN_HIGHLIGHT_PAUSE;
+    }
+
+    private void updateWinHighlight(float dt) {
+        if (winHighlight == null) return;
+
+        if (!winHighlight.isRunning()) {
+            winHighlightDelay -= dt;
+            if (winHighlightDelay <= 0f) {
+                winHighlight.startSequence();
+                winHighlightDelay = WIN_HIGHLIGHT_PAUSE;
+            }
+        }
+        winHighlight.update(dt);
+
+        for (SpriteAnimation pop : winPops) {
+            pop.setScale();
+        }
+    }
+
+    private void updateStatus() {
+        if (board.getWinner() != null) {
+            gameStatusMessage = board.getWinner() + " WINS!";
+        } else if (board.isDraw()) {
+            gameStatusMessage = "DRAW!";
+        } else {
+            gameStatusMessage = board.getTurn() + "'S TURN";
+        }
     }
 
     private void updateSettling(PieceSide side, float dt) {
@@ -358,7 +407,6 @@ public class MatchScene extends BaseScene {
     private void endMatch() {
         matchEnded = true;
         btnAction.setText("BACK TO LOBBY");
-        btnAction.setColors(new Vector4f(0, 1, 0, 1), new Vector4f(0.8f, 1, 0.8f, 1), new Vector4f(0, 0.5f, 0, 1));
     }
 
     private String extractComment(String msg) {
@@ -374,25 +422,27 @@ public class MatchScene extends BaseScene {
 
     @Override
     protected void onRender() {
+        if (logoVisible) {
+            spriteRenderer.draw(logo);
+        }
         spriteRenderer.draw(boardSprite);
 
-        for (int c = 0; c < 3; c++) {
-            for (int r = 0; r < 3; r++) {
+        for (int c = 0; c < Board.SIZE; c++) {
+            for (int r = 0; r < Board.SIZE; r++) {
                 if (boardPieces[c][r] != null) spriteRenderer.draw(boardPieces[c][r]);
             }
         }
         xSide.drawResting();
         oSide.drawResting();
 
-        String mode = connection != null ? "ONLINE" : "OFFLINE";
-        float modeW = gameFont.getTextWidth(mode);
-        textRenderer.drawText(gameFont, mode, (currentWidth - modeW) / 2f, currentHeight * 0.1f, new Vector4f(1, 1, 1, 1));
-
         if (!gameStatusMessage.isEmpty()) {
-            float textW = smallFont.getTextWidth(gameStatusMessage);
-            textRenderer.drawText(smallFont, gameStatusMessage, (currentWidth - textW) / 2f, currentHeight * 0.15f, new Vector4f(1, 1, 0, 1));
+            drawCenteredText(smallFont, gameStatusMessage, statusY, STATUS_COLOR);
         }
+
         btnAction.render(spriteRenderer, textRenderer);
+        if (isPlayAgainShown()) {
+            btnPlayAgain.render(spriteRenderer, textRenderer);
+        }
 
         xSide.drawHeld();
         oSide.drawHeld();
@@ -400,18 +450,43 @@ public class MatchScene extends BaseScene {
 
     @Override
     protected void onResize(int width, int height) {
-        windowWidth = width;
-        windowHeight = height;
-        boardSprite.setPosition(new Vector2f(Math.round((float) width / 2), Math.round((float) height / 2)));
-        btnAction.setPosition(new Vector2f((width - 200f) / 2f, height - 100f));
+        float boardW = boardTexture.getWidth() * BOARD_SCALE;
+        float boardH = boardTexture.getHeight() * BOARD_SCALE;
+        boardSprite.setPosition(Math.round(width / 2f), Math.round(height / 2f));
+        boardTopLeft.set(boardSprite.getPosition().x - boardW / 2f, boardSprite.getPosition().y - boardH / 2f);
 
-        for (int c = 0; c < 3; c++) {
-            for (int r = 0; r < 3; r++) {
+        // Logo and status above the board, the logo is dropped when it doesn't fit
+        float logoHeight = logo.getTexture().getHeight() * UI_SCALE;
+        float statusHeight = smallFont.getCapHeight();
+        logoVisible = logoHeight + UI_SPACING + statusHeight + 2 * UI_SPACING <= boardTopLeft.y;
+        float headerHeight = logoVisible ? logoHeight + UI_SPACING + statusHeight : statusHeight;
+        float headerY = Math.round((boardTopLeft.y - headerHeight) / 2f);
+        logo.setPosition(Math.round(width / 2f), headerY + logoHeight / 2f);
+        statusY = logoVisible ? headerY + logoHeight + UI_SPACING : headerY;
+
+        layoutButtons();
+
+        for (int c = 0; c < Board.SIZE; c++) {
+            for (int r = 0; r < Board.SIZE; r++) {
                 if (boardPieces[c][r] != null) boardPieces[c][r].setPosition(getGridCenter(c, r));
             }
         }
 
         xSide.layout();
         oSide.layout();
+    }
+
+    // Buttons centered below the board, side by side once the game is over
+    private void layoutButtons() {
+        float boardBottom = boardTopLeft.y + boardTexture.getHeight() * BOARD_SCALE;
+        float y = Math.round(boardBottom + (currentHeight - boardBottom - BUTTON_HEIGHT) / 2f);
+        float centerX = Math.round(currentWidth / 2f);
+
+        if (isPlayAgainShown()) {
+            btnPlayAgain.setPosition(centerX - UI_SPACING / 2f - BUTTON_WIDTH, y);
+            btnAction.setPosition(centerX + UI_SPACING / 2f, y);
+        } else {
+            btnAction.setPosition(centerX - BUTTON_WIDTH / 2f, y);
+        }
     }
 }

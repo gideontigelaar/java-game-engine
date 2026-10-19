@@ -74,7 +74,7 @@ public class App {
         sceneManager.resize(viewport.getScaledWidth(), viewport.getScaledHeight());
 
         // Start in Main Menu instead of directly in the game
-        sceneManager.changeScene(new MainMenuScene(input, actions, sceneManager, window));
+        sceneManager.changeScene(new MainMenuScene(input, actions, sceneManager));
 
         float fpsTimer = 0.0f;
         int frames = 0;

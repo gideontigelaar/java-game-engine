@@ -18,8 +18,11 @@ public class Button {
     private Font font;
 
     private Sprite backgroundSprite;
+    private Sprite pressedSprite;
     private NineSlice nineSlice;
     private int pixelSize;
+    private float pressedTextOffset;
+    private float scale = 1f;
     private Runnable onClick;
 
     private boolean isHovered;
@@ -66,6 +69,10 @@ public class Button {
     }
 
     public void render(SpriteRenderer spriteRenderer, TextRenderer textRenderer) {
+        if (scale <= 0f) {
+            return;
+        }
+
         Vector4f currentColor = normalColor;
         if (isPressed) {
             currentColor = pressedColor;
@@ -73,31 +80,50 @@ public class Button {
             currentColor = hoverColor;
         }
 
+        // Scale around the center
+        float width = size.x * scale;
+        float height = size.y * scale;
+        float x = position.x + (size.x - width) / 2.0f;
+        float y = position.y + (size.y - height) / 2.0f;
+
         // background sprite / nine-slice rendering
-        if (backgroundSprite != null && spriteRenderer != null) {
+        Sprite background = isPressed && pressedSprite != null ? pressedSprite : backgroundSprite;
+        if (background != null && spriteRenderer != null) {
+            background.setOrigin(0f, 0f);
             if (nineSlice != null) {
-                spriteRenderer.drawNineSlice(backgroundSprite, position.x, position.y, size.x, size.y, nineSlice, pixelSize);
+                spriteRenderer.drawNineSlice(background, x, y, width, height, nineSlice, pixelSize * scale);
             } else {
-                backgroundSprite.setOrigin(0f, 0f);
-                backgroundSprite.setPosition(position);
-                backgroundSprite.setScale(
-                        size.x / backgroundSprite.getTexture().getWidth(),
-                        size.y / backgroundSprite.getTexture().getHeight());
-                spriteRenderer.draw(backgroundSprite);
+                background.setPosition(x, y);
+                background.setScale(
+                        width / background.getTexture().getWidth(),
+                        height / background.getTexture().getHeight());
+                spriteRenderer.draw(background);
             }
         }
 
-        // text rendering
+        // text rendering, scaled around the center like the background
         if (text != null && font != null && textRenderer != null) {
             float textWidth = font.getTextWidth(text);
-            float textX = position.x + (size.x - textWidth) / 2.0f;
-            float textY = position.y + (size.y / 2.0f) + 12.0f;
-            textRenderer.drawText(font, text, textX, textY, currentColor);
+            float textX = Math.round(position.x + (size.x - textWidth) / 2.0f);
+            float textY = Math.round(position.y + (size.y + font.getCapHeight()) / 2.0f);
+            if (isPressed) {
+                textY += pressedTextOffset;
+            }
+            float centerX = position.x + size.x / 2.0f;
+            float centerY = position.y + size.y / 2.0f;
+            textRenderer.drawText(font, text,
+                    centerX + (textX - centerX) * scale, centerY + (textY - centerY) * scale, scale, currentColor);
         }
     }
 
     public void setBackgroundSprite(Sprite backgroundSprite) {
         this.backgroundSprite = backgroundSprite;
+    }
+
+    // Shown while the button is held down, text moves down by the offset
+    public void setPressedSprite(Sprite pressedSprite, float textOffset) {
+        this.pressedSprite = pressedSprite;
+        this.pressedTextOffset = textOffset;
     }
 
     public void setNineSlice(NineSlice nineSlice, int pixelSize) {
@@ -129,12 +155,21 @@ public class Button {
         this.position = position;
     }
 
+    public void setPosition(float x, float y) {
+        this.position.set(x, y);
+    }
+
     public Vector2f getSize() {
         return size;
     }
 
     public void setSize(Vector2f size) {
         this.size = size;
+    }
+
+    // Visual scale around the center, does not change the hit area
+    public void setScale(float scale) {
+        this.scale = scale;
     }
 
     public String getText() {

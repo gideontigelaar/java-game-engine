@@ -43,6 +43,11 @@ public class TextRenderer {
     }
 
     public void drawText(Font font, String text, float x, float y, Vector4f color) {
+        drawText(font, text, x, y, 1f, color);
+    }
+
+    // Text scaled around x, y (start of the baseline)
+    public void drawText(Font font, String text, float x, float y, float scale, Vector4f color) {
         shader.bind();
         shader.setUniformMat4("uProjection", projection);
         shader.setUniform4f("uColor", color.x, color.y, color.z, color.w);
@@ -67,13 +72,18 @@ public class TextRenderer {
                     stbtt_GetBakedQuad(font.getCharData(), font.getAtlasWidth(), font.getAtlasHeight(),
                             c - 32, xBuffer, yBuffer, q, true);
 
-                    vertices.put(q.x0()).put(q.y0()).put(q.s0()).put(q.t0());
-                    vertices.put(q.x0()).put(q.y1()).put(q.s0()).put(q.t1());
-                    vertices.put(q.x1()).put(q.y1()).put(q.s1()).put(q.t1());
+                    float x0 = x + (q.x0() - x) * scale;
+                    float y0 = y + (q.y0() - y) * scale;
+                    float x1 = x + (q.x1() - x) * scale;
+                    float y1 = y + (q.y1() - y) * scale;
 
-                    vertices.put(q.x0()).put(q.y0()).put(q.s0()).put(q.t0());
-                    vertices.put(q.x1()).put(q.y1()).put(q.s1()).put(q.t1());
-                    vertices.put(q.x1()).put(q.y0()).put(q.s1()).put(q.t0());
+                    vertices.put(x0).put(y0).put(q.s0()).put(q.t0());
+                    vertices.put(x0).put(y1).put(q.s0()).put(q.t1());
+                    vertices.put(x1).put(y1).put(q.s1()).put(q.t1());
+
+                    vertices.put(x0).put(y0).put(q.s0()).put(q.t0());
+                    vertices.put(x1).put(y1).put(q.s1()).put(q.t1());
+                    vertices.put(x1).put(y0).put(q.s1()).put(q.t0());
                 }
             }
 

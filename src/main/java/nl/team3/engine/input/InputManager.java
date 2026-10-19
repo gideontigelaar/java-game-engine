@@ -14,6 +14,7 @@ public class InputManager {
     private final Viewport viewport;
     private final boolean[] keysDown = new boolean[MAX_KEYS];
     private final boolean[] keysDownLastFrame = new boolean[MAX_KEYS];
+    private final boolean[] keysRepeated = new boolean[MAX_KEYS];
     private final boolean[] buttonsDown = new boolean[MAX_BUTTONS];
     private final boolean[] buttonsDownLastFrame = new boolean[MAX_BUTTONS];
 
@@ -37,6 +38,8 @@ public class InputManager {
                 keysDown[key] = true;
             } else if (action == GLFW.GLFW_RELEASE) {
                 keysDown[key] = false;
+            } else if (action == GLFW.GLFW_REPEAT) {
+                keysRepeated[key] = true;
             }
         });
 
@@ -78,6 +81,7 @@ public class InputManager {
 
     public void update() {
         System.arraycopy(keysDown, 0, keysDownLastFrame, 0, MAX_KEYS);
+        Arrays.fill(keysRepeated, false);
         System.arraycopy(buttonsDown, 0, buttonsDownLastFrame, 0, MAX_BUTTONS);
         lastRawMouseX = rawMouseX;
         lastRawMouseY = rawMouseY;
@@ -96,6 +100,9 @@ public class InputManager {
     public boolean isKeyDown(int key) { return keysDown[key]; }
     public boolean isKeyPressed(int key) { return keysDown[key] && !keysDownLastFrame[key]; }
     public boolean isKeyReleased(int key) { return !keysDown[key] && keysDownLastFrame[key]; }
+
+    // Repeated by the OS while the key is held, like a held backspace
+    public boolean isKeyRepeated(int key) { return keysRepeated[key]; }
 
     public boolean isAnyKeyDown() {
         for (boolean down : keysDown) if (down) return true;
