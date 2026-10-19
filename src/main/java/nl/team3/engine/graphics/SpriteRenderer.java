@@ -20,7 +20,7 @@ public class SpriteRenderer {
     private final Matrix4f projection = new Matrix4f();
     private final Matrix4f transformMatrix = new Matrix4f();
 
-    // Nine-slice segment meshes, reused between frames
+    // Nine-slice meshes
     private final Map<SliceUv, Mesh> sliceMeshes = new HashMap<>();
 
     private record SliceUv(float u0, float v0, float u1, float v1) {}

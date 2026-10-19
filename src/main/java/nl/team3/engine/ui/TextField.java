@@ -78,7 +78,6 @@ public class TextField {
             }
         }
 
-        // Marker and cursor sit beside the text so it never shifts
         float markerWidth = font.getTextWidth(FOCUS_MARKER);
         float textX = centered
                 ? Math.round(position.x + (size.x - font.getTextWidth(text)) / 2.0f)
@@ -102,7 +101,6 @@ public class TextField {
         this.pixelSize = pixelSize;
     }
 
-    // Center the text instead of aligning it to the left
     public void setCentered(boolean centered) {
         this.centered = centered;
     }

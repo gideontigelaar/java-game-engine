@@ -15,15 +15,12 @@ import nl.team3.games.tictactoe.network.ServerConnection;
 import org.joml.Vector2f;
 import org.joml.Vector4f;
 
-import java.util.function.Supplier;
-
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_2;
 import static org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT;
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.glClear;
 
 public abstract class BaseScene implements Scene {
-    // UI art is drawn at 4x, button size and spacing are shared by all scenes
     protected static final int UI_SCALE = 4;
     protected static final float UI_SPACING = 4 * UI_SCALE;
     protected static final float BUTTON_WIDTH = 300f;
@@ -62,8 +59,7 @@ public abstract class BaseScene implements Scene {
     private SpriteAnimation mouseGrabAnim;
     private SpriteAnimation mouseReleaseAnim;
 
-    private Supplier<Scene> nextScene;
-    private int nextPalette;
+    private BaseScene nextScene;
     private float transitionTime;
     private Button[] shrinkingButtons;
     private Animation[] shrinkAnimations;
@@ -101,6 +97,7 @@ public abstract class BaseScene implements Scene {
 
         onInit(assets);
         resize(currentWidth, currentHeight);
+        updatePalette(currentWidth / 2f, currentHeight / 2f);
     }
 
     @Override
@@ -156,7 +153,6 @@ public abstract class BaseScene implements Scene {
         onResize(width, height);
     }
 
-    // Button in the same style as the main menu buttons
     protected Button createButton(String text, float width, Runnable onClick) {
         Button button = new Button(text, smallFont, new Vector2f(), new Vector2f(width, BUTTON_HEIGHT));
         button.setBackgroundSprite(new Sprite(buttonTexture));
@@ -172,21 +168,27 @@ public abstract class BaseScene implements Scene {
         return logo;
     }
 
-    // Text centered horizontally, y is the top of the capitals
     protected void drawCenteredText(Font font, String text, float y, Vector4f color) {
         float x = Math.round((currentWidth - font.getTextWidth(text)) / 2f);
         textRenderer.drawText(font, text, x, Math.round(y + font.getCapHeight()), color);
     }
 
-    // Shrink the buttons and sweep in a new background color, then change scene
-    protected void transitionTo(Supplier<Scene> scene, int palette, Button... buttons) {
+    protected int getPalette() {
+        return BackgroundRenderer.PALETTE_BLUE;
+    }
+
+    protected void updatePalette(float x, float y) {
+        if (background.getPalette() != getPalette()) {
+            background.setPalette(x, y, getPalette());
+        }
+    }
+
+    protected void transitionTo(BaseScene scene, Button... buttons) {
         nextScene = scene;
-        nextPalette = palette;
         transitionTime = 0f;
         shrinkingButtons = buttons;
         shrinkAnimations = new Animation[buttons.length];
         for (int i = 0; i < buttons.length; i++) {
-            // Last button disappears first
             shrinkAnimations[i] = new Animation(1f, 0f, "ExponentialIn", 0.3f + 0.1f * (buttons.length - 1 - i));
             shrinkAnimations[i].startAnimation();
         }
@@ -206,11 +208,11 @@ public abstract class BaseScene implements Scene {
         }
 
         if (previousTime < PALETTE_SWITCH_TIME && transitionTime >= PALETTE_SWITCH_TIME) {
-            background.setPalette(0, 0, nextPalette);
+            background.setPalette(0, 0, nextScene.getPalette());
         }
 
         if (transitionTime >= TRANSITION_TIME) {
-            sceneManager.changeScene(nextScene.get());
+            sceneManager.changeScene(nextScene);
         }
     }
 

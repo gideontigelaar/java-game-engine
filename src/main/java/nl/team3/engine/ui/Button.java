@@ -101,7 +101,7 @@ public class Button {
             }
         }
 
-        // text rendering, scaled around the center like the background
+        // text rendering
         if (text != null && font != null && textRenderer != null) {
             float textWidth = font.getTextWidth(text);
             float textX = Math.round(position.x + (size.x - textWidth) / 2.0f);
@@ -120,7 +120,6 @@ public class Button {
         this.backgroundSprite = backgroundSprite;
     }
 
-    // Shown while the button is held down, text moves down by the offset
     public void setPressedSprite(Sprite pressedSprite, float textOffset) {
         this.pressedSprite = pressedSprite;
         this.pressedTextOffset = textOffset;
@@ -167,7 +166,6 @@ public class Button {
         this.size = size;
     }
 
-    // Visual scale around the center, does not change the hit area
     public void setScale(float scale) {
         this.scale = scale;
     }

@@ -101,7 +101,7 @@ public class InputManager {
     public boolean isKeyPressed(int key) { return keysDown[key] && !keysDownLastFrame[key]; }
     public boolean isKeyReleased(int key) { return !keysDown[key] && keysDownLastFrame[key]; }
 
-    // Repeated by the OS while the key is held, like a held backspace
+    // Key repeat while held down
     public boolean isKeyRepeated(int key) { return keysRepeated[key]; }
 
     public boolean isAnyKeyDown() {

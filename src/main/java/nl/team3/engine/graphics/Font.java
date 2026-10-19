@@ -42,7 +42,6 @@ public class Font {
         return width;
     }
 
-    // Height of capital letters, used to center text vertically
     public float getCapHeight() {
         return -charData.get('H' - 32).yoff();
     }

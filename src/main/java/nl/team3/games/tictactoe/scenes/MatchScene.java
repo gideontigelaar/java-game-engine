@@ -4,7 +4,7 @@ import nl.team3.engine.assets.AssetManager;
 import nl.team3.engine.core.SceneManager;
 import nl.team3.engine.graphics.Sprite;
 import nl.team3.engine.graphics.Texture;
-import nl.team3.engine.graphics.animation.AnimationSequence;
+import nl.team3.engine.graphics.animation.Animation;
 import nl.team3.engine.graphics.animation.SpriteAnimation;
 import nl.team3.engine.input.ActionMap;
 import nl.team3.engine.input.InputManager;
@@ -33,15 +33,22 @@ public class MatchScene extends BaseScene {
 
     private static final int PIECES_PER_SIDE = 5;
     private static final float GRAB_SCALE = BOARD_SCALE + 1f;
+    private static final float MOVE_TIME = 0.3f;
     private static final float STACK_OFFSET_X = 240f;
     private static final float STACK_BASE_OFFSET_Y = 108f;
     private static final float STACK_STRIDE = 4f * BOARD_SCALE;
     private static final float STACK_TEXTURE_HEIGHT = 11f * BOARD_SCALE;
+    private static final float BOB_HEIGHT = BOARD_SCALE;
+    private static final float BOB_TIME = 1.2f;
 
-    private static final float WIN_POP_SCALE = BOARD_SCALE + 2f;
-    private static final float WIN_POP_TIME = 0.4f;
-    private static final float WIN_HIGHLIGHT_PAUSE = 0.6f;
-    private static final Vector4f STATUS_COLOR = new Vector4f(1, 1, 0, 1);
+    private static final float WIN_DELAY = 0.4f;
+    private static final float WIN_HOP_TIME = 0.4f;
+    private static final float WIN_HOP_GAP = 0.15f;
+    private static final float WIN_REPEAT_TIME = 1.6f;
+    private static final float WIN_HOP_HEIGHT = 3f * BOARD_SCALE;
+    private static final float FADE_ALPHA = 0.35f;
+    private static final float FADE_TIME = 0.4f;
+    private static final Vector4f STATUS_COLOR = new Vector4f(0f, 0.157f, 0.349f, 1f);
 
     private Sprite boardSprite;
     private Texture boardTexture;
@@ -52,12 +59,12 @@ public class MatchScene extends BaseScene {
     private PieceSide xSide;
     private PieceSide oSide;
     private final Sprite[][] boardPieces = new Sprite[Board.SIZE][Board.SIZE];
+    private final List<SpriteAnimation> settling = new ArrayList<>();
 
-    // Random player starts
     private final Board board = new Board(ThreadLocalRandom.current().nextBoolean() ? Board.Mark.X : Board.Mark.O);
-    private final List<SpriteAnimation> winPops = new ArrayList<>();
-    private AnimationSequence winHighlight;
-    private float winHighlightDelay;
+    private int[][] winningLine;
+    private float winTime;
+    private Animation fadeAnim;
 
     private Button btnAction;
     private Button btnPlayAgain;
@@ -71,11 +78,11 @@ public class MatchScene extends BaseScene {
         private final Texture pieceTexture;
         private final Texture stackTexture;
         private final List<Sprite> stack = new ArrayList<>();
-        private final List<SpriteAnimation> settling = new ArrayList<>();
         private Sprite active;
         private SpriteAnimation grabAnim;
-        private SpriteAnimation releaseAnim;
+        private SpriteAnimation returnAnim;
         private boolean pickedUp = false;
+        private float bobTime;
 
         private PieceSide(Board.Mark mark, float direction, Texture pieceTexture, Texture stackTexture) {
             this.mark = mark;
@@ -92,13 +99,10 @@ public class MatchScene extends BaseScene {
             spawnNext();
         }
 
-        private void setupAnimations() {
-            grabAnim = SpriteAnimation.builder().sprite(active).scale(new Vector2f(BOARD_SCALE, BOARD_SCALE), new Vector2f(GRAB_SCALE, GRAB_SCALE)).duration(0.3f).easing("ExponentialOut").build();
-            releaseAnim = SpriteAnimation.builder().sprite(active).scale(new Vector2f(GRAB_SCALE, GRAB_SCALE), new Vector2f(BOARD_SCALE, BOARD_SCALE)).duration(0.3f).easing("ExponentialOut").build();
-        }
-
         private void spawnNext() {
             pickedUp = false;
+            returnAnim = null;
+            bobTime = 0f;
 
             if (stack.isEmpty()) {
                 active = null;
@@ -110,31 +114,28 @@ public class MatchScene extends BaseScene {
             active.setOrigin(0.5f, 0.5f);
             active.setScale(BOARD_SCALE);
 
-            if (grabAnim != null) {
-                grabAnim.SetSprite(active);
-                releaseAnim.SetSprite(active);
-                grabAnim.getTimer().stop();
-                grabAnim.getTimer().reset();
-                releaseAnim.getTimer().stop();
-                releaseAnim.getTimer().reset();
-            }
-
             layout();
         }
 
         private void pickUp() {
             pickedUp = true;
+            returnAnim = null;
+            grabAnim = SpriteAnimation.builder().sprite(active).scale(new Vector2f(active.getScale()), new Vector2f(GRAB_SCALE, GRAB_SCALE)).duration(MOVE_TIME).easing("ExponentialOut").build();
             grabAnim.startAnimation();
             layout();
         }
 
         private void putBack() {
             pickedUp = false;
-            releaseAnim.startAnimation();
+            bobTime = 0f;
+            returnAnim = SpriteAnimation.builder().sprite(active)
+                    .position(new Vector2f(active.getPosition()), new Vector2f(stackX(), levelY(stack.size())))
+                    .scale(new Vector2f(active.getScale()), new Vector2f(BOARD_SCALE, BOARD_SCALE))
+                    .duration(MOVE_TIME).easing("ExponentialOut").build();
+            returnAnim.startAnimation();
             layout();
         }
 
-        // Rounded like the board, half pixels make scaled sprites shimmer
         private float stackX() {
             return Math.round(currentWidth / 2f) + direction * STACK_OFFSET_X;
         }
@@ -144,21 +145,26 @@ public class MatchScene extends BaseScene {
         }
 
         private void snapActiveToStack() {
-            active.setPosition(stackX(), levelY(stack.size()));
+            float bob = BOB_HEIGHT * (1f - (float) Math.cos(2 * Math.PI * bobTime / BOB_TIME)) / 2f;
+            active.setPosition(stackX(), levelY(stack.size()) - Math.round(bob));
         }
 
         private void layout() {
             float centerX = stackX();
             for (int i = 0; i < stack.size(); i++) {
-                // Top of the stack shows the full piece once the piece above it is picked up
-                boolean exposed = pickedUp && i == stack.size() - 1;
+                boolean exposed = (pickedUp || returnAnim != null) && i == stack.size() - 1;
                 Sprite piece = stack.get(i);
                 piece.setTexture(exposed ? pieceTexture : stackTexture);
                 piece.setPosition(centerX, levelY(i) + STACK_TEXTURE_HEIGHT / 2f);
             }
-            if (active != null && !pickedUp) {
+            if (active != null && !pickedUp && returnAnim == null) {
                 snapActiveToStack();
             }
+        }
+
+        private void setAlpha(float alpha) {
+            for (Sprite s : stack) s.setAlpha(alpha);
+            if (active != null) active.setAlpha(alpha);
         }
 
         private void drawResting() {
@@ -192,18 +198,22 @@ public class MatchScene extends BaseScene {
         xSide = new PieceSide(Board.Mark.X, -1f, xPieceTexture, xStackTexture);
         oSide = new PieceSide(Board.Mark.O, 1f, oPieceTexture, oStackTexture);
 
-        xSide.setupAnimations();
-        oSide.setupAnimations();
-
         btnAction = createButton(connection != null ? "FORFEIT" : "LEAVE GAME", BUTTON_WIDTH, this::handleGameAction);
-        btnPlayAgain = createButton("PLAY AGAIN", BUTTON_WIDTH,
-                () -> sceneManager.changeScene(new MatchScene(input, actions, sceneManager, null)));
+        btnPlayAgain = createButton("PLAY AGAIN", BUTTON_WIDTH, this::playAgain);
 
         if (connection != null) {
             gameStatusMessage = "Match Started!";
         } else {
             updateStatus();
         }
+    }
+
+    @Override
+    protected int getPalette() {
+        if (board.isDraw()) {
+            return BackgroundRenderer.PALETTE_BLUE;
+        }
+        return board.getTurn() == Board.Mark.X ? BackgroundRenderer.PALETTE_RED : BackgroundRenderer.PALETTE_GREEN;
     }
 
     private Vector2f getGridCenter(int col, int row) {
@@ -220,17 +230,16 @@ public class MatchScene extends BaseScene {
         if (connection != null && connection.isConnected()) {
             sceneManager.changeScene(new LobbyScene(input, actions, sceneManager, connection));
         } else if (isPlayAgainShown()) {
-            transitionTo(this::createMainMenu, BackgroundRenderer.PALETTE_BLUE, btnPlayAgain, btnAction);
+            transitionTo(new MainMenuScene(input, actions, sceneManager), btnPlayAgain, btnAction);
         } else {
-            transitionTo(this::createMainMenu, BackgroundRenderer.PALETTE_BLUE, btnAction);
+            transitionTo(new MainMenuScene(input, actions, sceneManager), btnAction);
         }
     }
 
-    private MainMenuScene createMainMenu() {
-        return new MainMenuScene(input, actions, sceneManager);
+    private void playAgain() {
+        transitionTo(new MatchScene(input, actions, sceneManager, null), btnPlayAgain, btnAction);
     }
 
-    // Offline only, the server decides what happens after an online match
     private boolean isPlayAgainShown() {
         return connection == null && board.isGameOver();
     }
@@ -246,11 +255,8 @@ public class MatchScene extends BaseScene {
 
         updateSide(xSide, oSide, dt);
         updateSide(oSide, xSide, dt);
-
-        updateSettling(xSide, dt);
-        updateSettling(oSide, dt);
-
-        updateWinHighlight(dt);
+        updateSettling(dt);
+        updateGameOver(dt);
 
         if (connection != null) {
             connection.update(msg -> {
@@ -294,11 +300,15 @@ public class MatchScene extends BaseScene {
             } else {
                 dropPiece(side);
             }
-        } else {
-            side.releaseAnim.UpdateAnimation(dt);
-            if (side.releaseAnim.getTimer().isRunning() || side.releaseAnim.getTimer().isFinished()) {
-                side.releaseAnim.setScale();
+        } else if (side.returnAnim != null) {
+            side.returnAnim.UpdateAnimation(dt);
+            side.returnAnim.setTransformation();
+            if (side.returnAnim.isFinished()) {
+                side.returnAnim = null;
+                side.layout();
             }
+        } else {
+            side.bobTime = canPickUp(side, other) ? side.bobTime + dt : 0f;
             side.snapActiveToStack();
         }
     }
@@ -335,51 +345,83 @@ public class MatchScene extends BaseScene {
 
     private void placePiece(PieceSide side, int col, int row) {
         Sprite piece = side.active;
-        piece.setPosition(getGridCenter(col, row));
         boardPieces[col][row] = piece;
         board.place(col, row);
 
-        SpriteAnimation settle = SpriteAnimation.builder().sprite(piece).scale(new Vector2f(GRAB_SCALE, GRAB_SCALE), new Vector2f(BOARD_SCALE, BOARD_SCALE)).duration(0.3f).easing("ExponentialOut").build();
+        SpriteAnimation settle = SpriteAnimation.builder().sprite(piece)
+                .position(new Vector2f(piece.getPosition()), getGridCenter(col, row))
+                .scale(new Vector2f(piece.getScale()), new Vector2f(BOARD_SCALE, BOARD_SCALE))
+                .duration(MOVE_TIME).easing("ExponentialOut").build();
         settle.startAnimation();
-        side.settling.add(settle);
+        settling.add(settle);
 
         side.spawnNext();
 
-        if (board.getWinner() != null) {
-            startWinHighlight();
+        if (board.isGameOver()) {
+            winningLine = board.getWinningLine();
+            fadeAnim = new Animation(1f, FADE_ALPHA, "ExponentialOut", FADE_TIME);
+            fadeAnim.startAnimation();
+            layoutButtons();
         }
         if (connection == null) {
             updateStatus();
         }
+        updateTurnPalette();
+    }
+
+    private void updateTurnPalette() {
         if (board.isGameOver()) {
-            layoutButtons();
+            updatePalette(boardSprite.getPosition().x, boardSprite.getPosition().y);
+        } else {
+            PieceSide next = board.getTurn() == Board.Mark.X ? xSide : oSide;
+            updatePalette(next.stackX(), next.levelY(next.stack.size()));
         }
     }
 
-    // Winning pieces pop one after another, repeating while the win is shown
-    private void startWinHighlight() {
-        for (int[] cell : board.getWinningLine()) {
-            winPops.add(SpriteAnimation.builder().sprite(boardPieces[cell[0]][cell[1]]).scale(new Vector2f(WIN_POP_SCALE, WIN_POP_SCALE), new Vector2f(BOARD_SCALE, BOARD_SCALE)).duration(WIN_POP_TIME).easing("ExponentialInOut").build());
-        }
-        winHighlight = new AnimationSequence(winPops);
-        winHighlightDelay = WIN_HIGHLIGHT_PAUSE;
-    }
-
-    private void updateWinHighlight(float dt) {
-        if (winHighlight == null) return;
-
-        if (!winHighlight.isRunning()) {
-            winHighlightDelay -= dt;
-            if (winHighlightDelay <= 0f) {
-                winHighlight.startSequence();
-                winHighlightDelay = WIN_HIGHLIGHT_PAUSE;
+    private void updateSettling(float dt) {
+        Iterator<SpriteAnimation> it = settling.iterator();
+        while (it.hasNext()) {
+            SpriteAnimation settle = it.next();
+            settle.UpdateAnimation(dt);
+            settle.setTransformation();
+            if (settle.isFinished()) {
+                it.remove();
             }
         }
-        winHighlight.update(dt);
+    }
 
-        for (SpriteAnimation pop : winPops) {
-            pop.setScale();
+    private void updateGameOver(float dt) {
+        if (fadeAnim == null) return;
+
+        fadeAnim.UpdateAnimation(dt);
+        float alpha = fadeAnim.getValue();
+        xSide.setAlpha(alpha);
+        oSide.setAlpha(alpha);
+        if (winningLine == null) return;
+
+        for (int c = 0; c < Board.SIZE; c++) {
+            for (int r = 0; r < Board.SIZE; r++) {
+                if (boardPieces[c][r] != null && !isWinningCell(c, r)) boardPieces[c][r].setAlpha(alpha);
+            }
         }
+
+        winTime += dt;
+        if (winTime < WIN_DELAY) return;
+
+        for (int i = 0; i < winningLine.length; i++) {
+            float t = (winTime - WIN_DELAY - i * WIN_HOP_GAP) % WIN_REPEAT_TIME;
+            float hop = t > 0f && t < WIN_HOP_TIME ? (float) Math.sin(Math.PI * t / WIN_HOP_TIME) : 0f;
+            int[] cell = winningLine[i];
+            Vector2f center = getGridCenter(cell[0], cell[1]);
+            boardPieces[cell[0]][cell[1]].setPosition(center.x, Math.round(center.y - hop * WIN_HOP_HEIGHT));
+        }
+    }
+
+    private boolean isWinningCell(int col, int row) {
+        for (int[] cell : winningLine) {
+            if (cell[0] == col && cell[1] == row) return true;
+        }
+        return false;
     }
 
     private void updateStatus() {
@@ -389,18 +431,6 @@ public class MatchScene extends BaseScene {
             gameStatusMessage = "DRAW!";
         } else {
             gameStatusMessage = board.getTurn() + "'S TURN";
-        }
-    }
-
-    private void updateSettling(PieceSide side, float dt) {
-        Iterator<SpriteAnimation> it = side.settling.iterator();
-        while (it.hasNext()) {
-            SpriteAnimation settle = it.next();
-            settle.UpdateAnimation(dt);
-            settle.setScale();
-            if (settle.getTimer().isFinished()) {
-                it.remove();
-            }
         }
     }
 
@@ -436,7 +466,7 @@ public class MatchScene extends BaseScene {
         oSide.drawResting();
 
         if (!gameStatusMessage.isEmpty()) {
-            drawCenteredText(smallFont, gameStatusMessage, statusY, STATUS_COLOR);
+            drawCenteredText(gameFont, gameStatusMessage, statusY, STATUS_COLOR);
         }
 
         btnAction.render(spriteRenderer, textRenderer);
@@ -455,9 +485,8 @@ public class MatchScene extends BaseScene {
         boardSprite.setPosition(Math.round(width / 2f), Math.round(height / 2f));
         boardTopLeft.set(boardSprite.getPosition().x - boardW / 2f, boardSprite.getPosition().y - boardH / 2f);
 
-        // Logo and status above the board, the logo is dropped when it doesn't fit
         float logoHeight = logo.getTexture().getHeight() * UI_SCALE;
-        float statusHeight = smallFont.getCapHeight();
+        float statusHeight = gameFont.getCapHeight();
         logoVisible = logoHeight + UI_SPACING + statusHeight + 2 * UI_SPACING <= boardTopLeft.y;
         float headerHeight = logoVisible ? logoHeight + UI_SPACING + statusHeight : statusHeight;
         float headerY = Math.round((boardTopLeft.y - headerHeight) / 2f);
@@ -466,17 +495,22 @@ public class MatchScene extends BaseScene {
 
         layoutButtons();
 
+        settling.clear();
         for (int c = 0; c < Board.SIZE; c++) {
             for (int r = 0; r < Board.SIZE; r++) {
-                if (boardPieces[c][r] != null) boardPieces[c][r].setPosition(getGridCenter(c, r));
+                if (boardPieces[c][r] != null) {
+                    boardPieces[c][r].setPosition(getGridCenter(c, r));
+                    boardPieces[c][r].setScale(BOARD_SCALE);
+                }
             }
         }
 
+        xSide.returnAnim = null;
+        oSide.returnAnim = null;
         xSide.layout();
         oSide.layout();
     }
 
-    // Buttons centered below the board, side by side once the game is over
     private void layoutButtons() {
         float boardBottom = boardTopLeft.y + boardTexture.getHeight() * BOARD_SCALE;
         float y = Math.round(boardBottom + (currentHeight - boardBottom - BUTTON_HEIGHT) / 2f);

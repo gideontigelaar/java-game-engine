@@ -46,7 +46,6 @@ public class TextRenderer {
         drawText(font, text, x, y, 1f, color);
     }
 
-    // Text scaled around x, y (start of the baseline)
     public void drawText(Font font, String text, float x, float y, float scale, Vector4f color) {
         shader.bind();
         shader.setUniformMat4("uProjection", projection);

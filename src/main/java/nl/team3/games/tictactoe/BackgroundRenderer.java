@@ -5,7 +5,7 @@ import nl.team3.engine.graphics.Mesh;
 import nl.team3.engine.graphics.ShaderProgram;
 
 public class BackgroundRenderer {
-    public static final int PALETTE_PINK = 0;
+    public static final int PALETTE_RED = 0;
     public static final int PALETTE_GREEN = 1;
     public static final int PALETTE_BLUE = 2;
 
@@ -45,6 +45,10 @@ public class BackgroundRenderer {
         mouseX = x;
         mouseY = y;
         startTime = time;
+    }
+
+    public int getPalette() {
+        return palette;
     }
 
     public void render(int width, int height) {

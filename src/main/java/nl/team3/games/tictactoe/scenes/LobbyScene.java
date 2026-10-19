@@ -38,7 +38,6 @@ public class LobbyScene extends BaseScene {
         btnGetPlayers = createButton("GET PLAYERS", BUTTON_WIDTH, () -> connection.sendCommand("get playerlist"));
         btnGetGames = createButton("GET GAMES", BUTTON_WIDTH, () -> connection.sendCommand("get gamelist"));
         btnSubscribe = createButton("FIND MATCH", BUTTON_WIDTH, () -> connection.sendCommand("subscribe Tic-tac-toe"));
-        // Back to the menu happens below once the connection is closed
         btnDisconnect = createButton("DISCONNECT", BUTTON_WIDTH, connection::disconnect);
     }
 
@@ -87,7 +86,6 @@ public class LobbyScene extends BaseScene {
         float titleHeight = gameFont.getCapHeight();
         float lineHeight = smallFont.getCapHeight();
 
-        // Title, three lines of server info and the buttons in one centered column
         float contentHeight = titleHeight + 2 * UI_SPACING + 3 * lineHeight + 2 * UI_SPACING
                 + 2 * UI_SPACING + 4 * BUTTON_HEIGHT + 3 * UI_SPACING;
         float buttonX = Math.round((width - BUTTON_WIDTH) / 2f);

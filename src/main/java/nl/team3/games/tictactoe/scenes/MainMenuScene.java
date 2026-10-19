@@ -7,7 +7,6 @@ import nl.team3.engine.input.ActionMap;
 import nl.team3.engine.input.InputManager;
 import nl.team3.engine.ui.Button;
 import nl.team3.engine.ui.TextField;
-import nl.team3.games.tictactoe.BackgroundRenderer;
 import nl.team3.games.tictactoe.network.ServerConnection;
 import org.joml.Vector2f;
 import org.joml.Vector4f;
@@ -69,13 +68,11 @@ public class MainMenuScene extends BaseScene {
     }
 
     private void playOffline() {
-        transitionTo(() -> new MatchScene(input, actions, sceneManager, null), BackgroundRenderer.PALETTE_GREEN,
-                btnLoginOnline, btnPlayOffline, btnQuit);
+        transitionTo(new MatchScene(input, actions, sceneManager, null), btnLoginOnline, btnPlayOffline, btnQuit);
     }
 
     @Override
     protected void onUpdate(float dt) {
-        // Status text disappears again after a few seconds
         statusTimer = Math.max(0f, statusTimer - dt);
 
         if (isTransitioning()) {
@@ -113,10 +110,8 @@ public class MainMenuScene extends BaseScene {
         float profileHeight = profile.getTexture().getHeight() * UI_SCALE;
         float lineHeight = smallFont.getCapHeight();
 
-        // One centered column, same spacing between everything below the logo, status line last
         float columnHeight = logoHeight + profileHeight + UI_SPACING + lineHeight
                 + UI_SPACING + 3 * BUTTON_HEIGHT + 3 * UI_SPACING + lineHeight;
-        // Gap under the logo shrinks on the smallest windows so the column still fits
         float logoGap = Math.max(UI_SPACING, Math.min(2 * UI_SPACING, height - columnHeight - 2 * UI_SPACING));
         float centerX = Math.round(width / 2f);
         float y = Math.max(0, Math.round((height - columnHeight - logoGap) / 2f));
@@ -127,7 +122,6 @@ public class MainMenuScene extends BaseScene {
         profile.setPosition(centerX, y + profileHeight / 2f);
         y += profileHeight + UI_SPACING;
 
-        // Field is taller than the name itself so it's easier to click
         usernameInput.setPosition(centerX - BUTTON_WIDTH / 2f, y + (lineHeight - NAME_FIELD_HEIGHT) / 2f);
         y += lineHeight + UI_SPACING;
 
