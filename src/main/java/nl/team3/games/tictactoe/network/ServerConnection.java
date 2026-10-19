@@ -4,77 +4,89 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.function.Consumer;
 
 public class ServerConnection {
+    private static final int CONNECT_TIMEOUT_MS = 3000;
+
     private final String host;
     private final int port;
-    private Socket socket;
-    private PrintWriter out;
-    private BufferedReader in;
-    private Thread listenThread;
-    private boolean isConnected;
-    private final ConcurrentLinkedQueue<String> messageQueue;
+    private final ConcurrentLinkedQueue<String> messageQueue = new ConcurrentLinkedQueue<>();
+
+    private volatile Socket socket;
+    private volatile PrintWriter out;
+    private volatile boolean isConnected;
+    private volatile boolean isClosed;
 
     public ServerConnection(String host, int port) {
         this.host = host;
         this.port = port;
-        this.messageQueue = new ConcurrentLinkedQueue<>();
     }
 
-    public void connect() throws IOException {
-        socket = new Socket(host, port);
-        out = new PrintWriter(socket.getOutputStream(), true);
-        in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        isConnected = true;
-
-        listenThread = new Thread(this::listen);
+    public void connect() {
+        Thread listenThread = new Thread(this::listen, "server-connection");
         listenThread.setDaemon(true);
         listenThread.start();
     }
 
     private void listen() {
-        try {
+        try (Socket s = new Socket()) {
+            socket = s;
+            s.connect(new InetSocketAddress(host, port), CONNECT_TIMEOUT_MS);
+            if (isClosed) return;
+            BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
+            out = new PrintWriter(s.getOutputStream(), true);
+            isConnected = true;
+
             String line;
-            while (isConnected && (line = in.readLine()) != null) {
+            while ((line = in.readLine()) != null) {
                 messageQueue.add(line);
             }
         } catch (IOException e) {
-            if (isConnected) {
-                messageQueue.add("ERR Connection lost: " + e.getMessage());
+            if (!isClosed) {
+                System.out.println("Connection closed: " + e.getMessage());
             }
         } finally {
-            disconnect();
+            isConnected = false;
+            isClosed = true;
         }
     }
 
     public void sendCommand(String command) {
-        if (out != null && isConnected) {
-            out.println(command);
+        PrintWriter writer = out;
+        if (writer != null && isConnected) {
+            writer.println(command);
             System.out.println("C: " + command); // For debugging
         }
     }
 
-    // Call during game update loop to process network messages on main thread
-    public void update(Consumer<String> messageHandler) {
-        while (!messageQueue.isEmpty()) {
-            String msg = messageQueue.poll();
-            System.out.println("S: " + msg); // For debugging
-            messageHandler.accept(msg);
+    // Next message from the server, null when there is none
+    public ServerMessage poll() {
+        String line = messageQueue.poll();
+        if (line == null) {
+            return null;
         }
+        System.out.println("S: " + line); // For debugging
+        return ServerMessage.parse(line);
     }
 
     public void disconnect() {
-        if (!isConnected) return;
+        if (isClosed) return;
+        sendCommand("disconnect");
         isConnected = false;
+        isClosed = true;
         try {
-            if (out != null) out.println("disconnect");
-            if (socket != null) socket.close();
+            Socket s = socket;
+            if (s != null) s.close();
         } catch (IOException e) {
             // Ignore during cleanup
         }
+    }
+
+    public boolean isConnecting() {
+        return !isConnected && !isClosed;
     }
 
     public boolean isConnected() {

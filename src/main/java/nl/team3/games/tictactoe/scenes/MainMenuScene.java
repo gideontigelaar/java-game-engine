@@ -8,17 +8,19 @@ import nl.team3.engine.input.InputManager;
 import nl.team3.engine.ui.Button;
 import nl.team3.engine.ui.TextField;
 import nl.team3.games.tictactoe.network.ServerConnection;
+import nl.team3.games.tictactoe.network.ServerMessage;
 import org.joml.Vector2f;
 import org.joml.Vector4f;
-
-import java.io.IOException;
 
 public class MainMenuScene extends BaseScene {
     private static final String SERVER_HOST = "127.0.0.1";
     private static final int SERVER_PORT = 7789;
     private static final float NAME_FIELD_HEIGHT = 44f;
     private static final float STATUS_TIME = 3f;
+    private static final float LOGIN_TIMEOUT = 5f;
+    private static final String NAME_PATTERN = "[a-z0-9_-]+";
     private static final Vector4f STATUS_COLOR = new Vector4f(1, 0, 0, 1);
+    private static final Vector4f CONNECTING_COLOR = new Vector4f(1, 1, 1, 1);
 
     private TextField usernameInput;
     private Button btnLoginOnline;
@@ -32,8 +34,20 @@ public class MainMenuScene extends BaseScene {
     private float statusTimer;
     private float statusY;
 
+    private ServerConnection login;
+    private String loginName;
+    private boolean loginSent;
+    private float loginTime;
+
     public MainMenuScene(InputManager input, ActionMap actions, SceneManager sceneManager) {
+        this(input, actions, sceneManager, "");
+    }
+
+    public MainMenuScene(InputManager input, ActionMap actions, SceneManager sceneManager, String status) {
         super(input, actions, sceneManager, null);
+        if (!status.isEmpty()) {
+            showStatus(status);
+        }
     }
 
     @Override
@@ -53,22 +67,58 @@ public class MainMenuScene extends BaseScene {
     }
 
     private void attemptLogin() {
-        ServerConnection newConnection = new ServerConnection(SERVER_HOST, SERVER_PORT);
-        try {
-            newConnection.connect();
-        } catch (IOException e) {
-            System.out.println("Failed to connect to server: " + e.getMessage());
-            statusMessage = "Connection failed!";
-            statusTimer = STATUS_TIME;
+        String name = usernameInput.getText().trim().toLowerCase();
+        if (!name.matches(NAME_PATTERN)) {
+            showStatus("Use letters and numbers only!");
             return;
         }
 
-        newConnection.sendCommand("login " + usernameInput.getText().toLowerCase());
-        sceneManager.changeScene(new LobbyScene(input, actions, sceneManager, newConnection));
+        loginName = name;
+        loginSent = false;
+        loginTime = 0f;
+        login = new ServerConnection(SERVER_HOST, SERVER_PORT);
+        login.connect();
+    }
+
+    private void updateLogin(float dt) {
+        loginTime += dt;
+        if (login.isConnected() && !loginSent) {
+            login.sendCommand("login " + loginName);
+            loginSent = true;
+        }
+
+        ServerMessage message;
+        while ((message = login.poll()) != null) {
+            if (message.is("OK")) {
+                transitionTo(new LobbyScene(input, actions, sceneManager, login, loginName, false), btnLoginOnline, btnPlayOffline, btnQuit);
+                login = null;
+                return;
+            }
+            if (message.is("ERR")) {
+                login.disconnect();
+                login = null;
+                showStatus("Login failed: " + message.data());
+                return;
+            }
+        }
+
+        if (!login.isConnecting() && !login.isConnected()) {
+            login = null;
+            showStatus("Connection failed!");
+        } else if (loginTime > LOGIN_TIMEOUT) {
+            login.disconnect();
+            login = null;
+            showStatus("No answer from server!");
+        }
+    }
+
+    private void showStatus(String message) {
+        statusMessage = message;
+        statusTimer = STATUS_TIME;
     }
 
     private void playOffline() {
-        transitionTo(new MatchScene(input, actions, sceneManager, null), btnLoginOnline, btnPlayOffline, btnQuit);
+        transitionTo(new MatchScene(input, actions, sceneManager), btnLoginOnline, btnPlayOffline, btnQuit);
     }
 
     @Override
@@ -76,6 +126,10 @@ public class MainMenuScene extends BaseScene {
         statusTimer = Math.max(0f, statusTimer - dt);
 
         if (isTransitioning()) {
+            return;
+        }
+        if (login != null) {
+            updateLogin(dt);
             return;
         }
 
@@ -99,7 +153,9 @@ public class MainMenuScene extends BaseScene {
         btnPlayOffline.render(spriteRenderer, textRenderer);
         btnQuit.render(spriteRenderer, textRenderer);
 
-        if (statusTimer > 0f) {
+        if (login != null) {
+            drawCenteredText(smallFont, "Connecting...", statusY, CONNECTING_COLOR);
+        } else if (statusTimer > 0f) {
             drawCenteredText(smallFont, statusMessage, statusY, STATUS_COLOR);
         }
     }
