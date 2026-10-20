@@ -7,14 +7,13 @@ public class Board {
 
     public enum Mark { X, O }
 
-    // All rows columns and diagonals as {col, row}
     private static final int[][][] LINES = {
             {{0, 0}, {1, 0}, {2, 0}}, {{0, 1}, {1, 1}, {2, 1}}, {{0, 2}, {1, 2}, {2, 2}},
             {{0, 0}, {0, 1}, {0, 2}}, {{1, 0}, {1, 1}, {1, 2}}, {{2, 0}, {2, 1}, {2, 2}},
             {{0, 0}, {1, 1}, {2, 2}}, {{2, 0}, {1, 1}, {0, 2}}
     };
 
-    private final Mark[][] cells = new Mark[SIZE][SIZE];
+    final Mark[][] cells = new Mark[SIZE][SIZE];
     private Mark turn;
     private Mark winner;
     private int[][] winningLine;
@@ -28,7 +27,6 @@ public class Board {
         return !isGameOver() && cells[col][row] == null;
     }
 
-    // Place mark of current turn
     public void place(int col, int row) {
         if (!canPlace(col, row)) {
             throw new IllegalStateException("Cell " + col + "," + row + " is not available");
@@ -67,12 +65,10 @@ public class Board {
         return turn;
     }
 
-    // Null until someone has three in a row
     public Mark getWinner() {
         return winner;
     }
 
-    // Winning {col, row} cells, null without a winner
     public int[][] getWinningLine() {
         return winningLine == null ? null : Arrays.stream(winningLine).map(int[]::clone).toArray(int[][]::new);
     }

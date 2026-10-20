@@ -12,6 +12,7 @@ import nl.team3.engine.input.InputManager;
 import nl.team3.engine.ui.Button;
 import nl.team3.games.tictactoe.BackgroundRenderer;
 import nl.team3.games.tictactoe.Board;
+import nl.team3.games.tictactoe.AIOpponent;
 import nl.team3.games.tictactoe.network.ServerConnection;
 import org.joml.Vector2f;
 import org.joml.Vector4f;
@@ -54,6 +55,10 @@ public class MatchScene extends BaseScene {
 
     protected final Board board;
     private final Board.Mark leftMark;
+    private final boolean vsAI;
+    private final boolean unbeatableAI;
+    private final Board.Mark aiMark = Board.Mark.O;
+    private float aiMoveTimer = 0f;
 
     private Sprite boardSprite;
     private Texture boardTexture;
@@ -155,7 +160,6 @@ public class MatchScene extends BaseScene {
         private void layout() {
             float centerX = stackX();
             for (int i = 0; i < stack.size(); i++) {
-                // Full piece on top while the one above is away
                 boolean exposed = (pickedUp || returnAnim != null) && i == stack.size() - 1;
                 Sprite piece = stack.get(i);
                 piece.setTexture(exposed ? pieceTexture : stackTexture);
@@ -182,14 +186,21 @@ public class MatchScene extends BaseScene {
     }
 
     public MatchScene(InputManager input, ActionMap actions, SceneManager sceneManager) {
-        this(input, actions, sceneManager, null, ThreadLocalRandom.current().nextBoolean() ? Board.Mark.X : Board.Mark.O, Board.Mark.X);
+        this(input, actions, sceneManager, null, ThreadLocalRandom.current().nextBoolean() ? Board.Mark.X : Board.Mark.O, Board.Mark.X, false, true);
     }
 
     protected MatchScene(InputManager input, ActionMap actions, SceneManager sceneManager,
                          ServerConnection connection, Board.Mark firstTurn, Board.Mark leftMark) {
+        this(input, actions, sceneManager, connection, firstTurn, leftMark, false, false);
+    }
+
+    protected MatchScene(InputManager input, ActionMap actions, SceneManager sceneManager,
+                         ServerConnection connection, Board.Mark firstTurn, Board.Mark leftMark, boolean vsAI, boolean unbeatableAI) {
         super(input, actions, sceneManager, connection);
         this.board = new Board(firstTurn);
         this.leftMark = leftMark;
+        this.vsAI = vsAI;
+        this.unbeatableAI = unbeatableAI;
     }
 
     @Override
@@ -214,6 +225,9 @@ public class MatchScene extends BaseScene {
     }
 
     protected boolean canMove(Board.Mark mark) {
+        if (vsAI && mark == aiMark) {
+            return false;
+        }
         return true;
     }
 
@@ -243,7 +257,7 @@ public class MatchScene extends BaseScene {
     }
 
     protected void playAgain() {
-        leaveTo(new MatchScene(input, actions, sceneManager));
+        leaveTo(new MatchScene(input, actions, sceneManager, null, board.getTurn(), leftMark, vsAI, unbeatableAI));
     }
 
     protected void leaveTo(BaseScene scene) {
@@ -281,6 +295,20 @@ public class MatchScene extends BaseScene {
             if (isMatchOver()) {
                 btnPlayAgain.update(input);
             }
+        }
+
+        if (vsAI && !isTransitioning() && !isMatchOver() && board.getTurn() == aiMark) {
+            aiMoveTimer += dt;
+            if (aiMoveTimer >= 0.5f) {
+                aiMoveTimer = 0f;
+                int[] bestMove = AIOpponent.calculateBestMove(board, aiMark, unbeatableAI);
+                if (bestMove != null) {
+                    playMove(bestMove[0], bestMove[1]);
+                    onMove(bestMove[0], bestMove[1]);
+                }
+            }
+        } else {
+            aiMoveTimer = 0f;
         }
 
         updateSide(xSide, oSide, dt);
@@ -358,8 +386,10 @@ public class MatchScene extends BaseScene {
 
     protected void playMove(int col, int row) {
         PieceSide side = sideOf(board.getTurn());
-        side.active.setScale(GRAB_SCALE);
-        placePiece(side, col, row, PLAY_MOVE_TIME);
+        if (side.active != null) {
+            side.active.setScale(GRAB_SCALE);
+            placePiece(side, col, row, PLAY_MOVE_TIME);
+        }
     }
 
     private void placePiece(PieceSide side, int col, int row, float moveTime) {
@@ -457,6 +487,7 @@ public class MatchScene extends BaseScene {
 
         String status = getStatus();
         Font statusFont = gameFont.getTextWidth(status) <= currentWidth - 4 * UI_SPACING ? gameFont : smallFont;
+
         drawCenteredText(statusFont, status, statusY, TEXT_COLOR);
         drawPlayerName(xSide);
         drawPlayerName(oSide);
@@ -494,6 +525,7 @@ public class MatchScene extends BaseScene {
         float logoHeight = logo.getTexture().getHeight() * UI_SCALE;
         float statusHeight = gameFont.getCapHeight();
         logoVisible = logoHeight + UI_SPACING + statusHeight + 2 * UI_SPACING <= boardTopLeft.y;
+
         float headerHeight = logoVisible ? logoHeight + UI_SPACING + statusHeight : statusHeight;
         float headerY = Math.round((boardTopLeft.y - headerHeight) / 2f);
         logo.setPosition(Math.round(width / 2f), headerY + logoHeight / 2f);

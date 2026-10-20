@@ -25,6 +25,7 @@ public class MainMenuScene extends BaseScene {
     private TextField usernameInput;
     private Button btnLoginOnline;
     private Button btnPlayOffline;
+    private Button btnPlayAI;
     private Button btnQuit;
 
     private Sprite logo;
@@ -63,6 +64,7 @@ public class MainMenuScene extends BaseScene {
 
         btnLoginOnline = createButton("LOGIN ONLINE", BUTTON_WIDTH, this::attemptLogin);
         btnPlayOffline = createButton("PLAY OFFLINE", BUTTON_WIDTH, this::playOffline);
+        btnPlayAI = createButton("PLAY VS AI", BUTTON_WIDTH, this::playAI);
         btnQuit = createButton("QUIT GAME", SMALL_BUTTON_WIDTH, input::requestClose);
     }
 
@@ -90,7 +92,7 @@ public class MainMenuScene extends BaseScene {
         ServerMessage message;
         while ((message = login.poll()) != null) {
             if (message.is("OK")) {
-                transitionTo(new LobbyScene(input, actions, sceneManager, login, loginName, false), btnLoginOnline, btnPlayOffline, btnQuit);
+                transitionTo(new LobbyScene(input, actions, sceneManager, login, loginName, false), btnLoginOnline, btnPlayOffline, btnPlayAI, btnQuit);
                 login = null;
                 return;
             }
@@ -118,7 +120,13 @@ public class MainMenuScene extends BaseScene {
     }
 
     private void playOffline() {
-        transitionTo(new MatchScene(input, actions, sceneManager), btnLoginOnline, btnPlayOffline, btnQuit);
+        // Gewoon 2 spelers lokaal naast elkaar op 1 laptop
+        transitionTo(new MatchScene(input, actions, sceneManager), btnLoginOnline, btnPlayOffline, btnPlayAI, btnQuit);
+    }
+
+    private void playAI() {
+        // Schakelt over naar de AI-moeilijkheidsgraad selectie
+        transitionTo(new AIDifficultyScene(input, actions, sceneManager), btnLoginOnline, btnPlayOffline, btnPlayAI, btnQuit);
     }
 
     @Override
@@ -140,6 +148,7 @@ public class MainMenuScene extends BaseScene {
         }
         btnLoginOnline.update(input);
         btnPlayOffline.update(input);
+        btnPlayAI.update(input);
         btnQuit.update(input);
     }
 
@@ -151,6 +160,7 @@ public class MainMenuScene extends BaseScene {
         usernameInput.render(spriteRenderer, textRenderer);
         btnLoginOnline.render(spriteRenderer, textRenderer);
         btnPlayOffline.render(spriteRenderer, textRenderer);
+        btnPlayAI.render(spriteRenderer, textRenderer);
         btnQuit.render(spriteRenderer, textRenderer);
 
         if (login != null) {
@@ -167,7 +177,7 @@ public class MainMenuScene extends BaseScene {
         float lineHeight = smallFont.getCapHeight();
 
         float columnHeight = logoHeight + profileHeight + UI_SPACING + lineHeight
-                + UI_SPACING + 3 * BUTTON_HEIGHT + 3 * UI_SPACING + lineHeight;
+                + UI_SPACING + 4 * BUTTON_HEIGHT + 4 * UI_SPACING + lineHeight;
         float logoGap = Math.max(UI_SPACING, Math.min(2 * UI_SPACING, height - columnHeight - 2 * UI_SPACING));
         float centerX = Math.round(width / 2f);
         float y = Math.max(0, Math.round((height - columnHeight - logoGap) / 2f));
@@ -184,6 +194,8 @@ public class MainMenuScene extends BaseScene {
         btnLoginOnline.setPosition(centerX - BUTTON_WIDTH / 2f, y);
         y += BUTTON_HEIGHT + UI_SPACING;
         btnPlayOffline.setPosition(centerX - BUTTON_WIDTH / 2f, y);
+        y += BUTTON_HEIGHT + UI_SPACING;
+        btnPlayAI.setPosition(centerX - BUTTON_WIDTH / 2f, y);
         y += BUTTON_HEIGHT + UI_SPACING;
         btnQuit.setPosition(centerX - SMALL_BUTTON_WIDTH / 2f, y);
         y += BUTTON_HEIGHT + UI_SPACING;
