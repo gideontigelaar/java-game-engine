@@ -6,93 +6,193 @@ import nl.team3.engine.input.ActionMap;
 import nl.team3.engine.input.InputManager;
 import nl.team3.engine.ui.Button;
 import nl.team3.games.tictactoe.network.ServerConnection;
-import org.joml.Vector2f;
+import nl.team3.games.tictactoe.network.ServerMessage;
 import org.joml.Vector4f;
 
+import java.util.List;
+
 public class LobbyScene extends BaseScene {
+    private static final String GAME_TYPE = "Tic-tac-toe";
+    private static final String TITLE = "MULTIPLAYER LOBBY";
+    private static final int MAX_LISTED = 5;
+    private static final Vector4f TITLE_COLOR = new Vector4f(1, 1, 1, 1);
+    private static final Vector4f STATUS_COLOR = new Vector4f(1, 1, 0, 1);
+    private static final Vector4f PLAYERS_COLOR = new Vector4f(0.8f, 0.8f, 1, 1);
+    private static final Vector4f GAMES_COLOR = new Vector4f(0.8f, 1, 0.8f, 1);
+
+    private final String playerName;
+    private final boolean searchOnStart;
+
+    private Button btnFindMatch;
     private Button btnGetPlayers;
     private Button btnGetGames;
-    private Button btnSubscribe;
     private Button btnDisconnect;
 
-    private String serverStatus = "Connected. Awaiting actions...";
-    private String playersList = "Players: []";
-    private String gamesList = "Games: []";
+    private String serverStatus;
+    private String playersList = "Players: -";
+    private String gamesList = "Games: -";
+    private boolean searching;
+    private String challengeNumber;
 
-    public LobbyScene(InputManager input, ActionMap actions, SceneManager sceneManager, ServerConnection connection) {
+    private float titleY;
+    private float statusY;
+    private float playersY;
+    private float gamesY;
+
+    public LobbyScene(InputManager input, ActionMap actions, SceneManager sceneManager, ServerConnection connection,
+                      String playerName, boolean searchOnStart) {
         super(input, actions, sceneManager, connection);
+        this.playerName = playerName;
+        this.searchOnStart = searchOnStart;
     }
 
     @Override
     protected void onInit(AssetManager assets) {
-        btnGetPlayers = new Button("GET PLAYERS", smallFont, new Vector2f(0, 0), new Vector2f(250, 50));
-        btnGetGames = new Button("GET GAMES", smallFont, new Vector2f(0, 0), new Vector2f(250, 50));
-        btnSubscribe = new Button("FIND MATCH", smallFont, new Vector2f(0, 0), new Vector2f(250, 50));
-        btnDisconnect = new Button("DISCONNECT", smallFont, new Vector2f(0, 0), new Vector2f(250, 50));
+        btnFindMatch = createButton("FIND MATCH", BUTTON_WIDTH, this::findMatch);
+        btnGetPlayers = createButton("GET PLAYERS", BUTTON_WIDTH, () -> connection.sendCommand("get playerlist"));
+        btnGetGames = createButton("GET GAMES", BUTTON_WIDTH, () -> connection.sendCommand("get gamelist"));
+        btnDisconnect = createButton("DISCONNECT", BUTTON_WIDTH, this::disconnect);
 
-        btnGetPlayers.setOnClick(() -> connection.sendCommand("get playerlist"));
-        btnGetGames.setOnClick(() -> connection.sendCommand("get gamelist"));
-        btnSubscribe.setOnClick(() -> connection.sendCommand("subscribe Tic-tac-toe"));
-        btnDisconnect.setOnClick(() -> {
-            connection.disconnect();
-            sceneManager.changeScene(new MainMenuScene(input, actions, sceneManager));
-        });
+        serverStatus = "Logged in as " + playerName;
+        connection.sendCommand("get playerlist");
+        connection.sendCommand("get gamelist");
+        if (searchOnStart) {
+            findMatch();
+        }
+    }
+
+    private void findMatch() {
+        if (challengeNumber != null) {
+            connection.sendCommand("challenge accept " + challengeNumber);
+            challengeNumber = null;
+            serverStatus = "Starting match...";
+        } else if (!searching) {
+            connection.sendCommand("subscribe " + GAME_TYPE);
+            searching = true;
+            serverStatus = "Searching for an opponent...";
+        }
+        updateFindMatchText();
+    }
+
+    private void updateFindMatchText() {
+        if (challengeNumber != null) {
+            btnFindMatch.setText("ACCEPT CHALLENGE");
+        } else {
+            btnFindMatch.setText(searching ? "SEARCHING..." : "FIND MATCH");
+        }
+    }
+
+    private void disconnect() {
+        connection.disconnect();
+        transitionTo(new MainMenuScene(input, actions, sceneManager), btnFindMatch, btnGetPlayers, btnGetGames, btnDisconnect);
     }
 
     @Override
     protected void onUpdate(float dt) {
-        btnGetPlayers.update(input);
-        btnGetGames.update(input);
-        btnSubscribe.update(input);
-        btnDisconnect.update(input);
-
-        connection.update(msg -> {
-            if (msg.startsWith("ERR")) {
-                serverStatus = "Error: " + msg.substring(4);
-            } else if (msg.startsWith("SVR PLAYERLIST")) {
-                playersList = "Players: " + msg.substring(15);
-            } else if (msg.startsWith("SVR GAMELIST")) {
-                gamesList = "Games: " + msg.substring(13);
-            } else if (msg.startsWith("SVR GAME MATCH")) {
-                serverStatus = "Match found!";
-                sceneManager.changeScene(new MatchScene(input, actions, sceneManager, connection));
-            } else if (msg.startsWith("SVR GAME CHALLENGE")) {
-                serverStatus = "Received a challenge!";
-            }
-        });
-
-        if (!connection.isConnected()) {
-            sceneManager.changeScene(new MainMenuScene(input, actions, sceneManager));
+        if (!isTransitioning()) {
+            btnFindMatch.update(input);
+            btnGetPlayers.update(input);
+            btnGetGames.update(input);
+            btnDisconnect.update(input);
         }
+
+        ServerMessage message;
+        while (!isTransitioning() && (message = connection.poll()) != null) {
+            handleMessage(message);
+        }
+
+        if (!isTransitioning() && !connection.isConnected()) {
+            sceneManager.changeScene(new MainMenuScene(input, actions, sceneManager, "Connection lost!"));
+        }
+    }
+
+    private void handleMessage(ServerMessage message) {
+        switch (message.type()) {
+            case "ERR" -> serverStatus = "Error: " + message.data();
+            case "SVR PLAYERLIST" -> playersList = "Players: " + listText(message.items());
+            case "SVR GAMELIST" -> gamesList = "Games: " + listText(message.items());
+            case "SVR GAME MATCH" -> startMatch(message);
+            case "SVR GAME CHALLENGE" -> receiveChallenge(message);
+            case "SVR GAME CHALLENGE CANCELLED" -> cancelChallenge(message);
+            default -> { }
+        }
+    }
+
+    private static String listText(List<String> items) {
+        if (items.size() <= MAX_LISTED) {
+            return String.join(", ", items);
+        }
+        return String.join(", ", items.subList(0, MAX_LISTED)) + " +" + (items.size() - MAX_LISTED);
+    }
+
+    private void startMatch(ServerMessage match) {
+        searching = false;
+        if (!GAME_TYPE.equalsIgnoreCase(match.get("GAMETYPE"))) {
+            connection.sendCommand("forfeit");
+            serverStatus = "Can't play " + match.get("GAMETYPE");
+            updateFindMatchText();
+            return;
+        }
+
+        boolean playerStarts = match.get("PLAYERTOMOVE").equalsIgnoreCase(playerName);
+        transitionTo(new OnlineMatchScene(input, actions, sceneManager, connection, playerName, match.get("OPPONENT"), playerStarts),
+                btnFindMatch, btnGetPlayers, btnGetGames, btnDisconnect);
+    }
+
+    private void receiveChallenge(ServerMessage challenge) {
+        if (!GAME_TYPE.equalsIgnoreCase(challenge.get("GAMETYPE"))) return;
+
+        challengeNumber = challenge.get("CHALLENGENUMBER");
+        serverStatus = challenge.get("CHALLENGER") + " challenges you!";
+        updateFindMatchText();
+    }
+
+    private void cancelChallenge(ServerMessage cancelled) {
+        if (!cancelled.get("CHALLENGENUMBER").equals(challengeNumber)) return;
+
+        challengeNumber = null;
+        serverStatus = "Challenge cancelled";
+        updateFindMatchText();
     }
 
     @Override
     protected void onRender() {
-        float titleW = gameFont.getTextWidth("MULTIPLAYER LOBBY");
-        textRenderer.drawText(gameFont, "MULTIPLAYER LOBBY", (currentWidth - titleW) / 2f, currentHeight * 0.10f, new Vector4f(1, 1, 1, 1));
+        drawCenteredText(gameFont, TITLE, titleY, TITLE_COLOR);
+        drawCenteredText(smallFont, serverStatus, statusY, STATUS_COLOR);
+        drawCenteredText(smallFont, playersList, playersY, PLAYERS_COLOR);
+        drawCenteredText(smallFont, gamesList, gamesY, GAMES_COLOR);
 
-        float statusW = smallFont.getTextWidth(serverStatus);
-        textRenderer.drawText(smallFont, serverStatus, (currentWidth - statusW) / 2f, currentHeight * 0.20f, new Vector4f(1, 1, 0, 1));
-
-        float playersW = smallFont.getTextWidth(playersList);
-        textRenderer.drawText(smallFont, playersList, (currentWidth - playersW) / 2f, currentHeight * 0.30f, new Vector4f(0.8f, 0.8f, 1, 1));
-
-        float gamesW = smallFont.getTextWidth(gamesList);
-        textRenderer.drawText(smallFont, gamesList, (currentWidth - gamesW) / 2f, currentHeight * 0.40f, new Vector4f(0.8f, 1, 0.8f, 1));
-
+        btnFindMatch.render(spriteRenderer, textRenderer);
         btnGetPlayers.render(spriteRenderer, textRenderer);
         btnGetGames.render(spriteRenderer, textRenderer);
-        btnSubscribe.render(spriteRenderer, textRenderer);
         btnDisconnect.render(spriteRenderer, textRenderer);
     }
 
     @Override
     protected void onResize(int width, int height) {
-        float btnWidth = 250f;
-        float centerX = (width - btnWidth) / 2f;
-        btnGetPlayers.setPosition(new Vector2f(centerX, height * 0.55f));
-        btnGetGames.setPosition(new Vector2f(centerX, height * 0.55f + 70f));
-        btnSubscribe.setPosition(new Vector2f(centerX, height * 0.55f + 140f));
-        btnDisconnect.setPosition(new Vector2f(centerX, height * 0.55f + 210f));
+        float titleHeight = gameFont.getCapHeight();
+        float lineHeight = smallFont.getCapHeight();
+
+        float contentHeight = titleHeight + 2 * UI_SPACING + 3 * lineHeight + 2 * UI_SPACING
+                + 2 * UI_SPACING + 4 * BUTTON_HEIGHT + 3 * UI_SPACING;
+        float buttonX = Math.round((width - BUTTON_WIDTH) / 2f);
+        float y = Math.max(0, Math.round((height - contentHeight) / 2f));
+
+        titleY = y;
+        y += titleHeight + 2 * UI_SPACING;
+        statusY = y;
+        y += lineHeight + UI_SPACING;
+        playersY = y;
+        y += lineHeight + UI_SPACING;
+        gamesY = y;
+        y += lineHeight + 2 * UI_SPACING;
+
+        btnFindMatch.setPosition(buttonX, y);
+        y += BUTTON_HEIGHT + UI_SPACING;
+        btnGetPlayers.setPosition(buttonX, y);
+        y += BUTTON_HEIGHT + UI_SPACING;
+        btnGetGames.setPosition(buttonX, y);
+        y += BUTTON_HEIGHT + UI_SPACING;
+        btnDisconnect.setPosition(buttonX, y);
     }
 }

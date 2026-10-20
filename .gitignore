@@ -30,3 +30,6 @@ replay_pid*
 # Maven
 target/
 dependency-reduced-pom.xml
+
+# Local game server
+server/

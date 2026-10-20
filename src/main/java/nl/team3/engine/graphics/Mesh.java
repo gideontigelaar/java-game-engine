@@ -21,7 +21,6 @@ public class Mesh {
     private static final int FLOATS_PER_VERTEX = 4;
     private static Mesh quadInstance;
 
-
     private final int vaoId;
     private final int vboId;
     private final int eboId;
@@ -60,8 +59,22 @@ public class Mesh {
                 // pos          // uv
                 -0.5f, -0.5f,   0.0f, 1.0f, // top-left
                 -0.5f,  0.5f,   0.0f, 0.0f, // bottom-left
-                 0.5f,  0.5f,   1.0f, 0.0f, // bottom-right
-                 0.5f, -0.5f,   1.0f, 1.0f  // top-right
+                0.5f,  0.5f,   1.0f, 0.0f, // bottom-right
+                0.5f, -0.5f,   1.0f, 1.0f  // top-right
+        };
+
+        int[] indices = { 0, 1, 2, 2, 3, 0 };
+        return new Mesh(vertices, indices);
+    }
+
+    // Generate quad with custom UV-coordinates for nine slicing
+    public static Mesh createQuad(float u0, float v0, float u1, float v1) {
+        float[] vertices = {
+                // pos          // uv
+                -0.5f, -0.5f,   u0, v1, // top-left
+                -0.5f,  0.5f,   u0, v0, // bottom-left
+                0.5f,  0.5f,   u1, v0, // bottom-right
+                0.5f, -0.5f,   u1, v1  // top-right
         };
 
         int[] indices = { 0, 1, 2, 2, 3, 0 };

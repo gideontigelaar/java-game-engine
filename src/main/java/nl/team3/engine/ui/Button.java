@@ -1,6 +1,7 @@
 package nl.team3.engine.ui;
 
 import nl.team3.engine.graphics.Font;
+import nl.team3.engine.graphics.NineSlice;
 import nl.team3.engine.graphics.Sprite;
 import nl.team3.engine.graphics.SpriteRenderer;
 import nl.team3.engine.graphics.TextRenderer;
@@ -17,6 +18,11 @@ public class Button {
     private Font font;
 
     private Sprite backgroundSprite;
+    private Sprite pressedSprite;
+    private NineSlice nineSlice;
+    private int pixelSize;
+    private float pressedTextOffset;
+    private float scale = 1f;
     private Runnable onClick;
 
     private boolean isHovered;
@@ -63,6 +69,10 @@ public class Button {
     }
 
     public void render(SpriteRenderer spriteRenderer, TextRenderer textRenderer) {
+        if (scale <= 0f) {
+            return;
+        }
+
         Vector4f currentColor = normalColor;
         if (isPressed) {
             currentColor = pressedColor;
@@ -70,27 +80,54 @@ public class Button {
             currentColor = hoverColor;
         }
 
-        // background sprite
-        if (backgroundSprite != null && spriteRenderer != null) {
-            backgroundSprite.setOrigin(0f, 0f);
-            backgroundSprite.setPosition(position);
-            backgroundSprite.setScale(
-                    size.x / backgroundSprite.getTexture().getWidth(),
-                    size.y / backgroundSprite.getTexture().getHeight());
-            spriteRenderer.draw(backgroundSprite);
+        // Scale around the center
+        float width = size.x * scale;
+        float height = size.y * scale;
+        float x = position.x + (size.x - width) / 2.0f;
+        float y = position.y + (size.y - height) / 2.0f;
+
+        // background sprite / nine-slice rendering
+        Sprite background = isPressed && pressedSprite != null ? pressedSprite : backgroundSprite;
+        if (background != null && spriteRenderer != null) {
+            background.setOrigin(0f, 0f);
+            if (nineSlice != null) {
+                spriteRenderer.drawNineSlice(background, x, y, width, height, nineSlice, pixelSize * scale);
+            } else {
+                background.setPosition(x, y);
+                background.setScale(
+                        width / background.getTexture().getWidth(),
+                        height / background.getTexture().getHeight());
+                spriteRenderer.draw(background);
+            }
         }
 
         // text rendering
         if (text != null && font != null && textRenderer != null) {
             float textWidth = font.getTextWidth(text);
-            float textX = position.x + (size.x - textWidth) / 2.0f;
-            float textY = position.y + (size.y / 2.0f) + 12.0f;
-            textRenderer.drawText(font, text, textX, textY, currentColor);
+            float textX = Math.round(position.x + (size.x - textWidth) / 2.0f);
+            float textY = Math.round(position.y + (size.y + font.getCapHeight()) / 2.0f);
+            if (isPressed) {
+                textY += pressedTextOffset;
+            }
+            float centerX = position.x + size.x / 2.0f;
+            float centerY = position.y + size.y / 2.0f;
+            textRenderer.drawText(font, text,
+                    centerX + (textX - centerX) * scale, centerY + (textY - centerY) * scale, scale, currentColor);
         }
     }
 
     public void setBackgroundSprite(Sprite backgroundSprite) {
         this.backgroundSprite = backgroundSprite;
+    }
+
+    public void setPressedSprite(Sprite pressedSprite, float textOffset) {
+        this.pressedSprite = pressedSprite;
+        this.pressedTextOffset = textOffset;
+    }
+
+    public void setNineSlice(NineSlice nineSlice, int pixelSize) {
+        this.nineSlice = nineSlice;
+        this.pixelSize = pixelSize;
     }
 
     public void setOnClick(Runnable onClick) {
@@ -105,6 +142,10 @@ public class Button {
         return isHovered;
     }
 
+    public boolean isPressed() {
+        return isPressed;
+    }
+
     public Vector2f getPosition() {
         return position;
     }
@@ -113,12 +154,20 @@ public class Button {
         this.position = position;
     }
 
+    public void setPosition(float x, float y) {
+        this.position.set(x, y);
+    }
+
     public Vector2f getSize() {
         return size;
     }
 
     public void setSize(Vector2f size) {
         this.size = size;
+    }
+
+    public void setScale(float scale) {
+        this.scale = scale;
     }
 
     public String getText() {
