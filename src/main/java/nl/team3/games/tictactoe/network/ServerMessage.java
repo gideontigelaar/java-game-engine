@@ -5,21 +5,21 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public record ServerMessage(String type, String data) {
+public record ServerMessage(String type, String data, String command) {
     private static final Pattern FIELD = Pattern.compile("(\\w+): \"([^\"]*)\"");
     private static final Pattern ITEM = Pattern.compile("\"([^\"]*)\"");
 
     public static ServerMessage parse(String line) {
         String trimmed = line.trim();
         if (trimmed.startsWith("ERR")) {
-            return new ServerMessage("ERR", trimmed.substring(3).trim());
+            return new ServerMessage("ERR", trimmed.substring(3).trim(), null);
         }
 
         int start = dataStart(trimmed);
         if (start < 0) {
-            return new ServerMessage(trimmed, "");
+            return new ServerMessage(trimmed, "", null);
         }
-        return new ServerMessage(trimmed.substring(0, start).trim(), trimmed.substring(start));
+        return new ServerMessage(trimmed.substring(0, start).trim(), trimmed.substring(start), null);
     }
 
     private static int dataStart(String line) {
@@ -31,8 +31,16 @@ public record ServerMessage(String type, String data) {
         return Math.min(map, list);
     }
 
+    ServerMessage answering(String command) {
+        return new ServerMessage(type, data, command);
+    }
+
     public boolean is(String type) {
         return this.type.equals(type);
+    }
+
+    public boolean isReplyTo(String commandPrefix) {
+        return command != null && command.regionMatches(true, 0, commandPrefix, 0, commandPrefix.length());
     }
 
     public String get(String key) {

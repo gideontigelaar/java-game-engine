@@ -29,7 +29,6 @@ public class MainMenuScene extends MenuScene {
     private Button btnPlayOffline;
 
     private ServerConnection login;
-    private ServerAddress loginAddress;
     private String loginName;
     private boolean loginSent;
     private float loginTime;
@@ -86,10 +85,9 @@ public class MainMenuScene extends MenuScene {
 
     private void startLogin(String name, ServerAddress address) {
         loginName = name;
-        loginAddress = address;
         loginSent = false;
         loginTime = 0f;
-        login = new ServerConnection(address.host(), address.port());
+        login = new ServerConnection(address);
         login.connect();
         setLoginButtonsEnabled(false);
         showProgress("Connecting to " + address + "...");
@@ -104,19 +102,18 @@ public class MainMenuScene extends MenuScene {
 
         ServerMessage message;
         while ((message = login.poll()) != null) {
+            if (!message.isReplyTo("login")) continue;
             if (message.is("OK")) {
                 open(new LobbyScene(input, actions, sceneManager, login, loginName, false));
                 login = null;
-                return;
-            }
-            if (message.is("ERR")) {
+            } else {
                 stopLogin("Login failed: " + message.data());
-                return;
             }
+            return;
         }
 
         if (!login.isConnecting() && !login.isConnected()) {
-            stopLogin("Can't reach " + loginAddress);
+            stopLogin("Can't reach " + login.getAddress());
         } else if (loginTime > LOGIN_TIMEOUT) {
             stopLogin("No answer from the server!");
         }
