@@ -52,7 +52,7 @@ public class App {
         // Input first: the scene needs these
         InputManager input = new InputManager(window, viewport);
         ActionMap actions = new ActionMap(input);
-        actions.bind("pause", GLFW.GLFW_KEY_ESCAPE);
+        actions.bind("back", GLFW.GLFW_KEY_ESCAPE);
 
         // Central asset storage
         AssetManager assets = new AssetManager();

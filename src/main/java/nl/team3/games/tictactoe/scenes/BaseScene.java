@@ -25,6 +25,11 @@ public abstract class BaseScene implements Scene {
     protected static final float BUTTON_WIDTH = 300f;
     protected static final float SMALL_BUTTON_WIDTH = 200f;
     protected static final float BUTTON_HEIGHT = 68f;
+    protected static final Vector4f WHITE = new Vector4f(1, 1, 1, 1);
+    protected static final Vector4f DIM_WHITE = new Vector4f(1, 1, 1, 0.7f);
+    protected static final Vector4f ERROR_COLOR = new Vector4f(1, 0, 0, 1);
+    protected static final Vector4f HIGHLIGHT_COLOR = new Vector4f(1, 1, 0, 1);
+    protected static final Vector4f HOVER_COLOR = new Vector4f(0.8f, 0.8f, 0, 1);
 
     private static final NineSlice BUTTON_SLICE = new NineSlice(5, 6, 5, 5);
     private static final float TRANSITION_TIME = 0.7f;
@@ -163,6 +168,10 @@ public abstract class BaseScene implements Scene {
     protected void drawCenteredText(Font font, String text, float y, Vector4f color) {
         float x = Math.round((currentWidth - font.getTextWidth(text)) / 2f);
         textRenderer.drawText(font, text, x, Math.round(y + font.getCapHeight()), color);
+    }
+
+    protected boolean isBackPressed() {
+        return actions.isActionPressed("back");
     }
 
     protected int getPalette() {

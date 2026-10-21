@@ -1,41 +1,35 @@
 package nl.team3.games.tictactoe.scenes;
 
-import nl.team3.engine.assets.AssetManager;
 import nl.team3.engine.core.SceneManager;
-import nl.team3.engine.graphics.Sprite;
 import nl.team3.engine.input.ActionMap;
 import nl.team3.engine.input.InputManager;
 import nl.team3.engine.ui.Button;
 import nl.team3.engine.ui.TextField;
+import nl.team3.games.tictactoe.Settings;
+import nl.team3.games.tictactoe.network.ServerAddress;
 import nl.team3.games.tictactoe.network.ServerConnection;
 import nl.team3.games.tictactoe.network.ServerMessage;
 import org.joml.Vector2f;
-import org.joml.Vector4f;
 
-public class MainMenuScene extends BaseScene {
-    private static final String SERVER_HOST = "127.0.0.1";
-    private static final int SERVER_PORT = 7789;
-    private static final float NAME_FIELD_HEIGHT = 44f;
-    private static final float STATUS_TIME = 3f;
+import java.util.Locale;
+import java.util.function.IntPredicate;
+
+import static org.lwjgl.glfw.GLFW.GLFW_KEY_TAB;
+
+public class MainMenuScene extends MenuScene {
+    private static final float FIELD_WIDTH = 480f;
+    private static final int NAME_LENGTH = 16;
+    private static final int ADDRESS_LENGTH = 28;
     private static final float LOGIN_TIMEOUT = 5f;
     private static final String NAME_PATTERN = "[a-z0-9_-]+";
-    private static final Vector4f STATUS_COLOR = new Vector4f(1, 0, 0, 1);
-    private static final Vector4f CONNECTING_COLOR = new Vector4f(1, 1, 1, 1);
 
-    private TextField usernameInput;
+    private TextField nameField;
+    private TextField serverField;
     private Button btnLoginOnline;
     private Button btnPlayOffline;
-    private Button btnPlayAI;
-    private Button btnQuit;
-
-    private Sprite logo;
-    private Sprite profile;
-
-    private String statusMessage = "";
-    private float statusTimer;
-    private float statusY;
 
     private ServerConnection login;
+    private ServerAddress loginAddress;
     private String loginName;
     private boolean loginSent;
     private float loginTime;
@@ -45,39 +39,60 @@ public class MainMenuScene extends BaseScene {
     }
 
     public MainMenuScene(InputManager input, ActionMap actions, SceneManager sceneManager, String status) {
-        super(input, actions, sceneManager, null);
-        if (!status.isEmpty()) {
-            showStatus(status);
-        }
+        super(input, actions, sceneManager, status);
     }
 
     @Override
-    protected void onInit(AssetManager assets) {
-        logo = createLogo();
-        profile = new Sprite(assets.loadTexture("anonUserProfile", "/textures/tictactoe/anonUserProfile.png"));
-        profile.setScale(UI_SCALE);
+    protected void initMenu() {
+        nameField = createField(playerName, "ENTER YOUR NAME", NAME_LENGTH,
+                c -> isAsciiLetterOrDigit(c) || c == '_' || c == '-');
+        serverField = createField(Settings.getServerAddress(), "SERVER ADDRESS", ADDRESS_LENGTH,
+                c -> isAsciiLetterOrDigit(c) || c == '.' || c == ':' || c == '-');
+        serverField.setColors(DIM_WHITE, HOVER_COLOR, HIGHLIGHT_COLOR);
 
-        usernameInput = new TextField("player1", smallFont, new Vector2f(), new Vector2f(BUTTON_WIDTH, NAME_FIELD_HEIGHT));
-        usernameInput.setCentered(true);
-
-        btnLoginOnline = createButton("LOGIN ONLINE", BUTTON_WIDTH, this::attemptLogin);
-        btnPlayOffline = createButton("PLAY OFFLINE", BUTTON_WIDTH, this::playOffline);
-        btnPlayAI = createButton("PLAY VS AI", BUTTON_WIDTH, this::playAI);
-        btnQuit = createButton("QUIT GAME", SMALL_BUTTON_WIDTH, input::requestClose);
+        btnLoginOnline = addButton("LOGIN ONLINE", this::openOnline);
+        btnPlayOffline = addButton("PLAY OFFLINE", () -> open(new OfflineMenuScene(input, actions, sceneManager)));
+        addSmallButton("QUIT GAME", input::requestClose);
     }
 
-    private void attemptLogin() {
-        String name = usernameInput.getText().trim().toLowerCase();
-        if (!name.matches(NAME_PATTERN)) {
-            showStatus("Use letters and numbers only!");
-            return;
-        }
+    private TextField createField(String text, String placeholder, int maxLength, IntPredicate allowedChars) {
+        TextField field = new TextField(text, smallFont, new Vector2f(), new Vector2f(FIELD_WIDTH, smallFont.getCapHeight() + LINE_GAP));
+        field.setCentered(true);
+        field.setPlaceholder(placeholder);
+        field.setMaxLength(maxLength);
+        field.setAllowedChars(allowedChars);
+        return field;
+    }
 
+    private static boolean isAsciiLetterOrDigit(int c) {
+        return c < 128 && Character.isLetterOrDigit(c);
+    }
+
+    private void openOnline() {
+        String name = nameField.getText().trim().toLowerCase(Locale.ROOT);
+        if (name.isEmpty()) {
+            focus(nameField, "Enter your name first!");
+        } else if (!name.matches(NAME_PATTERN)) {
+            focus(nameField, "Use letters and numbers only!");
+        } else {
+            ServerAddress address = ServerAddress.parse(serverField.getText());
+            if (address == null) {
+                focus(serverField, "Enter a server address like " + Settings.DEFAULT_SERVER);
+            } else {
+                startLogin(name, address);
+            }
+        }
+    }
+
+    private void startLogin(String name, ServerAddress address) {
         loginName = name;
+        loginAddress = address;
         loginSent = false;
         loginTime = 0f;
-        login = new ServerConnection(SERVER_HOST, SERVER_PORT);
+        login = new ServerConnection(address.host(), address.port());
         login.connect();
+        setLoginButtonsEnabled(false);
+        showProgress("Connecting to " + address + "...");
     }
 
     private void updateLogin(float dt) {
@@ -90,114 +105,76 @@ public class MainMenuScene extends BaseScene {
         ServerMessage message;
         while ((message = login.poll()) != null) {
             if (message.is("OK")) {
-                transitionTo(new LobbyScene(input, actions, sceneManager, login, loginName, false), btnLoginOnline, btnPlayOffline, btnPlayAI, btnQuit);
+                open(new LobbyScene(input, actions, sceneManager, login, loginName, false));
                 login = null;
                 return;
             }
             if (message.is("ERR")) {
-                login.disconnect();
-                login = null;
-                showStatus("Login failed: " + message.data());
+                stopLogin("Login failed: " + message.data());
                 return;
             }
         }
 
         if (!login.isConnecting() && !login.isConnected()) {
-            login = null;
-            showStatus("Connection failed!");
+            stopLogin("Can't reach " + loginAddress);
         } else if (loginTime > LOGIN_TIMEOUT) {
-            login.disconnect();
-            login = null;
-            showStatus("No answer from server!");
+            stopLogin("No answer from the server!");
         }
     }
 
-    private void showStatus(String message) {
-        statusMessage = message;
-        statusTimer = STATUS_TIME;
+    private void stopLogin(String error) {
+        login.disconnect();
+        login = null;
+        setLoginButtonsEnabled(true);
+        showStatus(error);
     }
 
-    private void playOffline() {
-        // Gewoon 2 spelers lokaal naast elkaar op 1 laptop
-        transitionTo(new MatchScene(input, actions, sceneManager), btnLoginOnline, btnPlayOffline, btnPlayAI, btnQuit);
+    private void setLoginButtonsEnabled(boolean enabled) {
+        btnLoginOnline.setEnabled(enabled);
+        btnPlayOffline.setEnabled(enabled);
     }
 
-    private void playAI() {
-        // Schakelt over naar de AI-moeilijkheidsgraad selectie
-        transitionTo(new AIDifficultyScene(input, actions, sceneManager), btnLoginOnline, btnPlayOffline, btnPlayAI, btnQuit);
+    private void focus(TextField field, String error) {
+        nameField.setFocused(field == nameField);
+        serverField.setFocused(field == serverField);
+        showStatus(error);
     }
 
     @Override
-    protected void onUpdate(float dt) {
-        statusTimer = Math.max(0f, statusTimer - dt);
-
-        if (isTransitioning()) {
-            return;
-        }
+    protected void updateMenu(float dt) {
         if (login != null) {
             updateLogin(dt);
             return;
         }
 
-        usernameInput.update(input);
-        if (usernameInput.isSubmitPressed()) {
-            attemptLogin();
-            return;
+        nameField.update(input);
+        serverField.update(input);
+
+        if (input.isKeyPressed(GLFW_KEY_TAB)) {
+            boolean toServer = nameField.isFocused();
+            nameField.setFocused(!toServer);
+            serverField.setFocused(toServer);
         }
-        btnLoginOnline.update(input);
-        btnPlayOffline.update(input);
-        btnPlayAI.update(input);
-        btnQuit.update(input);
-    }
-
-    @Override
-    protected void onRender() {
-        spriteRenderer.draw(logo);
-        spriteRenderer.draw(profile);
-
-        usernameInput.render(spriteRenderer, textRenderer);
-        btnLoginOnline.render(spriteRenderer, textRenderer);
-        btnPlayOffline.render(spriteRenderer, textRenderer);
-        btnPlayAI.render(spriteRenderer, textRenderer);
-        btnQuit.render(spriteRenderer, textRenderer);
-
-        if (login != null) {
-            drawCenteredText(smallFont, "Connecting...", statusY, CONNECTING_COLOR);
-        } else if (statusTimer > 0f) {
-            drawCenteredText(smallFont, statusMessage, statusY, STATUS_COLOR);
+        if (nameField.isSubmitPressed() || serverField.isSubmitPressed()) {
+            openOnline();
         }
     }
 
     @Override
-    protected void onResize(int width, int height) {
-        float logoHeight = logo.getTexture().getHeight() * UI_SCALE;
-        float profileHeight = profile.getTexture().getHeight() * UI_SCALE;
-        float lineHeight = smallFont.getCapHeight();
+    protected void renderHeader() {
+        nameField.render(spriteRenderer, textRenderer);
+        serverField.render(spriteRenderer, textRenderer);
+    }
 
-        float columnHeight = logoHeight + profileHeight + UI_SPACING + lineHeight
-                + UI_SPACING + 4 * BUTTON_HEIGHT + 4 * UI_SPACING + lineHeight;
-        float logoGap = Math.max(UI_SPACING, Math.min(2 * UI_SPACING, height - columnHeight - 2 * UI_SPACING));
-        float centerX = Math.round(width / 2f);
-        float y = Math.max(0, Math.round((height - columnHeight - logoGap) / 2f));
+    @Override
+    protected void layoutHeader(float centerX) {
+        float x = centerX - FIELD_WIDTH / 2f;
+        nameField.setPosition(x, nameY - LINE_GAP / 2f);
+        serverField.setPosition(x, detailY - LINE_GAP / 2f);
+    }
 
-        logo.setPosition(centerX, y + logoHeight / 2f);
-        y += logoHeight + logoGap;
-
-        profile.setPosition(centerX, y + profileHeight / 2f);
-        y += profileHeight + UI_SPACING;
-
-        usernameInput.setPosition(centerX - BUTTON_WIDTH / 2f, y + (lineHeight - NAME_FIELD_HEIGHT) / 2f);
-        y += lineHeight + UI_SPACING;
-
-        btnLoginOnline.setPosition(centerX - BUTTON_WIDTH / 2f, y);
-        y += BUTTON_HEIGHT + UI_SPACING;
-        btnPlayOffline.setPosition(centerX - BUTTON_WIDTH / 2f, y);
-        y += BUTTON_HEIGHT + UI_SPACING;
-        btnPlayAI.setPosition(centerX - BUTTON_WIDTH / 2f, y);
-        y += BUTTON_HEIGHT + UI_SPACING;
-        btnQuit.setPosition(centerX - SMALL_BUTTON_WIDTH / 2f, y);
-        y += BUTTON_HEIGHT + UI_SPACING;
-
-        statusY = y;
+    @Override
+    public void cleanup() {
+        Settings.save(nameField.getText(), serverField.getText());
     }
 }

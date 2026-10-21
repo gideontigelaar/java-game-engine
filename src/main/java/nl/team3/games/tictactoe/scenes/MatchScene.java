@@ -261,7 +261,7 @@ public class MatchScene extends BaseScene {
     }
 
     protected void leave() {
-        leaveTo(new MainMenuScene(input, actions, sceneManager));
+        leaveTo(new OfflineMenuScene(input, actions, sceneManager));
     }
 
     // Take turns starting
