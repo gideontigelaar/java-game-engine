@@ -45,9 +45,7 @@ public class ServerConnection {
                 messageQueue.add(line);
             }
         } catch (IOException e) {
-            if (!isClosed) {
-                System.out.println("Connection closed: " + e.getMessage());
-            }
+            // Refused, timed out or dropped
         } finally {
             isConnected = false;
             isClosed = true;
@@ -58,18 +56,13 @@ public class ServerConnection {
         PrintWriter writer = out;
         if (writer != null && isConnected) {
             writer.println(command);
-            System.out.println("C: " + command); // For debugging
         }
     }
 
     // Next message from the server, null when there is none
     public ServerMessage poll() {
         String line = messageQueue.poll();
-        if (line == null) {
-            return null;
-        }
-        System.out.println("S: " + line); // For debugging
-        return ServerMessage.parse(line);
+        return line == null ? null : ServerMessage.parse(line);
     }
 
     public void disconnect() {

@@ -53,8 +53,6 @@ public class MainMenuScene extends BaseScene {
 
     @Override
     protected void onInit(AssetManager assets) {
-        System.out.println("MainMenuScene loaded");
-
         logo = createLogo();
         profile = new Sprite(assets.loadTexture("anonUserProfile", "/textures/tictactoe/anonUserProfile.png"));
         profile.setScale(UI_SCALE);

@@ -205,8 +205,6 @@ public class MatchScene extends BaseScene {
 
     @Override
     protected void onInit(AssetManager assets) {
-        System.out.println("Game loaded");
-
         boardTexture = assets.loadTexture("board", "/textures/tictactoe/board.png");
         boardSprite = new Sprite(boardTexture);
         boardSprite.setScale(BOARD_SCALE);

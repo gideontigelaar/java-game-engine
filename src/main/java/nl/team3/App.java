@@ -11,9 +11,9 @@ import nl.team3.engine.assets.AssetManager;
 import nl.team3.engine.core.Config;
 import nl.team3.engine.core.SceneManager;
 import nl.team3.engine.core.Viewport;
+import nl.team3.engine.input.ActionMap;
 import nl.team3.engine.input.InputManager;
 import nl.team3.games.tictactoe.scenes.MainMenuScene;
-import nl.team3.engine.input.ActionMap;
 
 import java.nio.IntBuffer;
 
@@ -53,8 +53,6 @@ public class App {
         InputManager input = new InputManager(window, viewport);
         ActionMap actions = new ActionMap(input);
         actions.bind("pause", GLFW.GLFW_KEY_ESCAPE);
-        actions.bind("debugToggle", GLFW.GLFW_KEY_GRAVE_ACCENT);
-        actions.bind("lockCursor", GLFW.GLFW_KEY_C);
 
         // Central asset storage
         AssetManager assets = new AssetManager();
@@ -76,12 +74,6 @@ public class App {
         // Start in Main Menu instead of directly in the game
         sceneManager.changeScene(new MainMenuScene(input, actions, sceneManager));
 
-        float fpsTimer = 0.0f;
-        int frames = 0;
-
-        boolean debugOverlay = false;
-        boolean cursorLocked = false;
-
         double lastTime = GLFW.glfwGetTime();
 
         while (!GLFW.glfwWindowShouldClose(window)) {
@@ -94,30 +86,6 @@ public class App {
             // Cap delta time
             if (deltaTime > 0.1f) {
                 deltaTime = 0.1f;
-            }
-
-            frames++;
-            fpsTimer += deltaTime;
-
-            if (fpsTimer >= 1.0f) {
-                GLFW.glfwSetWindowTitle(window, Config.WINDOW_TITLE + " | FPS: " + frames);
-                frames = 0;
-                fpsTimer = 0.0f;
-            }
-
-            if (actions.isActionPressed("pause")) {
-
-            }
-            if (actions.isActionPressed("debugToggle")) {
-                debugOverlay = !debugOverlay;
-                System.out.println("Input debug overlay: " + (debugOverlay ? "ON (` to hide)" : "OFF"));
-            }
-            if (actions.isActionPressed("lockCursor")) {
-                cursorLocked = !cursorLocked;
-                input.setCursorMode(cursorLocked ? GLFW.GLFW_CURSOR_DISABLED : GLFW.GLFW_CURSOR_NORMAL);
-            }
-            if (debugOverlay) {
-                printInputDebug(input, actions);
             }
 
             viewport.apply();
@@ -184,70 +152,6 @@ public class App {
             int posX = areaX.get(0) + (areaW.get(0) - frameW - width) / 2 + left.get(0);
             int posY = areaY.get(0) + (areaH.get(0) - frameH - height) / 2 + top.get(0);
             GLFW.glfwSetWindowPos(window, posX, posY);
-        }
-    }
-
-    private static void printInputDebug(InputManager input, ActionMap actions) {
-        StringBuilder line = new StringBuilder();
-        boolean hasInput = false;
-
-        if (input.getMouseDeltaX() != 0 || input.getMouseDeltaY() != 0) {
-            line.append("mouse=(").append((int) input.getMouseX()).append(",").append((int) input.getMouseY()).append(") ");
-            line.append("delta=(").append(String.format("%.1f", input.getMouseDeltaX()))
-                    .append(",").append(String.format("%.1f", input.getMouseDeltaY())).append(") ");
-            hasInput = true;
-        }
-
-        if (input.getScrollX() != 0 || input.getScrollY() != 0) {
-            line.append("scroll=(").append(input.getScrollX()).append(",").append(input.getScrollY()).append(") ");
-            hasInput = true;
-        }
-
-        if (input.isButtonDown(GLFW.GLFW_MOUSE_BUTTON_LEFT)) {
-            line.append("LMB ");
-            hasInput = true;
-        }
-
-        if (input.isButtonPressed(GLFW.GLFW_MOUSE_BUTTON_RIGHT)) {
-            line.append("RMB-pressed ");
-            hasInput = true;
-        }
-
-        if (input.isButtonReleased(GLFW.GLFW_MOUSE_BUTTON_RIGHT)) {
-            line.append("RMB-released ");
-            hasInput = true;
-        }
-
-        if (input.isAnyKeyDown()) {
-            line.append("keyboard_active ");
-            hasInput = true;
-        }
-
-        for (int i = 0; i <= GLFW.GLFW_KEY_LAST; i++) {
-            if (input.isKeyPressed(i)) {
-                String keyName = GLFW.glfwGetKeyName(i, 0);
-                if (keyName != null) {
-                    line.append("[Pressed: ").append(keyName.toUpperCase()).append("] ");
-                } else {
-                    line.append("[Pressed_ID: ").append(i).append("] ");
-                }
-                hasInput = true;
-            }
-        }
-
-        if (actions.isActionDown("pause")) {
-            line.append("[pause held] ");
-            hasInput = true;
-        }
-
-        String typed = input.getTextInput();
-        if (!typed.isEmpty()) {
-            line.append("typed=\"").append(typed).append("\" ");
-            hasInput = true;
-        }
-
-        if (hasInput) {
-            System.out.println(line.toString().trim());
         }
     }
 }

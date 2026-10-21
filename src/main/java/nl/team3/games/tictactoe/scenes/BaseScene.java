@@ -15,7 +15,6 @@ import nl.team3.games.tictactoe.network.ServerConnection;
 import org.joml.Vector2f;
 import org.joml.Vector4f;
 
-import static org.lwjgl.glfw.GLFW.GLFW_KEY_2;
 import static org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT;
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.glClear;
@@ -90,7 +89,6 @@ public abstract class BaseScene implements Scene {
 
         mousePoint = new Sprite(mousePointTexture);
         mousePoint.setScale(4f);
-        mousePoint.setAlpha(1f);
 
         mouseGrabAnim = SpriteAnimation.builder().sprite(mousePoint).scale(new Vector2f(4f, 4f), new Vector2f(3f, 3f)).duration(0.3f).easing("ExponentialOut").build();
         mouseReleaseAnim = SpriteAnimation.builder().sprite(mousePoint).scale(new Vector2f(3f, 3f), new Vector2f(4f, 4f)).duration(0.3f).easing("ExponentialOut").build();
@@ -109,20 +107,14 @@ public abstract class BaseScene implements Scene {
 
         if (input.isButtonDown(GLFW_MOUSE_BUTTON_LEFT)) {
             mousePoint.setTexture(mouseGrabTexture);
-            //mousePoint.setOrigin(0.5f, 0.4f);
             mouseGrabAnim.UpdateAnimation(dt);
             mouseGrabAnim.setScale();
         } else {
             mousePoint.setTexture(mousePointTexture);
-            //mousePoint.setOrigin(0.3f, 0.1f);
             mouseReleaseAnim.UpdateAnimation(dt);
             mouseReleaseAnim.setScale();
         }
         mousePoint.setPosition(mousePosition.x + 4f, mousePosition.y + 20f);
-
-        if (!input.isTextInputActive() && input.isKeyPressed(GLFW_KEY_2)) {
-            background.nextPalette(mousePosition.x, mousePosition.y);
-        }
 
         background.update(dt);
 
