@@ -9,6 +9,8 @@ import nl.team3.engine.input.InputManager;
 import org.joml.Vector2f;
 import org.joml.Vector4f;
 
+import java.util.function.IntPredicate;
+
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_BACKSPACE;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_KP_ENTER;
@@ -18,20 +20,28 @@ public class TextField {
     private static final String FOCUS_MARKER = "> ";
     private static final String CURSOR = "_";
     private static final float PADDING = 15f;
+    private static final float PLACEHOLDER_ALPHA = 0.5f;
 
     private Vector2f position;
     private Vector2f size;
     private String text;
     private Font font;
     private boolean isFocused;
+    private boolean isHovered;
     private boolean submitPressed;
     private boolean centered;
     private Sprite backgroundSprite;
     private NineSlice nineSlice;
     private int pixelSize;
 
-    private final Vector4f normalColor = new Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
-    private final Vector4f focusedColor = new Vector4f(1.0f, 1.0f, 0.0f, 1.0f);
+    private String placeholder = "";
+    private int maxLength = Integer.MAX_VALUE;
+    private IntPredicate allowedChars = c -> true;
+
+    private Vector4f normalColor = new Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
+    private Vector4f focusedColor = new Vector4f(1.0f, 1.0f, 0.0f, 1.0f);
+    private Vector4f hoverColor = new Vector4f(0.8f, 0.8f, 0.0f, 1.0f);
+    private final Vector4f placeholderColor = new Vector4f();
 
     public TextField(String defaultText, Font font, Vector2f position, Vector2f size) {
         this.text = defaultText;
@@ -45,15 +55,15 @@ public class TextField {
         double mouseY = input.getMouseY();
         submitPressed = false;
 
-        boolean hovered = mouseX >= position.x && mouseX <= position.x + size.x && mouseY >= position.y && mouseY <= position.y + size.y;
+        isHovered = mouseX >= position.x && mouseX <= position.x + size.x && mouseY >= position.y && mouseY <= position.y + size.y;
 
         if (input.isButtonPressed(GLFW_MOUSE_BUTTON_LEFT)) {
-            isFocused = hovered;
+            isFocused = isHovered;
         }
 
         if (isFocused) {
             input.requestTextInput();
-            text += input.getTextInput();
+            input.getTextInput().codePoints().filter(allowedChars).forEach(this::append);
             boolean backspace = input.isKeyPressed(GLFW_KEY_BACKSPACE) || input.isKeyRepeated(GLFW_KEY_BACKSPACE);
             if (backspace && !text.isEmpty()) {
                 text = text.substring(0, text.length() - 1);
@@ -61,6 +71,12 @@ public class TextField {
             if (input.isKeyPressed(GLFW_KEY_ENTER) || input.isKeyPressed(GLFW_KEY_KP_ENTER)) {
                 submitPressed = true;
             }
+        }
+    }
+
+    private void append(int codePoint) {
+        if (text.length() < maxLength) {
+            text += Character.toString(codePoint);
         }
     }
 
@@ -78,18 +94,24 @@ public class TextField {
             }
         }
 
+        boolean showPlaceholder = text.isEmpty() && !isFocused;
+        String shown = showPlaceholder ? placeholder : text;
+
         float markerWidth = font.getTextWidth(FOCUS_MARKER);
         float textX = centered
-                ? Math.round(position.x + (size.x - font.getTextWidth(text)) / 2.0f)
+                ? Math.round(position.x + (size.x - font.getTextWidth(shown)) / 2.0f)
                 : position.x + PADDING + markerWidth;
         float textY = Math.round(position.y + (size.y + font.getCapHeight()) / 2.0f);
         boolean showCursor = isFocused && (System.currentTimeMillis() % 1000 < 500);
 
-        Vector4f color = isFocused ? focusedColor : normalColor;
+        Vector4f color = isFocused ? focusedColor : isHovered ? hoverColor : normalColor;
+        if (showPlaceholder) {
+            color = placeholderColor.set(color.x, color.y, color.z, color.w * PLACEHOLDER_ALPHA);
+        }
         if (isFocused) {
             textRenderer.drawText(font, FOCUS_MARKER, textX - markerWidth, textY, color);
         }
-        textRenderer.drawText(font, showCursor ? text + CURSOR : text, textX, textY, color);
+        textRenderer.drawText(font, showCursor ? shown + CURSOR : shown, textX, textY, color);
     }
 
     public void setBackgroundSprite(Sprite backgroundSprite) {
@@ -105,8 +127,38 @@ public class TextField {
         this.centered = centered;
     }
 
+    public void setPlaceholder(String placeholder) {
+        this.placeholder = placeholder;
+    }
+
+    public void setMaxLength(int maxLength) {
+        this.maxLength = maxLength;
+    }
+
+    public void setAllowedChars(IntPredicate allowedChars) {
+        this.allowedChars = allowedChars;
+    }
+
+    public void setColors(Vector4f normal, Vector4f hover, Vector4f focused) {
+        this.normalColor = normal;
+        this.hoverColor = hover;
+        this.focusedColor = focused;
+    }
+
     public String getText() {
         return text;
+    }
+
+    public void setText(String text) {
+        this.text = text;
+    }
+
+    public boolean isFocused() {
+        return isFocused;
+    }
+
+    public void setFocused(boolean focused) {
+        this.isFocused = focused;
     }
 
     public void setPosition(Vector2f position) {

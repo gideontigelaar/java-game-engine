@@ -23,6 +23,7 @@ public class Button {
     private int pixelSize;
     private float pressedTextOffset;
     private float scale = 1f;
+    private boolean enabled = true;
     private Runnable onClick;
 
     private boolean isHovered;
@@ -32,6 +33,7 @@ public class Button {
     private Vector4f normalColor = new Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
     private Vector4f hoverColor = new Vector4f(0.8f, 0.8f, 0.0f, 1.0f);
     private Vector4f pressedColor = new Vector4f(1.0f, 0.5f, 0.0f, 1.0f);
+    private Vector4f disabledColor = new Vector4f(1.0f, 1.0f, 1.0f, 0.5f);
 
     public Button(String text, Font font, Vector2f position, Vector2f size) {
         this.text = text;
@@ -41,14 +43,19 @@ public class Button {
     }
 
     public void update(InputManager input) {
+        isClicked = false;
+        if (!enabled) {
+            isHovered = false;
+            isPressed = false;
+            return;
+        }
+
         double mouseX = input.getMouseX();
         double mouseY = input.getMouseY();
 
         // hit test
         isHovered = mouseX >= position.x && mouseX <= position.x + size.x &&
                 mouseY >= position.y && mouseY <= position.y + size.y;
-
-        isClicked = false;
 
         if (isHovered) {
             if (input.isButtonPressed(GLFW_MOUSE_BUTTON_LEFT)) {
@@ -74,7 +81,9 @@ public class Button {
         }
 
         Vector4f currentColor = normalColor;
-        if (isPressed) {
+        if (!enabled) {
+            currentColor = disabledColor;
+        } else if (isPressed) {
             currentColor = pressedColor;
         } else if (isHovered) {
             currentColor = hoverColor;
@@ -168,6 +177,14 @@ public class Button {
 
     public void setScale(float scale) {
         this.scale = scale;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
     }
 
     public String getText() {
