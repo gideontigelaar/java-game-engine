@@ -26,7 +26,7 @@ public class OnlineMatchScene extends MatchScene {
 
     public OnlineMatchScene(InputManager input, ActionMap actions, SceneManager sceneManager, ServerConnection connection,
                             String playerName, String opponentName, boolean playerStarts) {
-        super(input, actions, sceneManager, connection, Board.Mark.X, playerStarts ? Board.Mark.X : Board.Mark.O);
+        super(input, actions, sceneManager, connection, Board.Mark.X, playerStarts ? Board.Mark.X : Board.Mark.O, null, null);
         this.playerName = playerName;
         this.opponentName = opponentName.toUpperCase();
         this.playerMark = playerStarts ? Board.Mark.X : Board.Mark.O;

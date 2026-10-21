@@ -5,106 +5,84 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class AIOpponent {
+    public enum Difficulty { FIFTY_FIFTY, UNBEATABLE }
 
-    public static int[] calculateBestMove(Board board, Board.Mark aiMark, boolean unbeatable) {
-        if (!unbeatable && ThreadLocalRandom.current().nextBoolean()) {
-            List<int[]> availableMoves = getAvailableMoves(board);
-            if (!availableMoves.isEmpty()) {
-                return availableMoves.get(ThreadLocalRandom.current().nextInt(availableMoves.size()));
-            }
+    private static final int WIN_SCORE = 10;
+    private static final int INFINITY = 100;
+
+    private final Difficulty difficulty;
+
+    public AIOpponent(Difficulty difficulty) {
+        this.difficulty = difficulty;
+    }
+
+    public int[] chooseMove(Board board) {
+        if (board.isGameOver()) {
+            return null;
         }
 
-        Board.Mark opponentMark = (aiMark == Board.Mark.X) ? Board.Mark.O : Board.Mark.X;
-        int bestScore = Integer.MIN_VALUE;
-        int[] bestMove = null;
+        Board.Mark[][] cells = board.copyCells();
+        List<int[]> free = freeCells(cells);
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        if (difficulty == Difficulty.FIFTY_FIFTY && random.nextBoolean()) {
+            return free.get(random.nextInt(free.size()));
+        }
 
-        for (int c = 0; c < Board.SIZE; c++) {
-            for (int r = 0; r < Board.SIZE; r++) {
-                if (board.canPlace(c, r)) {
-                    board.cells[c][r] = aiMark;
-                    int score = minimax(board, 0, false, aiMark, opponentMark);
-                    board.cells[c][r] = null;
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestMove = new int[]{c, r};
-                    }
+        Board.Mark mark = board.getTurn();
+        List<int[]> best = new ArrayList<>();
+        int bestScore = -INFINITY;
+        for (int[] cell : free) {
+            cells[cell[0]][cell[1]] = mark;
+            int score = -negamax(cells, mark.opponent(), 1, -INFINITY, INFINITY);
+            cells[cell[0]][cell[1]] = null;
+
+            if (score > bestScore) {
+                bestScore = score;
+                best.clear();
+            }
+            if (score == bestScore) {
+                best.add(cell);
+            }
+        }
+        // Pick between good moves so each game doesn't look the same
+        return best.get(random.nextInt(best.size()));
+    }
+
+    private static int negamax(Board.Mark[][] cells, Board.Mark toMove, int depth, int alpha, int beta) {
+        if (Board.findLine(cells, toMove.opponent()) != null) {
+            return depth - WIN_SCORE;
+        }
+
+        int best = -INFINITY;
+        boolean moved = false;
+        for (int col = 0; col < Board.SIZE; col++) {
+            for (int row = 0; row < Board.SIZE; row++) {
+                if (cells[col][row] != null) continue;
+
+                moved = true;
+                cells[col][row] = toMove;
+                int score = -negamax(cells, toMove.opponent(), depth + 1, -beta, -alpha);
+                cells[col][row] = null;
+
+                best = Math.max(best, score);
+                alpha = Math.max(alpha, score);
+                if (alpha >= beta) {
+                    return best;
                 }
             }
         }
-
-        return bestMove;
+        return moved ? best : 0;
     }
 
-    private static List<int[]> getAvailableMoves(Board board) {
-        List<int[]> moves = new ArrayList<>();
-        for (int c = 0; c < Board.SIZE; c++) {
-            for (int r = 0; r < Board.SIZE; r++) {
-                if (board.getCell(c, r) == null && !board.isGameOver()) {
-                    moves.add(new int[]{c, r});
+    private static List<int[]> freeCells(Board.Mark[][] cells) {
+        List<int[]> free = new ArrayList<>();
+        for (int col = 0; col < Board.SIZE; col++) {
+            for (int row = 0; row < Board.SIZE; row++) {
+                if (cells[col][row] == null) {
+                    free.add(new int[]{col, row});
                 }
             }
         }
-        return moves;
-    }
-
-    private static int minimax(Board board, int depth, boolean isMaximizing, Board.Mark aiMark, Board.Mark opponentMark) {
-        Board.Mark winner = checkWinner(board);
-        if (winner == aiMark) return 10 - depth;
-        if (winner == opponentMark) return depth - 10;
-        if (isBoardFull(board)) return 0;
-
-        if (isMaximizing) {
-            int bestScore = Integer.MIN_VALUE;
-            for (int c = 0; c < Board.SIZE; c++) {
-                for (int r = 0; r < Board.SIZE; r++) {
-                    if (board.cells[c][r] == null) {
-                        board.cells[c][r] = aiMark;
-                        int score = minimax(board, depth + 1, false, aiMark, opponentMark);
-                        board.cells[c][r] = null;
-                        bestScore = Math.max(score, bestScore);
-                    }
-                }
-            }
-            return bestScore;
-        } else {
-            int bestScore = Integer.MAX_VALUE;
-            for (int c = 0; c < Board.SIZE; c++) {
-                for (int r = 0; r < Board.SIZE; r++) {
-                    if (board.cells[c][r] == null) {
-                        board.cells[c][r] = opponentMark;
-                        int score = minimax(board, depth + 1, true, aiMark, opponentMark);
-                        board.cells[c][r] = null;
-                        bestScore = Math.min(score, bestScore);
-                    }
-                }
-            }
-            return bestScore;
-        }
-    }
-
-    private static Board.Mark checkWinner(Board board) {
-        int[][][] lines = {
-                {{0, 0}, {1, 0}, {2, 0}}, {{0, 1}, {1, 1}, {2, 1}}, {{0, 2}, {1, 2}, {2, 2}},
-                {{0, 0}, {0, 1}, {0, 2}}, {{1, 0}, {1, 1}, {1, 2}}, {{2, 0}, {2, 1}, {2, 2}},
-                {{0, 0}, {1, 1}, {2, 2}}, {{2, 0}, {1, 1}, {0, 2}}
-        };
-        for (int[][] line : lines) {
-            Board.Mark m1 = board.cells[line[0][0]][line[0][1]];
-            Board.Mark m2 = board.cells[line[1][0]][line[1][1]];
-            Board.Mark m3 = board.cells[line[2][0]][line[2][1]];
-            if (m1 != null && m1 == m2 && m2 == m3) {
-                return m1;
-            }
-        }
-        return null;
-    }
-
-    private static boolean isBoardFull(Board board) {
-        for (int c = 0; c < Board.SIZE; c++) {
-            for (int r = 0; r < Board.SIZE; r++) {
-                if (board.cells[c][r] == null) return false;
-            }
-        }
-        return true;
+        return free;
     }
 }

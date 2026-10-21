@@ -6,7 +6,7 @@ import nl.team3.engine.graphics.Sprite;
 import nl.team3.engine.input.ActionMap;
 import nl.team3.engine.input.InputManager;
 import nl.team3.engine.ui.Button;
-import nl.team3.games.tictactoe.Board;
+import nl.team3.games.tictactoe.AIOpponent;
 
 public class AIDifficultyScene extends BaseScene {
     private Sprite logo;
@@ -22,13 +22,13 @@ public class AIDifficultyScene extends BaseScene {
     protected void onInit(AssetManager assets) {
         logo = createLogo();
 
-        btnUnbeatable = createButton("UNBEATABLE AI", BUTTON_WIDTH, () -> startAIMatch(true));
-        btnNormal = createButton("50 / 50 AI", BUTTON_WIDTH, () -> startAIMatch(false));
+        btnUnbeatable = createButton("UNBEATABLE AI", BUTTON_WIDTH, () -> startAIMatch(AIOpponent.Difficulty.UNBEATABLE));
+        btnNormal = createButton("50 / 50 AI", BUTTON_WIDTH, () -> startAIMatch(AIOpponent.Difficulty.FIFTY_FIFTY));
         btnBack = createButton("BACK", SMALL_BUTTON_WIDTH, () -> transitionTo(new MainMenuScene(input, actions, sceneManager), btnUnbeatable, btnNormal, btnBack));
     }
 
-    private void startAIMatch(boolean unbeatable) {
-        transitionTo(new MatchScene(input, actions, sceneManager, null, Board.Mark.X, Board.Mark.X, true, unbeatable), btnUnbeatable, btnNormal, btnBack);
+    private void startAIMatch(AIOpponent.Difficulty difficulty) {
+        transitionTo(new MatchScene(input, actions, sceneManager, new AIOpponent(difficulty)), btnUnbeatable, btnNormal, btnBack);
     }
 
     @Override

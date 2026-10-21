@@ -5,15 +5,22 @@ import java.util.Arrays;
 public class Board {
     public static final int SIZE = 3;
 
-    public enum Mark { X, O }
+    public enum Mark {
+        X, O;
 
+        public Mark opponent() {
+            return this == X ? O : X;
+        }
+    }
+
+    // All rows, columns and diagonals as {col, row}
     private static final int[][][] LINES = {
             {{0, 0}, {1, 0}, {2, 0}}, {{0, 1}, {1, 1}, {2, 1}}, {{0, 2}, {1, 2}, {2, 2}},
             {{0, 0}, {0, 1}, {0, 2}}, {{1, 0}, {1, 1}, {1, 2}}, {{2, 0}, {2, 1}, {2, 2}},
             {{0, 0}, {1, 1}, {2, 2}}, {{2, 0}, {1, 1}, {0, 2}}
     };
 
-    final Mark[][] cells = new Mark[SIZE][SIZE];
+    private final Mark[][] cells = new Mark[SIZE][SIZE];
     private Mark turn;
     private Mark winner;
     private int[][] winningLine;
@@ -35,26 +42,31 @@ public class Board {
         cells[col][row] = turn;
         moves++;
 
-        for (int[][] line : LINES) {
-            if (isLineOf(line, turn)) {
-                winner = turn;
-                winningLine = line;
-                return;
-            }
-        }
-
-        if (!isDraw()) {
-            turn = turn == Mark.X ? Mark.O : Mark.X;
+        winningLine = findLine(cells, turn);
+        if (winningLine != null) {
+            winner = turn;
+        } else if (!isDraw()) {
+            turn = turn.opponent();
         }
     }
 
-    private boolean isLineOf(int[][] line, Mark mark) {
-        for (int[] cell : line) {
-            if (cells[cell[0]][cell[1]] != mark) {
-                return false;
+    static int[][] findLine(Mark[][] cells, Mark mark) {
+        for (int[][] line : LINES) {
+            if (cells[line[0][0]][line[0][1]] == mark
+                    && cells[line[1][0]][line[1][1]] == mark
+                    && cells[line[2][0]][line[2][1]] == mark) {
+                return line;
             }
         }
-        return true;
+        return null;
+    }
+
+    Mark[][] copyCells() {
+        Mark[][] copy = new Mark[SIZE][];
+        for (int col = 0; col < SIZE; col++) {
+            copy[col] = cells[col].clone();
+        }
+        return copy;
     }
 
     public Mark getCell(int col, int row) {

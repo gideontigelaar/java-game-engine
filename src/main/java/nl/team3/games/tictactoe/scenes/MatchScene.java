@@ -10,9 +10,9 @@ import nl.team3.engine.graphics.animation.SpriteAnimation;
 import nl.team3.engine.input.ActionMap;
 import nl.team3.engine.input.InputManager;
 import nl.team3.engine.ui.Button;
+import nl.team3.games.tictactoe.AIOpponent;
 import nl.team3.games.tictactoe.BackgroundRenderer;
 import nl.team3.games.tictactoe.Board;
-import nl.team3.games.tictactoe.AIOpponent;
 import nl.team3.games.tictactoe.network.ServerConnection;
 import org.joml.Vector2f;
 import org.joml.Vector4f;
@@ -51,14 +51,15 @@ public class MatchScene extends BaseScene {
     private static final float WIN_HOP_HEIGHT = 3f * BOARD_SCALE;
     private static final float FADE_ALPHA = 0.35f;
     private static final float FADE_TIME = 0.4f;
+    private static final float AI_MOVE_DELAY = 0.5f;
     private static final Vector4f TEXT_COLOR = new Vector4f(0f, 0.157f, 0.349f, 1f);
 
     protected final Board board;
+    private final Board.Mark firstTurn;
     private final Board.Mark leftMark;
-    private final boolean vsAI;
-    private final boolean unbeatableAI;
-    private final Board.Mark aiMark = Board.Mark.O;
-    private float aiMoveTimer = 0f;
+    private final AIOpponent ai;
+    private final Board.Mark aiMark;
+    private float aiMoveTimer;
 
     private Sprite boardSprite;
     private Texture boardTexture;
@@ -186,21 +187,23 @@ public class MatchScene extends BaseScene {
     }
 
     public MatchScene(InputManager input, ActionMap actions, SceneManager sceneManager) {
-        this(input, actions, sceneManager, null, ThreadLocalRandom.current().nextBoolean() ? Board.Mark.X : Board.Mark.O, Board.Mark.X, false, true);
+        this(input, actions, sceneManager, null, ThreadLocalRandom.current().nextBoolean() ? Board.Mark.X : Board.Mark.O,
+                Board.Mark.X, null, null);
     }
 
-    protected MatchScene(InputManager input, ActionMap actions, SceneManager sceneManager,
-                         ServerConnection connection, Board.Mark firstTurn, Board.Mark leftMark) {
-        this(input, actions, sceneManager, connection, firstTurn, leftMark, false, false);
+    // Against the computer, which plays O on the right
+    public MatchScene(InputManager input, ActionMap actions, SceneManager sceneManager, AIOpponent ai) {
+        this(input, actions, sceneManager, null, Board.Mark.X, Board.Mark.X, ai, Board.Mark.O);
     }
 
-    protected MatchScene(InputManager input, ActionMap actions, SceneManager sceneManager,
-                         ServerConnection connection, Board.Mark firstTurn, Board.Mark leftMark, boolean vsAI, boolean unbeatableAI) {
+    protected MatchScene(InputManager input, ActionMap actions, SceneManager sceneManager, ServerConnection connection,
+                         Board.Mark firstTurn, Board.Mark leftMark, AIOpponent ai, Board.Mark aiMark) {
         super(input, actions, sceneManager, connection);
         this.board = new Board(firstTurn);
+        this.firstTurn = firstTurn;
         this.leftMark = leftMark;
-        this.vsAI = vsAI;
-        this.unbeatableAI = unbeatableAI;
+        this.ai = ai;
+        this.aiMark = aiMark;
     }
 
     @Override
@@ -223,10 +226,11 @@ public class MatchScene extends BaseScene {
     }
 
     protected boolean canMove(Board.Mark mark) {
-        if (vsAI && mark == aiMark) {
-            return false;
-        }
         return true;
+    }
+
+    private boolean isHuman(Board.Mark mark) {
+        return ai == null || mark != aiMark;
     }
 
     protected void onMove(int col, int row) {
@@ -237,25 +241,32 @@ public class MatchScene extends BaseScene {
     }
 
     protected String getStatus() {
-        if (board.getWinner() != null) {
-            return board.getWinner() + " WINS!";
+        Board.Mark winner = board.getWinner();
+        if (winner != null) {
+            if (ai == null) return winner + " WINS!";
+            return winner == aiMark ? "AI WINS!" : "YOU WIN!";
         }
         if (board.isDraw()) {
             return "DRAW!";
         }
-        return board.getTurn() + "'S TURN";
+        if (ai == null) {
+            return board.getTurn() + "'S TURN";
+        }
+        return board.getTurn() == aiMark ? "AI'S TURN" : "YOUR TURN";
     }
 
     protected String getPlayerName(Board.Mark mark) {
-        return null;
+        if (ai == null) return null;
+        return mark == aiMark ? "AI" : "YOU";
     }
 
     protected void leave() {
         leaveTo(new MainMenuScene(input, actions, sceneManager));
     }
 
+    // Take turns starting
     protected void playAgain() {
-        leaveTo(new MatchScene(input, actions, sceneManager, null, board.getTurn(), leftMark, vsAI, unbeatableAI));
+        leaveTo(new MatchScene(input, actions, sceneManager, null, firstTurn.opponent(), leftMark, ai, aiMark));
     }
 
     protected void leaveTo(BaseScene scene) {
@@ -295,28 +306,33 @@ public class MatchScene extends BaseScene {
             }
         }
 
-        if (vsAI && !isTransitioning() && !isMatchOver() && board.getTurn() == aiMark) {
-            aiMoveTimer += dt;
-            if (aiMoveTimer >= 0.5f) {
-                aiMoveTimer = 0f;
-                int[] bestMove = AIOpponent.calculateBestMove(board, aiMark, unbeatableAI);
-                if (bestMove != null) {
-                    playMove(bestMove[0], bestMove[1]);
-                    onMove(bestMove[0], bestMove[1]);
-                }
-            }
-        } else {
-            aiMoveTimer = 0f;
-        }
-
+        updateAI(dt);
         updateSide(xSide, oSide, dt);
         updateSide(oSide, xSide, dt);
         updateSettling(dt);
         updateGameOver(dt);
     }
 
+    private void updateAI(float dt) {
+        if (ai == null || isTransitioning() || isMatchOver() || board.getTurn() != aiMark || !canMove(aiMark)) {
+            aiMoveTimer = 0f;
+            return;
+        }
+
+        aiMoveTimer += dt;
+        if (aiMoveTimer < AI_MOVE_DELAY) return;
+
+        aiMoveTimer = 0f;
+        int[] move = ai.chooseMove(board);
+        if (move != null) {
+            playMove(move[0], move[1]);
+            onMove(move[0], move[1]);
+        }
+    }
+
     private boolean isPlayable(PieceSide side) {
-        return !isTransitioning() && !isMatchOver() && !board.isGameOver() && board.getTurn() == side.mark && canMove(side.mark);
+        return !isTransitioning() && !isMatchOver() && !board.isGameOver() && board.getTurn() == side.mark
+                && canMove(side.mark) && isHuman(side.mark);
     }
 
     private void updateSide(PieceSide side, PieceSide other, float dt) {
