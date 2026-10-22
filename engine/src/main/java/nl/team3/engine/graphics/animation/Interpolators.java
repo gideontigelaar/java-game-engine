@@ -31,7 +31,6 @@ public final class Interpolators {
 
                 return start + (end - start) * ease;
         }
-        //if string cant be compared to anything in the switch
         return start + (end - start) * t;
     }
 }
