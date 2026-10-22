@@ -15,6 +15,7 @@ import java.util.Locale;
 public class OnlineMatchScene extends MatchScene {
     private static final String FORFEITED = "Player forfeited";
     private static final String DISCONNECTED = "disconnected";
+    private static final float TURN_TIME_LIMIT = 10f;
 
     private final OnlineSession session;
     private final String opponentName;
@@ -22,6 +23,7 @@ public class OnlineMatchScene extends MatchScene {
     private final boolean aiPlays;
 
     private boolean yourTurn;
+    private float turnTime;
     private boolean forfeitSent;
     private boolean matchEnded;
     private Board.Mark winner;
@@ -52,6 +54,9 @@ public class OnlineMatchScene extends MatchScene {
     @Override
     protected void onUpdate(float dt) {
         super.onUpdate(dt);
+        if (yourTurn) {
+            turnTime += dt;
+        }
 
         ServerMessage message;
         while (!isTransitioning() && (message = session.poll()) != null) {
@@ -65,7 +70,10 @@ public class OnlineMatchScene extends MatchScene {
 
     private void handleMessage(ServerMessage message) {
         switch (message.type()) {
-            case "SVR GAME YOURTURN" -> yourTurn = true;
+            case "SVR GAME YOURTURN" -> {
+                yourTurn = true;
+                turnTime = 0f;
+            }
             case "SVR GAME MOVE" -> applyMove(message);
             case "SVR GAME WIN", "SVR GAME LOSS", "SVR GAME DRAW" -> endMatch(message);
             case "SVR GAME MATCH" -> startNextMatch(message);
@@ -119,6 +127,11 @@ public class OnlineMatchScene extends MatchScene {
         return matchEnded;
     }
 
+    @Override
+    protected boolean canPlayAgain() {
+        return !aiPlays;
+    }
+
     private void endMatch(ServerMessage message) {
         matchEnded = true;
         yourTurn = false;
@@ -160,7 +173,14 @@ public class OnlineMatchScene extends MatchScene {
         if (board.getTurn() != playerMark) {
             return opponentName + "'S TURN";
         }
-        return aiPlays ? "AI IS THINKING..." : "YOUR TURN";
+        if (aiPlays) {
+            return "AI IS THINKING...";
+        }
+        if (!yourTurn) {
+            return "YOUR TURN";
+        }
+        int secondsLeft = (int) Math.ceil(Math.max(0f, TURN_TIME_LIMIT - turnTime));
+        return "YOUR TURN: " + secondsLeft;
     }
 
     @Override

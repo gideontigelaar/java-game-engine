@@ -237,6 +237,14 @@ public class MatchScene extends BaseScene {
         return board.isGameOver();
     }
 
+    protected boolean canPlayAgain() {
+        return true;
+    }
+
+    private boolean showsPlayAgain() {
+        return isMatchOver() && canPlayAgain();
+    }
+
     protected String getStatus() {
         Board.Mark winner = board.getWinner();
         if (winner != null) {
@@ -267,7 +275,7 @@ public class MatchScene extends BaseScene {
     }
 
     protected void leaveTo(BaseScene scene) {
-        if (isMatchOver()) {
+        if (showsPlayAgain()) {
             transitionTo(scene, btnPlayAgain, btnAction);
         } else {
             transitionTo(scene, btnAction);
@@ -298,7 +306,7 @@ public class MatchScene extends BaseScene {
     protected void onUpdate(float dt) {
         if (!isTransitioning()) {
             btnAction.update(input);
-            if (isMatchOver()) {
+            if (showsPlayAgain()) {
                 btnPlayAgain.update(input);
             }
         }
@@ -504,7 +512,7 @@ public class MatchScene extends BaseScene {
         drawPlayerName(oSide);
 
         btnAction.render(spriteRenderer, textRenderer);
-        if (isMatchOver()) {
+        if (showsPlayAgain()) {
             btnPlayAgain.render(spriteRenderer, textRenderer);
         }
 
@@ -566,7 +574,7 @@ public class MatchScene extends BaseScene {
         float y = Math.round(boardBottom + (currentHeight - boardBottom - BUTTON_HEIGHT) / 2f);
         float centerX = Math.round(currentWidth / 2f);
 
-        if (isMatchOver()) {
+        if (showsPlayAgain()) {
             btnPlayAgain.setPosition(centerX - UI_SPACING / 2f - BUTTON_WIDTH, y);
             btnAction.setPosition(centerX + UI_SPACING / 2f, y);
         } else {
