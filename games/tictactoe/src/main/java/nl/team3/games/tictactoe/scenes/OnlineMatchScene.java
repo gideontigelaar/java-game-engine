@@ -2,9 +2,9 @@ package nl.team3.games.tictactoe.scenes;
 
 import nl.team3.engine.assets.AssetManager;
 import nl.team3.engine.core.EngineContext;
-import nl.team3.games.tictactoe.AIOpponent;
 import nl.team3.games.tictactoe.BackgroundRenderer;
-import nl.team3.games.tictactoe.Board;
+import nl.team3.games.tictactoe.logic.AIOpponent;
+import nl.team3.games.tictactoe.logic.Board;
 import nl.team3.games.tictactoe.network.OnlineSession;
 import nl.team3.games.tictactoe.network.ServerMessage;
 

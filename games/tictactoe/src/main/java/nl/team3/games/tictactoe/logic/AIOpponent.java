@@ -1,4 +1,4 @@
-package nl.team3.games.tictactoe;
+package nl.team3.games.tictactoe.logic;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -10,9 +10,9 @@ import nl.team3.engine.graphics.animation.EasingType;
 import nl.team3.engine.graphics.animation.SpriteAnimation;
 import nl.team3.engine.input.MouseButtons;
 import nl.team3.engine.ui.Button;
-import nl.team3.games.tictactoe.AIOpponent;
 import nl.team3.games.tictactoe.BackgroundRenderer;
-import nl.team3.games.tictactoe.Board;
+import nl.team3.games.tictactoe.logic.AIOpponent;
+import nl.team3.games.tictactoe.logic.Board;
 import org.joml.Vector2f;
 
 import java.util.ArrayList;

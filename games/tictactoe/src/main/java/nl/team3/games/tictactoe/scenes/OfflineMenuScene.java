@@ -1,7 +1,7 @@
 package nl.team3.games.tictactoe.scenes;
 
 import nl.team3.engine.core.EngineContext;
-import nl.team3.games.tictactoe.AIOpponent;
+import nl.team3.games.tictactoe.logic.AIOpponent;
 
 public class OfflineMenuScene extends MenuScene {
     public OfflineMenuScene(EngineContext context) {
