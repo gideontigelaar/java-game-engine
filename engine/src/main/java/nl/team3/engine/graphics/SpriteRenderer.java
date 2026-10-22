@@ -1,6 +1,5 @@
 package nl.team3.engine.graphics;
 
-import nl.team3.engine.assets.AssetManager;
 import org.joml.Matrix4f;
 import org.joml.Vector4f;
 
@@ -25,9 +24,9 @@ public class SpriteRenderer {
 
     private record SliceUv(float u0, float v0, float u1, float v1) {}
 
-    public SpriteRenderer(AssetManager assets) {
-        this.shader = assets.getShader(AssetManager.SPRITE_SHADER);
-        this.quad = assets.getMesh(AssetManager.QUAD_MESH);
+    public SpriteRenderer(ShaderProgram shader, Mesh quad) {
+        this.shader = shader;
+        this.quad = quad;
 
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

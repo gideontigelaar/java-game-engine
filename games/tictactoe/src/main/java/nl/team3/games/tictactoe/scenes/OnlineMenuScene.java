@@ -1,8 +1,6 @@
 package nl.team3.games.tictactoe.scenes;
 
-import nl.team3.engine.core.SceneManager;
-import nl.team3.engine.input.ActionMap;
-import nl.team3.engine.input.InputManager;
+import nl.team3.engine.core.EngineContext;
 import nl.team3.engine.ui.Button;
 import nl.team3.games.tictactoe.network.OnlineSession;
 import nl.team3.games.tictactoe.network.ServerAddress;
@@ -15,12 +13,12 @@ public class OnlineMenuScene extends MenuScene {
     private final List<Button> modeButtons = new ArrayList<>();
     private OnlineSession login;
 
-    public OnlineMenuScene(InputManager input, ActionMap actions, SceneManager sceneManager, ServerAddress address) {
-        this(input, actions, sceneManager, address, "");
+    public OnlineMenuScene(EngineContext context, ServerAddress address) {
+        this(context, address, "");
     }
 
-    public OnlineMenuScene(InputManager input, ActionMap actions, SceneManager sceneManager, ServerAddress address, String status) {
-        super(input, actions, sceneManager, status);
+    public OnlineMenuScene(EngineContext context, ServerAddress address, String status) {
+        super(context, status);
         this.address = address;
     }
 
@@ -48,7 +46,7 @@ public class OnlineMenuScene extends MenuScene {
         if (login == null) return;
 
         switch (login.updateLogin(dt)) {
-            case DONE -> open(new LobbyScene(input, actions, sceneManager, login, false));
+            case DONE -> open(new LobbyScene(context, login, false));
             case FAILED -> {
                 showStatus(login.getLoginError());
                 stopLogin();
@@ -64,7 +62,7 @@ public class OnlineMenuScene extends MenuScene {
             stopLogin();
             clearStatus();
         } else {
-            open(new MainMenuScene(input, actions, sceneManager));
+            open(new MainMenuScene(context));
         }
     }
 

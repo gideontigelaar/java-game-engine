@@ -1,6 +1,5 @@
 package nl.team3.engine.graphics;
 
-import nl.team3.engine.assets.AssetManager;
 import org.joml.Matrix4f;
 import org.joml.Vector4f;
 import org.lwjgl.stb.STBTTAlignedQuad;
@@ -23,8 +22,8 @@ public class TextRenderer {
     private final Matrix4f projection = new Matrix4f();
     private FloatBuffer vertices = MemoryUtil.memAllocFloat(64 * 24);
 
-    public TextRenderer(AssetManager assets) {
-        this.shader = assets.getShader(AssetManager.TEXT_SHADER);
+    public TextRenderer(ShaderProgram shader) {
+        this.shader = shader;
         vaoId = glGenVertexArrays();
         vboId = glGenBuffers();
 

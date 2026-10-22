@@ -1,4 +1,4 @@
-package nl.team3.engine.core;
+package nl.team3.engine.window;
 
 import static org.lwjgl.opengl.GL11.glViewport;
 

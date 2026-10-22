@@ -1,8 +1,6 @@
 package nl.team3.games.tictactoe.scenes;
 
-import nl.team3.engine.core.SceneManager;
-import nl.team3.engine.input.ActionMap;
-import nl.team3.engine.input.InputManager;
+import nl.team3.engine.core.EngineContext;
 import nl.team3.engine.input.Keys;
 import nl.team3.engine.ui.TextField;
 import nl.team3.games.tictactoe.Settings;
@@ -21,12 +19,12 @@ public class MainMenuScene extends MenuScene {
     private TextField nameField;
     private TextField serverField;
 
-    public MainMenuScene(InputManager input, ActionMap actions, SceneManager sceneManager) {
-        this(input, actions, sceneManager, "");
+    public MainMenuScene(EngineContext context) {
+        this(context, "");
     }
 
-    public MainMenuScene(InputManager input, ActionMap actions, SceneManager sceneManager, String status) {
-        super(input, actions, sceneManager, status);
+    public MainMenuScene(EngineContext context, String status) {
+        super(context, status);
     }
 
     @Override
@@ -37,8 +35,8 @@ public class MainMenuScene extends MenuScene {
         serverField.setColors(DIM_WHITE, HOVER_COLOR, HIGHLIGHT_COLOR);
 
         addButton("LOGIN ONLINE", this::openOnline);
-        addButton("PLAY OFFLINE", () -> open(new OfflineMenuScene(input, actions, sceneManager)));
-        addSmallButton("QUIT GAME", input::requestClose);
+        addButton("PLAY OFFLINE", () -> open(new OfflineMenuScene(context)));
+        addSmallButton("QUIT GAME", context.window()::requestClose);
     }
 
     private TextField createField(String text, String placeholder, int maxLength, IntPredicate allowedChars) {
@@ -67,7 +65,7 @@ public class MainMenuScene extends MenuScene {
             if (address == null) {
                 focus(serverField, "Enter a server address like " + Settings.DEFAULT_SERVER);
             } else {
-                open(new OnlineMenuScene(input, actions, sceneManager, address));
+                open(new OnlineMenuScene(context, address));
             }
         }
     }

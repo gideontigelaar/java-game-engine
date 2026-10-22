@@ -1,16 +1,14 @@
 package nl.team3.engine.input;
 
-import nl.team3.engine.core.Viewport;
+import nl.team3.engine.window.Viewport;
+import nl.team3.engine.window.Window;
 import org.lwjgl.glfw.GLFW;
 import java.util.Arrays;
-
-import static org.lwjgl.glfw.GLFW.*;
 
 public class InputManager {
     private static final int MAX_KEYS = GLFW.GLFW_KEY_LAST + 1;
     private static final int MAX_BUTTONS = GLFW.GLFW_MOUSE_BUTTON_LAST + 1;
 
-    private final long window;
     private final Viewport viewport;
     private final boolean[] keysDown = new boolean[MAX_KEYS];
     private final boolean[] keysPressed = new boolean[MAX_KEYS];
@@ -28,11 +26,11 @@ public class InputManager {
     private boolean textInputRequested;
     private boolean textInputActive;
 
-    public InputManager(long window, Viewport viewport) {
-        this.window = window;
+    public InputManager(Window window, Viewport viewport) {
         this.viewport = viewport;
+        long handle = window.getHandle();
 
-        GLFW.glfwSetKeyCallback(window, (win, key, scancode, action, mods) -> {
+        GLFW.glfwSetKeyCallback(handle, (win, key, scancode, action, mods) -> {
             if (key < 0 || key >= MAX_KEYS) {
                 return;
             }
@@ -47,7 +45,7 @@ public class InputManager {
             }
         });
 
-        GLFW.glfwSetMouseButtonCallback(window, (win, button, action, mods) -> {
+        GLFW.glfwSetMouseButtonCallback(handle, (win, button, action, mods) -> {
             if (button < 0 || button >= MAX_BUTTONS) {
                 return;
             }
@@ -60,25 +58,25 @@ public class InputManager {
             }
         });
 
-        GLFW.glfwSetCursorPosCallback(window, (win, xpos, ypos) -> {
+        GLFW.glfwSetCursorPosCallback(handle, (win, xpos, ypos) -> {
             rawMouseX = xpos;
             rawMouseY = ypos;
         });
 
-        GLFW.glfwSetScrollCallback(window, (win, xoffset, yoffset) -> {
+        GLFW.glfwSetScrollCallback(handle, (win, xoffset, yoffset) -> {
             scrollX += xoffset;
             scrollY += yoffset;
         });
 
-        GLFW.glfwSetCharCallback(window, (win, codepoint) -> {
+        GLFW.glfwSetCharCallback(handle, (win, codepoint) -> {
             textInput.appendCodePoint(codepoint);
         });
 
-        GLFW.glfwSetCursorEnterCallback(window, (win, entered) -> {
+        GLFW.glfwSetCursorEnterCallback(handle, (win, entered) -> {
             cursorInWindow = entered;
         });
 
-        GLFW.glfwSetWindowFocusCallback(window, (win, focused) -> {
+        GLFW.glfwSetWindowFocusCallback(handle, (win, focused) -> {
             if (!focused) {
                 releaseAll();
             }
@@ -134,20 +132,8 @@ public class InputManager {
     public double getScrollX() { return scrollX; }
     public double getScrollY() { return scrollY; }
 
-    public void setCursorVisible(boolean visible) {
-        glfwSetInputMode(window, GLFW_CURSOR, visible ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_HIDDEN);
-    }
-
     public String getTextInput() { return textInput.toString(); }
     public void requestTextInput() { textInputRequested = true; }
     public boolean isTextInputActive() { return textInputActive; }
     public boolean isCursorInWindow() { return cursorInWindow; }
-
-    public void setCursorMode(int glfwCursorMode) {
-        glfwSetInputMode(window, GLFW.GLFW_CURSOR, glfwCursorMode);
-    }
-
-    public void requestClose() {
-        glfwSetWindowShouldClose(window, true);
-    }
 }

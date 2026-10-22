@@ -1,11 +1,9 @@
 package nl.team3.games.tictactoe.scenes;
 
 import nl.team3.engine.assets.AssetManager;
-import nl.team3.engine.core.SceneManager;
+import nl.team3.engine.core.EngineContext;
 import nl.team3.engine.graphics.NineSlice;
 import nl.team3.engine.graphics.Sprite;
-import nl.team3.engine.input.ActionMap;
-import nl.team3.engine.input.InputManager;
 import nl.team3.engine.ui.Button;
 import nl.team3.games.tictactoe.network.OnlineSession;
 import nl.team3.games.tictactoe.network.ServerMessage;
@@ -60,8 +58,8 @@ public class LobbyScene extends BaseScene {
     private float rowsY;
     private float matchmakingY;
 
-    public LobbyScene(InputManager input, ActionMap actions, SceneManager sceneManager, OnlineSession session, boolean searchOnStart) {
-        super(input, actions, sceneManager);
+    public LobbyScene(EngineContext context, OnlineSession session, boolean searchOnStart) {
+        super(context);
         this.session = session;
         this.searchOnStart = searchOnStart;
     }
@@ -96,7 +94,7 @@ public class LobbyScene extends BaseScene {
 
     private void leave() {
         session.disconnect();
-        transitionTo(new OnlineMenuScene(input, actions, sceneManager, session.getAddress()), visibleButtons());
+        transitionTo(new OnlineMenuScene(context, session.getAddress()), visibleButtons());
     }
 
     private void onRowClicked(int slot) {
@@ -135,7 +133,7 @@ public class LobbyScene extends BaseScene {
             if (isTransitioning()) return;
         }
         if (!session.isConnected()) {
-            transitionTo(new OnlineMenuScene(input, actions, sceneManager, session.getAddress(), "Connection lost!"), visibleButtons());
+            transitionTo(new OnlineMenuScene(context, session.getAddress(), "Connection lost!"), visibleButtons());
             return;
         }
 
@@ -190,7 +188,7 @@ public class LobbyScene extends BaseScene {
             showNotice("Can't play " + match.get("GAMETYPE"), ERROR_COLOR);
             return;
         }
-        transitionTo(OnlineMatchScene.create(this, session, match), visibleButtons());
+        transitionTo(OnlineMatchScene.create(context, session, match), visibleButtons());
     }
 
     private void stopSearching() {

@@ -69,14 +69,14 @@ public final class AssetManager {
 
     public TextRenderer getTextRenderer() {
         if (textRenderer == null) {
-            textRenderer = new TextRenderer(this);
+            textRenderer = new TextRenderer(getShader(TEXT_SHADER));
         }
         return textRenderer;
     }
 
     public SpriteRenderer getSpriteRenderer() {
         if (spriteRenderer == null) {
-            spriteRenderer = new SpriteRenderer(this);
+            spriteRenderer = new SpriteRenderer(getShader(SPRITE_SHADER), getMesh(QUAD_MESH));
         }
         return spriteRenderer;
     }

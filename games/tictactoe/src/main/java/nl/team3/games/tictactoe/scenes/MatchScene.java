@@ -1,15 +1,13 @@
 package nl.team3.games.tictactoe.scenes;
 
 import nl.team3.engine.assets.AssetManager;
-import nl.team3.engine.core.SceneManager;
+import nl.team3.engine.core.EngineContext;
 import nl.team3.engine.graphics.Font;
 import nl.team3.engine.graphics.Sprite;
 import nl.team3.engine.graphics.Texture;
 import nl.team3.engine.graphics.animation.Animation;
 import nl.team3.engine.graphics.animation.EasingType;
 import nl.team3.engine.graphics.animation.SpriteAnimation;
-import nl.team3.engine.input.ActionMap;
-import nl.team3.engine.input.InputManager;
 import nl.team3.engine.input.MouseButtons;
 import nl.team3.engine.ui.Button;
 import nl.team3.games.tictactoe.AIOpponent;
@@ -183,19 +181,19 @@ public class MatchScene extends BaseScene {
         }
     }
 
-    public MatchScene(InputManager input, ActionMap actions, SceneManager sceneManager) {
-        this(input, actions, sceneManager, ThreadLocalRandom.current().nextBoolean() ? Board.Mark.X : Board.Mark.O,
+    public MatchScene(EngineContext context) {
+        this(context, ThreadLocalRandom.current().nextBoolean() ? Board.Mark.X : Board.Mark.O,
                 Board.Mark.X, null, null);
     }
 
     // Against the computer, which plays O on the right
-    public MatchScene(InputManager input, ActionMap actions, SceneManager sceneManager, AIOpponent ai) {
-        this(input, actions, sceneManager, Board.Mark.X, Board.Mark.X, ai, Board.Mark.O);
+    public MatchScene(EngineContext context, AIOpponent ai) {
+        this(context, Board.Mark.X, Board.Mark.X, ai, Board.Mark.O);
     }
 
-    protected MatchScene(InputManager input, ActionMap actions, SceneManager sceneManager,
+    protected MatchScene(EngineContext context,
                          Board.Mark firstTurn, Board.Mark leftMark, AIOpponent ai, Board.Mark aiMark) {
-        super(input, actions, sceneManager);
+        super(context);
         this.board = new Board(firstTurn);
         this.firstTurn = firstTurn;
         this.leftMark = leftMark;
@@ -266,12 +264,12 @@ public class MatchScene extends BaseScene {
     }
 
     protected void leave() {
-        leaveTo(new OfflineMenuScene(input, actions, sceneManager));
+        leaveTo(new OfflineMenuScene(context));
     }
 
     // Take turns starting
     protected void playAgain() {
-        leaveTo(new MatchScene(input, actions, sceneManager, firstTurn.opponent(), leftMark, ai, aiMark));
+        leaveTo(new MatchScene(context, firstTurn.opponent(), leftMark, ai, aiMark));
     }
 
     protected void leaveTo(BaseScene scene) {

@@ -18,11 +18,11 @@ public final class TicTacToe {
                 .clearColor(new Vector4f(0.62f, 0.62f, 0.62f, 1.0f))
                 .build();
 
-        Engine.run(config, (input, actions, sceneManager) -> {
-            actions.bind("back", Keys.ESCAPE);
+        Engine.run(config, context -> {
+            context.actions().bind("back", Keys.ESCAPE);
 
             // Start in Main Menu instead of directly in the game
-            return new MainMenuScene(input, actions, sceneManager);
+            return new MainMenuScene(context);
         });
     }
 }

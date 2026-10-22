@@ -1,10 +1,8 @@
 package nl.team3.games.tictactoe.scenes;
 
 import nl.team3.engine.assets.AssetManager;
-import nl.team3.engine.core.SceneManager;
+import nl.team3.engine.core.EngineContext;
 import nl.team3.engine.graphics.Sprite;
-import nl.team3.engine.input.ActionMap;
-import nl.team3.engine.input.InputManager;
 import nl.team3.engine.ui.Button;
 import nl.team3.games.tictactoe.Settings;
 import org.joml.Vector4f;
@@ -33,8 +31,8 @@ public abstract class MenuScene extends BaseScene {
     protected float detailY;
     private float statusY;
 
-    protected MenuScene(InputManager input, ActionMap actions, SceneManager sceneManager, String status) {
-        super(input, actions, sceneManager);
+    protected MenuScene(EngineContext context, String status) {
+        super(context);
         if (!status.isEmpty()) {
             setStatus(status, ERROR_COLOR, STATUS_TIME);
         }

@@ -1,13 +1,12 @@
 package nl.team3.games.tictactoe.scenes;
 
 import nl.team3.engine.assets.AssetManager;
+import nl.team3.engine.core.EngineContext;
 import nl.team3.engine.core.Scene;
-import nl.team3.engine.core.SceneManager;
 import nl.team3.engine.graphics.*;
 import nl.team3.engine.graphics.animation.Animation;
 import nl.team3.engine.graphics.animation.EasingType;
 import nl.team3.engine.graphics.animation.SpriteAnimation;
-import nl.team3.engine.input.ActionMap;
 import nl.team3.engine.input.InputManager;
 import nl.team3.engine.input.MouseButtons;
 import nl.team3.engine.ui.Button;
@@ -32,9 +31,8 @@ public abstract class BaseScene implements Scene {
     private static final float TRANSITION_TIME = 0.7f;
     private static final float PALETTE_SWITCH_TIME = 0.2f;
 
+    protected final EngineContext context;
     protected final InputManager input;
-    protected final ActionMap actions;
-    protected final SceneManager sceneManager;
 
     protected SpriteRenderer spriteRenderer;
     protected TextRenderer textRenderer;
@@ -64,16 +62,15 @@ public abstract class BaseScene implements Scene {
     private Button[] shrinkingButtons;
     private Animation[] shrinkAnimations;
 
-    public BaseScene(InputManager input, ActionMap actions, SceneManager sceneManager) {
-        this.input = input;
-        this.actions = actions;
-        this.sceneManager = sceneManager;
+    public BaseScene(EngineContext context) {
+        this.context = context;
+        this.input = context.input();
     }
 
     @Override
     public final void init(AssetManager assets) {
-        currentWidth = sceneManager.getWidth();
-        currentHeight = sceneManager.getHeight();
+        currentWidth = context.sceneManager().getWidth();
+        currentHeight = context.sceneManager().getHeight();
 
         textRenderer = assets.getTextRenderer();
         spriteRenderer = assets.getSpriteRenderer();
@@ -88,7 +85,7 @@ public abstract class BaseScene implements Scene {
 
         mousePointTexture = assets.loadTexture("mousePoint", "/games/tictactoe/textures/cursorPoint.png");
         mouseGrabTexture = assets.loadTexture("mouseGrab", "/games/tictactoe/textures/cursorGrab.png");
-        input.setCursorVisible(false);
+        context.window().setCursorVisible(false);
 
         mousePoint = new Sprite(mousePointTexture);
         mousePoint.setScale(4f);
@@ -175,7 +172,7 @@ public abstract class BaseScene implements Scene {
     }
 
     protected boolean isBackPressed() {
-        return actions.isActionPressed("back");
+        return context.actions().isActionPressed("back");
     }
 
     protected int getPalette() {
@@ -217,7 +214,7 @@ public abstract class BaseScene implements Scene {
         }
 
         if (transitionTime >= TRANSITION_TIME) {
-            sceneManager.changeScene(nextScene);
+            context.sceneManager().changeScene(nextScene);
         }
     }
 

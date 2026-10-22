@@ -1,9 +1,7 @@
 package nl.team3.games.tictactoe.scenes;
 
 import nl.team3.engine.assets.AssetManager;
-import nl.team3.engine.core.SceneManager;
-import nl.team3.engine.input.ActionMap;
-import nl.team3.engine.input.InputManager;
+import nl.team3.engine.core.EngineContext;
 import nl.team3.games.tictactoe.AIOpponent;
 import nl.team3.games.tictactoe.BackgroundRenderer;
 import nl.team3.games.tictactoe.Board;
@@ -29,20 +27,20 @@ public class OnlineMatchScene extends MatchScene {
     private Board.Mark winner;
     private String result;
 
-    private OnlineMatchScene(InputManager input, ActionMap actions, SceneManager sceneManager, OnlineSession session,
+    private OnlineMatchScene(EngineContext context, OnlineSession session,
                              String opponent, Board.Mark playerMark, AIOpponent ai) {
-        super(input, actions, sceneManager, Board.Mark.X, playerMark, ai, playerMark);
+        super(context, Board.Mark.X, playerMark, ai, playerMark);
         this.session = session;
         this.opponentName = OnlineSession.displayName(opponent);
         this.playerMark = playerMark;
         this.aiPlays = ai != null;
     }
 
-    static OnlineMatchScene create(BaseScene from, OnlineSession session, ServerMessage match) {
+    static OnlineMatchScene create(EngineContext context, OnlineSession session, ServerMessage match) {
         Board.Mark playerMark = session.isMe(match.get("PLAYERTOMOVE")) ? Board.Mark.X : Board.Mark.O;
         AIOpponent ai = session.getMode() == OnlineSession.Mode.AI_VS_AI
                 ? new AIOpponent(AIOpponent.Difficulty.UNBEATABLE) : null;
-        return new OnlineMatchScene(from.input, from.actions, from.sceneManager, session, match.get("OPPONENT"), playerMark, ai);
+        return new OnlineMatchScene(context, session, match.get("OPPONENT"), playerMark, ai);
     }
 
     @Override
@@ -64,7 +62,7 @@ public class OnlineMatchScene extends MatchScene {
         }
 
         if (!isTransitioning() && !session.isConnected()) {
-            leaveTo(new OnlineMenuScene(input, actions, sceneManager, session.getAddress(), "Connection lost!"));
+            leaveTo(new OnlineMenuScene(context, session.getAddress(), "Connection lost!"));
         }
     }
 
@@ -83,7 +81,7 @@ public class OnlineMatchScene extends MatchScene {
 
     private void startNextMatch(ServerMessage match) {
         if (session.isOurGame(match)) {
-            leaveTo(create(this, session, match));
+            leaveTo(create(context, session, match));
         } else {
             session.forfeit();
         }
@@ -206,11 +204,11 @@ public class OnlineMatchScene extends MatchScene {
             forfeitSent = true;
             return;
         }
-        leaveTo(new LobbyScene(input, actions, sceneManager, session, false));
+        leaveTo(new LobbyScene(context, session, false));
     }
 
     @Override
     protected void playAgain() {
-        leaveTo(new LobbyScene(input, actions, sceneManager, session, true));
+        leaveTo(new LobbyScene(context, session, true));
     }
 }
