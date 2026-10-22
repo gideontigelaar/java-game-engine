@@ -5,8 +5,8 @@ import nl.team3.engine.assets.AssetManager;
 public class SceneManager {
     private final AssetManager assets;
     private Scene currentScene;
-    private int width = Config.WINDOW_WIDTH;
-    private int height = Config.WINDOW_HEIGHT;
+    private int width;
+    private int height;
 
     public SceneManager(AssetManager assets) {
         this.assets = assets;
@@ -45,6 +45,14 @@ public class SceneManager {
         if (currentScene != null) {
             currentScene.resize(width, height);
         }
+    }
+
+    public int getWidth() {
+        return width;
+    }
+
+    public int getHeight() {
+        return height;
     }
 
     public void cleanup() {

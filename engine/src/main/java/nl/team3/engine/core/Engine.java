@@ -1,5 +1,6 @@
 package nl.team3.engine.core;
 
+import org.joml.Vector4fc;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
@@ -22,7 +23,7 @@ public final class Engine {
     private Engine() {
     }
 
-    public static void run(String title, SceneFactory firstScene) {
+    public static void run(EngineConfig config, SceneFactory firstScene) {
         Configuration.GLFW_CHECK_THREAD0.set(false);
 
         if (!GLFW.glfwInit()) {
@@ -37,20 +38,21 @@ public final class Engine {
         GLFW.glfwWindowHint(GLFW.GLFW_OPENGL_PROFILE, GLFW.GLFW_OPENGL_CORE_PROFILE);
         GLFW.glfwWindowHint(GLFW.GLFW_OPENGL_FORWARD_COMPAT, GLFW.GLFW_TRUE);
 
-        long window = GLFW.glfwCreateWindow(Config.WINDOW_WIDTH, Config.WINDOW_HEIGHT, title, MemoryUtil.NULL, MemoryUtil.NULL);
+        long window = GLFW.glfwCreateWindow(config.windowWidth(), config.windowHeight(), config.title(), MemoryUtil.NULL, MemoryUtil.NULL);
         if (window == MemoryUtil.NULL) {
             throw new RuntimeException("Failed to create GLFW window");
         }
-        fitAndCenterWindow(window);
-        GLFW.glfwSetWindowSizeLimits(window, Config.MIN_WINDOW_WIDTH, Config.MIN_WINDOW_HEIGHT, GLFW.GLFW_DONT_CARE, GLFW.GLFW_DONT_CARE);
+        fitAndCenterWindow(window, config.windowWidth(), config.windowHeight());
+        GLFW.glfwSetWindowSizeLimits(window, config.minWindowWidth(), config.minWindowHeight(), GLFW.GLFW_DONT_CARE, GLFW.GLFW_DONT_CARE);
 
         GLFW.glfwMakeContextCurrent(window);
-        GLFW.glfwSwapInterval(Config.VSYNC_ENABLED ? 1 : 0);
+        GLFW.glfwSwapInterval(config.vsync() ? 1 : 0);
         GLFW.glfwShowWindow(window);
 
         GL.createCapabilities();
 
-        Viewport viewport = new Viewport();
+        Viewport viewport = new Viewport(config.minWindowWidth(), config.minWindowHeight(),
+                config.minGuiWidth(), config.minGuiHeight(), config.guiScale());
         updateViewport(window, viewport);
 
         // Input first: the scene needs these
@@ -76,7 +78,8 @@ public final class Engine {
         sceneManager.changeScene(firstScene.create(input, actions, sceneManager));
 
         double lastTime = GLFW.glfwGetTime();
-        GL11.glClearColor(Config.BG_COLOR.x, Config.BG_COLOR.y, Config.BG_COLOR.z, Config.BG_COLOR.w);
+        Vector4fc clearColor = config.clearColor();
+        GL11.glClearColor(clearColor.x(), clearColor.y(), clearColor.z(), clearColor.w());
 
         while (!GLFW.glfwWindowShouldClose(window)) {
             GLFW.glfwPollEvents();
@@ -121,7 +124,7 @@ public final class Engine {
         }
     }
 
-    private static void fitAndCenterWindow(long window) {
+    private static void fitAndCenterWindow(long window, int targetWidth, int targetHeight) {
         long monitor = GLFW.glfwGetPrimaryMonitor();
         if (monitor == MemoryUtil.NULL) {
             return;
@@ -144,10 +147,10 @@ public final class Engine {
             int frameH = top.get(0) + bottom.get(0);
 
             float fit = Math.min(1f, Math.min(
-                    (areaW.get(0) - frameW) / (float) Config.WINDOW_WIDTH,
-                    (areaH.get(0) - frameH) / (float) Config.WINDOW_HEIGHT));
-            int width = Math.max(1, Math.round(Config.WINDOW_WIDTH * fit));
-            int height = Math.max(1, Math.round(Config.WINDOW_HEIGHT * fit));
+                    (areaW.get(0) - frameW) / (float) targetWidth,
+                    (areaH.get(0) - frameH) / (float) targetHeight));
+            int width = Math.max(1, Math.round(targetWidth * fit));
+            int height = Math.max(1, Math.round(targetHeight * fit));
             GLFW.glfwSetWindowSize(window, width, height);
 
             int posX = areaX.get(0) + (areaW.get(0) - frameW - width) / 2 + left.get(0);

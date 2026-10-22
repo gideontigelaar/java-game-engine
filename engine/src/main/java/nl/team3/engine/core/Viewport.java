@@ -3,15 +3,31 @@ package nl.team3.engine.core;
 import static org.lwjgl.opengl.GL11.glViewport;
 
 public class Viewport {
+    private final int minWindowWidth;
+    private final int minWindowHeight;
+    private final int minGuiWidth;
+    private final int minGuiHeight;
+
     private int windowWidth = 1;
     private int windowHeight = 1;
     private int framebufferWidth = 1;
     private int framebufferHeight = 1;
 
-    private int requestedGuiScale = Config.GUI_SCALE_OVERRIDE;
+    private int requestedGuiScale;
     private int guiScale = 1;
-    private int scaledWidth = Config.WINDOW_WIDTH;
-    private int scaledHeight = Config.WINDOW_HEIGHT;
+    private int scaledWidth;
+    private int scaledHeight;
+
+    // guiScale 0: auto, 1+: fixed scale (capped to what fits the window)
+    public Viewport(int minWindowWidth, int minWindowHeight, int minGuiWidth, int minGuiHeight, int guiScale) {
+        this.minWindowWidth = minWindowWidth;
+        this.minWindowHeight = minWindowHeight;
+        this.minGuiWidth = minGuiWidth;
+        this.minGuiHeight = minGuiHeight;
+        this.requestedGuiScale = guiScale;
+        this.scaledWidth = minGuiWidth;
+        this.scaledHeight = minGuiHeight;
+    }
 
     public void update(int windowWidth, int windowHeight, int framebufferWidth, int framebufferHeight) {
         if (windowWidth <= 0 || windowHeight <= 0 || framebufferWidth <= 0 || framebufferHeight <= 0) {
@@ -34,12 +50,12 @@ public class Viewport {
     private void recalculate() {
         if (requestedGuiScale <= 0) {
             guiScale = Math.max(1, Math.min(
-                    framebufferWidth / Config.MIN_GUI_WIDTH,
-                    framebufferHeight / Config.MIN_GUI_HEIGHT));
+                    framebufferWidth / minGuiWidth,
+                    framebufferHeight / minGuiHeight));
         } else {
             int maxScale = Math.max(1, Math.min(
-                    framebufferWidth / Config.MIN_WINDOW_WIDTH,
-                    framebufferHeight / Config.MIN_WINDOW_HEIGHT));
+                    framebufferWidth / minWindowWidth,
+                    framebufferHeight / minWindowHeight));
             guiScale = Math.min(requestedGuiScale, maxScale);
         }
 

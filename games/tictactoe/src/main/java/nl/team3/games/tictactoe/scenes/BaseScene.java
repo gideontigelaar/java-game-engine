@@ -1,7 +1,6 @@
 package nl.team3.games.tictactoe.scenes;
 
 import nl.team3.engine.assets.AssetManager;
-import nl.team3.engine.core.Config;
 import nl.team3.engine.core.Scene;
 import nl.team3.engine.core.SceneManager;
 import nl.team3.engine.graphics.*;
@@ -10,12 +9,11 @@ import nl.team3.engine.graphics.animation.EasingType;
 import nl.team3.engine.graphics.animation.SpriteAnimation;
 import nl.team3.engine.input.ActionMap;
 import nl.team3.engine.input.InputManager;
+import nl.team3.engine.input.MouseButtons;
 import nl.team3.engine.ui.Button;
 import nl.team3.games.tictactoe.BackgroundRenderer;
 import org.joml.Vector2f;
 import org.joml.Vector4f;
-
-import static org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT;
 
 public abstract class BaseScene implements Scene {
     protected static final int UI_SCALE = 4;
@@ -45,8 +43,8 @@ public abstract class BaseScene implements Scene {
     protected Font gameFont;
     protected Font smallFont;
 
-    protected int currentWidth = Config.WINDOW_WIDTH;
-    protected int currentHeight = Config.WINDOW_HEIGHT;
+    protected int currentWidth;
+    protected int currentHeight;
 
     private Texture mousePointTexture;
     private Texture mouseGrabTexture;
@@ -74,6 +72,9 @@ public abstract class BaseScene implements Scene {
 
     @Override
     public final void init(AssetManager assets) {
+        currentWidth = sceneManager.getWidth();
+        currentHeight = sceneManager.getHeight();
+
         textRenderer = assets.getTextRenderer();
         spriteRenderer = assets.getSpriteRenderer();
         background = assets.getShared(BackgroundRenderer.class, BackgroundRenderer::new);
@@ -103,10 +104,10 @@ public abstract class BaseScene implements Scene {
     public final void update(float dt) {
         mousePosition.set((float) input.getMouseX(), (float) input.getMouseY());
 
-        if (input.isButtonPressed(GLFW_MOUSE_BUTTON_LEFT)) mouseGrabAnim.startAnimation();
-        if (input.isButtonReleased(GLFW_MOUSE_BUTTON_LEFT)) mouseReleaseAnim.startAnimation();
+        if (input.isButtonPressed(MouseButtons.LEFT)) mouseGrabAnim.startAnimation();
+        if (input.isButtonReleased(MouseButtons.LEFT)) mouseReleaseAnim.startAnimation();
 
-        if (input.isButtonDown(GLFW_MOUSE_BUTTON_LEFT)) {
+        if (input.isButtonDown(MouseButtons.LEFT)) {
             mousePoint.setTexture(mouseGrabTexture);
             mouseGrabAnim.update(dt);
             mouseGrabAnim.setScale();

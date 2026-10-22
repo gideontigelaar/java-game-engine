@@ -10,6 +10,7 @@ import nl.team3.engine.graphics.animation.EasingType;
 import nl.team3.engine.graphics.animation.SpriteAnimation;
 import nl.team3.engine.input.ActionMap;
 import nl.team3.engine.input.InputManager;
+import nl.team3.engine.input.MouseButtons;
 import nl.team3.engine.ui.Button;
 import nl.team3.games.tictactoe.AIOpponent;
 import nl.team3.games.tictactoe.BackgroundRenderer;
@@ -20,8 +21,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
-
-import static org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT;
 
 public class MatchScene extends BaseScene {
     private static final float BOARD_SCALE = 8f;
@@ -347,12 +346,12 @@ public class MatchScene extends BaseScene {
         if (side.pickedUp && !isPlayable(side)) {
             side.putBack();
         }
-        if (isPlayable(side) && !other.pickedUp && input.isButtonPressed(GLFW_MOUSE_BUTTON_LEFT) && side.active.contains(mousePosition)) {
+        if (isPlayable(side) && !other.pickedUp && input.isButtonPressed(MouseButtons.LEFT) && side.active.contains(mousePosition)) {
             side.pickUp();
         }
 
         if (side.pickedUp) {
-            if (input.isButtonDown(GLFW_MOUSE_BUTTON_LEFT)) {
+            if (input.isButtonDown(MouseButtons.LEFT)) {
                 side.grabAnim.update(dt);
                 side.grabAnim.setScale();
                 Vector2f position = side.active.getPosition();

@@ -6,10 +6,9 @@ import nl.team3.engine.graphics.Sprite;
 import nl.team3.engine.graphics.SpriteRenderer;
 import nl.team3.engine.graphics.TextRenderer;
 import nl.team3.engine.input.InputManager;
+import nl.team3.engine.input.MouseButtons;
 import org.joml.Vector2f;
 import org.joml.Vector4f;
-
-import static org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT;
 
 public class Button {
     private Vector2f position;
@@ -58,10 +57,10 @@ public class Button {
                 mouseY >= position.y && mouseY <= position.y + size.y;
 
         if (isHovered) {
-            if (input.isButtonPressed(GLFW_MOUSE_BUTTON_LEFT)) {
+            if (input.isButtonPressed(MouseButtons.LEFT)) {
                 isPressed = true;
             }
-            if (isPressed && input.isButtonReleased(GLFW_MOUSE_BUTTON_LEFT)) {
+            if (isPressed && input.isButtonReleased(MouseButtons.LEFT)) {
                 isClicked = true;
                 isPressed = false;
                 if (onClick != null) {
@@ -69,7 +68,7 @@ public class Button {
                 }
             }
         } else {
-            if (input.isButtonReleased(GLFW_MOUSE_BUTTON_LEFT)) {
+            if (input.isButtonReleased(MouseButtons.LEFT)) {
                 isPressed = false;
             }
         }

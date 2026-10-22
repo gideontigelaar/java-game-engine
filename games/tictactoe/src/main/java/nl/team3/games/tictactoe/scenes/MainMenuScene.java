@@ -3,6 +3,7 @@ package nl.team3.games.tictactoe.scenes;
 import nl.team3.engine.core.SceneManager;
 import nl.team3.engine.input.ActionMap;
 import nl.team3.engine.input.InputManager;
+import nl.team3.engine.input.Keys;
 import nl.team3.engine.ui.TextField;
 import nl.team3.games.tictactoe.Settings;
 import nl.team3.games.tictactoe.network.ServerAddress;
@@ -10,8 +11,6 @@ import org.joml.Vector2f;
 
 import java.util.Locale;
 import java.util.function.IntPredicate;
-
-import static org.lwjgl.glfw.GLFW.GLFW_KEY_TAB;
 
 public class MainMenuScene extends MenuScene {
     private static final float FIELD_WIDTH = 480f;
@@ -84,7 +83,7 @@ public class MainMenuScene extends MenuScene {
         nameField.update(input);
         serverField.update(input);
 
-        if (input.isKeyPressed(GLFW_KEY_TAB)) {
+        if (input.isKeyPressed(Keys.TAB)) {
             boolean toServer = nameField.isFocused();
             nameField.setFocused(!toServer);
             serverField.setFocused(toServer);

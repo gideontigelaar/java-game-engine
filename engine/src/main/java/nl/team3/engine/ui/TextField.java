@@ -6,15 +6,12 @@ import nl.team3.engine.graphics.Sprite;
 import nl.team3.engine.graphics.SpriteRenderer;
 import nl.team3.engine.graphics.TextRenderer;
 import nl.team3.engine.input.InputManager;
+import nl.team3.engine.input.Keys;
+import nl.team3.engine.input.MouseButtons;
 import org.joml.Vector2f;
 import org.joml.Vector4f;
 
 import java.util.function.IntPredicate;
-
-import static org.lwjgl.glfw.GLFW.GLFW_KEY_BACKSPACE;
-import static org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER;
-import static org.lwjgl.glfw.GLFW.GLFW_KEY_KP_ENTER;
-import static org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT;
 
 public class TextField {
     private static final String FOCUS_MARKER = "> ";
@@ -57,18 +54,18 @@ public class TextField {
 
         isHovered = mouseX >= position.x && mouseX <= position.x + size.x && mouseY >= position.y && mouseY <= position.y + size.y;
 
-        if (input.isButtonPressed(GLFW_MOUSE_BUTTON_LEFT)) {
+        if (input.isButtonPressed(MouseButtons.LEFT)) {
             isFocused = isHovered;
         }
 
         if (isFocused) {
             input.requestTextInput();
             input.getTextInput().codePoints().filter(allowedChars).forEach(this::append);
-            boolean backspace = input.isKeyPressed(GLFW_KEY_BACKSPACE) || input.isKeyRepeated(GLFW_KEY_BACKSPACE);
+            boolean backspace = input.isKeyPressed(Keys.BACKSPACE) || input.isKeyRepeated(Keys.BACKSPACE);
             if (backspace && !text.isEmpty()) {
                 text = text.substring(0, text.length() - 1);
             }
-            if (input.isKeyPressed(GLFW_KEY_ENTER) || input.isKeyPressed(GLFW_KEY_KP_ENTER)) {
+            if (input.isKeyPressed(Keys.ENTER) || input.isKeyPressed(Keys.KP_ENTER)) {
                 submitPressed = true;
             }
         }
