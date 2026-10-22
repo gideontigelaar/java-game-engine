@@ -13,10 +13,12 @@ public class InputManager {
     private final long window;
     private final Viewport viewport;
     private final boolean[] keysDown = new boolean[MAX_KEYS];
-    private final boolean[] keysDownLastFrame = new boolean[MAX_KEYS];
+    private final boolean[] keysPressed = new boolean[MAX_KEYS];
+    private final boolean[] keysReleased = new boolean[MAX_KEYS];
     private final boolean[] keysRepeated = new boolean[MAX_KEYS];
     private final boolean[] buttonsDown = new boolean[MAX_BUTTONS];
-    private final boolean[] buttonsDownLastFrame = new boolean[MAX_BUTTONS];
+    private final boolean[] buttonsPressed = new boolean[MAX_BUTTONS];
+    private final boolean[] buttonsReleased = new boolean[MAX_BUTTONS];
 
     private double rawMouseX, rawMouseY;
     private double lastRawMouseX, lastRawMouseY;
@@ -36,8 +38,10 @@ public class InputManager {
             }
             if (action == GLFW.GLFW_PRESS) {
                 keysDown[key] = true;
+                keysPressed[key] = true;
             } else if (action == GLFW.GLFW_RELEASE) {
                 keysDown[key] = false;
+                keysReleased[key] = true;
             } else if (action == GLFW.GLFW_REPEAT) {
                 keysRepeated[key] = true;
             }
@@ -49,8 +53,10 @@ public class InputManager {
             }
             if (action == GLFW.GLFW_PRESS) {
                 buttonsDown[button] = true;
+                buttonsPressed[button] = true;
             } else if (action == GLFW.GLFW_RELEASE) {
                 buttonsDown[button] = false;
+                buttonsReleased[button] = true;
             }
         });
 
@@ -80,9 +86,11 @@ public class InputManager {
     }
 
     public void update() {
-        System.arraycopy(keysDown, 0, keysDownLastFrame, 0, MAX_KEYS);
+        Arrays.fill(keysPressed, false);
+        Arrays.fill(keysReleased, false);
         Arrays.fill(keysRepeated, false);
-        System.arraycopy(buttonsDown, 0, buttonsDownLastFrame, 0, MAX_BUTTONS);
+        Arrays.fill(buttonsPressed, false);
+        Arrays.fill(buttonsReleased, false);
         lastRawMouseX = rawMouseX;
         lastRawMouseY = rawMouseY;
         scrollX = 0;
@@ -93,13 +101,19 @@ public class InputManager {
     }
 
     private void releaseAll() {
-        Arrays.fill(keysDown, false);
-        Arrays.fill(buttonsDown, false);
+        for (int key = 0; key < MAX_KEYS; key++) {
+            keysReleased[key] |= keysDown[key];
+            keysDown[key] = false;
+        }
+        for (int button = 0; button < MAX_BUTTONS; button++) {
+            buttonsReleased[button] |= buttonsDown[button];
+            buttonsDown[button] = false;
+        }
     }
 
     public boolean isKeyDown(int key) { return keysDown[key]; }
-    public boolean isKeyPressed(int key) { return keysDown[key] && !keysDownLastFrame[key]; }
-    public boolean isKeyReleased(int key) { return !keysDown[key] && keysDownLastFrame[key]; }
+    public boolean isKeyPressed(int key) { return keysPressed[key]; }
+    public boolean isKeyReleased(int key) { return keysReleased[key]; }
 
     // Key repeat while held down
     public boolean isKeyRepeated(int key) { return keysRepeated[key]; }
@@ -110,8 +124,8 @@ public class InputManager {
     }
 
     public boolean isButtonDown(int button) { return buttonsDown[button]; }
-    public boolean isButtonPressed(int button) { return buttonsDown[button] && !buttonsDownLastFrame[button]; }
-    public boolean isButtonReleased(int button) { return !buttonsDown[button] && buttonsDownLastFrame[button]; }
+    public boolean isButtonPressed(int button) { return buttonsPressed[button]; }
+    public boolean isButtonReleased(int button) { return buttonsReleased[button]; }
 
     public double getMouseX() { return viewport.toVirtualX(rawMouseX); }
     public double getMouseY() { return viewport.toVirtualY(rawMouseY); }

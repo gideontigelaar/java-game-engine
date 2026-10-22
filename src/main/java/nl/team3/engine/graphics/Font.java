@@ -11,6 +11,8 @@ public class Font {
     private final int atlasWidth = 512;
     private final int atlasHeight = 512;
     private final STBTTBakedChar.Buffer charData;
+    private final float[] advances = new float[96];
+    private final float capHeight;
 
     public Font(ByteBuffer ttfData, float fontHeight) {
         charData = STBTTBakedChar.malloc(96);
@@ -29,6 +31,11 @@ public class Font {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
         MemoryUtil.memFree(alphaBitmap);
+
+        for (int i = 0; i < advances.length; i++) {
+            advances[i] = charData.get(i).xadvance();
+        }
+        capHeight = -charData.get('H' - 32).yoff();
     }
 
     public float getTextWidth(String text) {
@@ -36,14 +43,14 @@ public class Font {
         for (int i = 0; i < text.length(); i++) {
             char c = text.charAt(i);
             if (c >= 32 && c < 128) {
-                width += charData.get(c - 32).xadvance();
+                width += advances[c - 32];
             }
         }
         return width;
     }
 
     public float getCapHeight() {
-        return -charData.get('H' - 32).yoff();
+        return capHeight;
     }
 
     public int getTextureId() {

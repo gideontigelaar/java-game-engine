@@ -5,12 +5,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class OnlineSession {
     public static final String GAME_TYPE = "Tic-tac-toe";
-    public static final String PVP_TAG = "-pvp";
+    public static final String PVP_TAG = "pvp";
 
     private static final float LOGIN_TIMEOUT = 5f;
+    private static final long CHALLENGE_TIMEOUT_NANOS = TimeUnit.SECONDS.toNanos(10);
 
     public enum Room {
         PLAYER_VS_PLAYER("PLAYER VS PLAYER"),
@@ -27,7 +29,7 @@ public class OnlineSession {
         }
 
         boolean contains(String player) {
-            return player.endsWith(PVP_TAG) == (this == PLAYER_VS_PLAYER);
+            return hasPvpTag(player) == (this == PLAYER_VS_PLAYER);
         }
     }
 
@@ -37,9 +39,11 @@ public class OnlineSession {
     private final Room room;
     private final String loginName;
     private final Map<String, String> challenges = new LinkedHashMap<>();
+    private final Map<String, String> challengesView = Collections.unmodifiableMap(challenges);
 
     private List<String> players = List.of();
     private String challenged;
+    private long challengedAt;
 
     private boolean loginSent;
     private float loginTime;
@@ -53,8 +57,13 @@ public class OnlineSession {
     }
 
     public static String displayName(String player) {
-        String name = player.endsWith(PVP_TAG) ? player.substring(0, player.length() - PVP_TAG.length()) : player;
+        String name = hasPvpTag(player) ? player.substring(0, player.length() - PVP_TAG.length()) : player;
         return name.toUpperCase(Locale.ROOT);
+    }
+
+    private static boolean hasPvpTag(String player) {
+        return player.length() > PVP_TAG.length()
+                && player.regionMatches(true, player.length() - PVP_TAG.length(), PVP_TAG, 0, PVP_TAG.length());
     }
 
     public LoginState updateLogin(float dt) {
@@ -96,12 +105,11 @@ public class OnlineSession {
 
         switch (message.type()) {
             case "SVR PLAYERLIST" -> players = message.items().stream()
-                    .map(player -> player.toLowerCase(Locale.ROOT))
                     .filter(this::isRoomMate)
-                    .sorted()
+                    .sorted(String.CASE_INSENSITIVE_ORDER)
                     .toList();
             case "SVR GAME CHALLENGE" -> {
-                String challenger = message.get("CHALLENGER").toLowerCase(Locale.ROOT);
+                String challenger = message.get("CHALLENGER");
                 if (isOurGame(message) && isRoomMate(challenger)) {
                     challenges.put(challenger, message.get("CHALLENGENUMBER"));
                 }
@@ -117,7 +125,7 @@ public class OnlineSession {
     }
 
     private boolean isRoomMate(String player) {
-        return !player.equals(loginName) && room.contains(player);
+        return !isMe(player) && room.contains(player);
     }
 
     public boolean isOurGame(ServerMessage message) {
@@ -139,6 +147,7 @@ public class OnlineSession {
     public void challenge(String player) {
         connection.sendCommand("challenge \"" + player + "\" \"" + GAME_TYPE + "\"");
         challenged = player;
+        challengedAt = System.nanoTime();
     }
 
     public void accept(String challenger) {
@@ -185,10 +194,13 @@ public class OnlineSession {
     }
 
     public Map<String, String> getChallenges() {
-        return Collections.unmodifiableMap(challenges);
+        return challengesView;
     }
 
     public String getChallenged() {
+        if (challenged != null && System.nanoTime() - challengedAt > CHALLENGE_TIMEOUT_NANOS) {
+            challenged = null;
+        }
         return challenged;
     }
 }

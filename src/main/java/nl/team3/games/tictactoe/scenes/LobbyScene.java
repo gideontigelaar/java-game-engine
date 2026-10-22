@@ -14,7 +14,6 @@ import org.joml.Vector4f;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 public class LobbyScene extends BaseScene {
@@ -169,7 +168,7 @@ public class LobbyScene extends BaseScene {
         switch (message.type()) {
             case "SVR GAME MATCH" -> startMatch(message);
             case "SVR GAME CHALLENGE" -> {
-                String challenger = message.get("CHALLENGER").toLowerCase(Locale.ROOT);
+                String challenger = message.get("CHALLENGER");
                 if (!searching && session.getChallenges().containsKey(challenger)) {
                     showNotice(OnlineSession.displayName(challenger) + " wants to play!", HIGHLIGHT_COLOR);
                 }
@@ -233,7 +232,7 @@ public class LobbyScene extends BaseScene {
     private String findChallengeToAccept() {
         String me = session.getDisplayName();
         for (String challenger : session.getChallenges().keySet()) {
-            boolean mutual = challenger.equals(session.getChallenged());
+            boolean mutual = challenger.equalsIgnoreCase(session.getChallenged());
             if (!mutual || me.compareTo(OnlineSession.displayName(challenger)) > 0) {
                 return challenger;
             }

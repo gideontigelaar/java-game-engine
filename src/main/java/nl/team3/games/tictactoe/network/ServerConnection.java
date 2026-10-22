@@ -65,7 +65,8 @@ public class ServerConnection {
         PrintWriter writer = out;
         if (writer != null && connected) {
             awaitingReply.add(command);
-            writer.println(command);
+            writer.print(command + "\n");
+            writer.flush();
         }
     }
 
@@ -79,7 +80,8 @@ public class ServerConnection {
 
         PrintWriter writer = out;
         if (writer != null && connected) {
-            writer.println("disconnect");
+            writer.print("disconnect\n");
+            writer.flush();
         }
         connected = false;
         closed = true;

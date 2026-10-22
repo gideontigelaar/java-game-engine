@@ -18,7 +18,7 @@ public class MainMenuScene extends MenuScene {
     private static final float FIELD_WIDTH = 480f;
     private static final int NAME_LENGTH = 16;
     private static final int ADDRESS_LENGTH = 28;
-    private static final String NAME_PATTERN = "[a-z0-9_-]+";
+    private static final String NAME_PATTERN = "[a-z0-9]+";
 
     private TextField nameField;
     private TextField serverField;
@@ -33,8 +33,7 @@ public class MainMenuScene extends MenuScene {
 
     @Override
     protected void initMenu() {
-        nameField = createField(playerName, "ENTER YOUR NAME", NAME_LENGTH,
-                c -> isAsciiLetterOrDigit(c) || c == '_' || c == '-');
+        nameField = createField(playerName, "ENTER YOUR NAME", NAME_LENGTH, MainMenuScene::isAsciiLetterOrDigit);
         serverField = createField(Settings.getServerAddress(), "SERVER ADDRESS", ADDRESS_LENGTH,
                 c -> isAsciiLetterOrDigit(c) || c == '.' || c == ':' || c == '-');
         serverField.setColors(DIM_WHITE, HOVER_COLOR, HIGHLIGHT_COLOR);

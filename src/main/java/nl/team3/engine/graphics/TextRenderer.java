@@ -21,6 +21,7 @@ public class TextRenderer {
     private final int vaoId;
     private final int vboId;
     private final Matrix4f projection = new Matrix4f();
+    private FloatBuffer vertices = MemoryUtil.memAllocFloat(64 * 24);
 
     public TextRenderer(AssetManager assets) {
         this.shader = assets.getShader(AssetManager.TEXT_SHADER);
@@ -47,6 +48,17 @@ public class TextRenderer {
     }
 
     public void drawText(Font font, String text, float x, float y, float scale, Vector4f color) {
+        if (text.isEmpty()) {
+            return;
+        }
+
+        int needed = text.length() * 24;
+        if (vertices.capacity() < needed) {
+            MemoryUtil.memFree(vertices);
+            vertices = MemoryUtil.memAllocFloat(Math.max(needed, vertices.capacity() * 2));
+        }
+        vertices.clear();
+
         shader.bind();
         shader.setUniformMat4("uProjection", projection);
         shader.setUniform4f("uColor", color.x, color.y, color.z, color.w);
@@ -62,8 +74,6 @@ public class TextRenderer {
             FloatBuffer xBuffer = stack.floats(x);
             FloatBuffer yBuffer = stack.floats(y);
             STBTTAlignedQuad q = STBTTAlignedQuad.malloc(stack);
-
-            FloatBuffer vertices = MemoryUtil.memAllocFloat(text.length() * 24);
 
             for (int i = 0; i < text.length(); i++) {
                 int c = text.charAt(i);
@@ -94,8 +104,6 @@ public class TextRenderer {
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             glDrawArrays(GL_TRIANGLES, 0, vertexCount);
-
-            MemoryUtil.memFree(vertices);
         }
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -106,5 +114,6 @@ public class TextRenderer {
     public void cleanup() {
         glDeleteBuffers(vboId);
         glDeleteVertexArrays(vaoId);
+        MemoryUtil.memFree(vertices);
     }
 }
