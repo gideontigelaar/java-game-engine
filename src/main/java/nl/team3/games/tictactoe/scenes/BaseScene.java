@@ -78,8 +78,8 @@ public abstract class BaseScene implements Scene {
         spriteRenderer = assets.getSpriteRenderer();
         background = assets.getShared(BackgroundRenderer.class, BackgroundRenderer::new);
 
-        gameFont = assets.loadFont("gameFont", "/fonts/3x5-Microfont-Mono.ttf", 48f);
-        smallFont = assets.loadFont("smallFont", "/fonts/3x5-Microfont-Mono.ttf", 24f);
+        gameFont = assets.loadFont("gameFont", "/fonts/tictactoe/3x5-Microfont-Mono.ttf", 48f);
+        smallFont = assets.loadFont("smallFont", "/fonts/tictactoe/3x5-Microfont-Mono.ttf", 24f);
 
         buttonTexture = assets.loadTexture("btnTexture", "/textures/tictactoe/button.png");
         buttonPressedTexture = assets.loadTexture("btnPressedTexture", "/textures/tictactoe/buttonPressed.png");

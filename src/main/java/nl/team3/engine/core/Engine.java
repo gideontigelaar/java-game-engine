@@ -1,4 +1,4 @@
-package nl.team3;
+package nl.team3.engine.core;
 
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL;
@@ -8,17 +8,21 @@ import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 
 import nl.team3.engine.assets.AssetManager;
-import nl.team3.engine.core.Config;
-import nl.team3.engine.core.SceneManager;
-import nl.team3.engine.core.Viewport;
 import nl.team3.engine.input.ActionMap;
 import nl.team3.engine.input.InputManager;
-import nl.team3.games.tictactoe.scenes.MainMenuScene;
 
 import java.nio.IntBuffer;
 
-public class App {
-    public static void main(String[] args) {
+public final class Engine {
+    @FunctionalInterface
+    public interface SceneFactory {
+        Scene create(InputManager input, ActionMap actions, SceneManager sceneManager);
+    }
+
+    private Engine() {
+    }
+
+    public static void run(String title, SceneFactory firstScene) {
         Configuration.GLFW_CHECK_THREAD0.set(false);
 
         if (!GLFW.glfwInit()) {
@@ -33,7 +37,7 @@ public class App {
         GLFW.glfwWindowHint(GLFW.GLFW_OPENGL_PROFILE, GLFW.GLFW_OPENGL_CORE_PROFILE);
         GLFW.glfwWindowHint(GLFW.GLFW_OPENGL_FORWARD_COMPAT, GLFW.GLFW_TRUE);
 
-        long window = GLFW.glfwCreateWindow(Config.WINDOW_WIDTH, Config.WINDOW_HEIGHT, Config.WINDOW_TITLE, MemoryUtil.NULL, MemoryUtil.NULL);
+        long window = GLFW.glfwCreateWindow(Config.WINDOW_WIDTH, Config.WINDOW_HEIGHT, title, MemoryUtil.NULL, MemoryUtil.NULL);
         if (window == MemoryUtil.NULL) {
             throw new RuntimeException("Failed to create GLFW window");
         }
@@ -52,7 +56,6 @@ public class App {
         // Input first: the scene needs these
         InputManager input = new InputManager(window, viewport);
         ActionMap actions = new ActionMap(input);
-        actions.bind("back", GLFW.GLFW_KEY_ESCAPE);
 
         // Central asset storage
         AssetManager assets = new AssetManager();
@@ -70,8 +73,7 @@ public class App {
         // Set initial viewport and scene size
         sceneManager.resize(viewport.getScaledWidth(), viewport.getScaledHeight());
 
-        // Start in Main Menu instead of directly in the game
-        sceneManager.changeScene(new MainMenuScene(input, actions, sceneManager));
+        sceneManager.changeScene(firstScene.create(input, actions, sceneManager));
 
         double lastTime = GLFW.glfwGetTime();
         GL11.glClearColor(Config.BG_COLOR.x, Config.BG_COLOR.y, Config.BG_COLOR.z, Config.BG_COLOR.w);

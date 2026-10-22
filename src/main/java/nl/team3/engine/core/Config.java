@@ -7,7 +7,6 @@ public final class Config {
     }
 
     // Window
-    public static final String WINDOW_TITLE = "Game Engine";
     public static final int WINDOW_WIDTH = 1920;
     public static final int WINDOW_HEIGHT = 1080;
     public static final int MIN_WINDOW_WIDTH = 960;
