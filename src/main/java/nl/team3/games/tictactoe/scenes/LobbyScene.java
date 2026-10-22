@@ -8,7 +8,6 @@ import nl.team3.engine.input.ActionMap;
 import nl.team3.engine.input.InputManager;
 import nl.team3.engine.ui.Button;
 import nl.team3.games.tictactoe.network.OnlineSession;
-import nl.team3.games.tictactoe.network.OnlineSession.Room;
 import nl.team3.games.tictactoe.network.ServerMessage;
 import org.joml.Vector4f;
 
@@ -18,7 +17,6 @@ import java.util.Map;
 
 public class LobbyScene extends BaseScene {
     private static final float REFRESH_TIME = 2f;
-    private static final float CHALLENGE_TIME = 3f;
     private static final float NOTICE_TIME = 3f;
     private static final float ACCEPT_TIMEOUT = 5f;
 
@@ -47,8 +45,6 @@ public class LobbyScene extends BaseScene {
     private boolean accepting;
     private float acceptTime;
     private float refreshTimer;
-    private float challengeTimer;
-    private int challengeIndex;
     private int scroll;
 
     private String notice = "";
@@ -93,12 +89,9 @@ public class LobbyScene extends BaseScene {
     private void findMatch() {
         searching = true;
         searchTime = 0f;
-        challengeTimer = 0f;
         btnFindMatch.setText("SEARCHING...");
         btnFindMatch.setEnabled(false);
-        if (session.getRoom() == Room.AI_VS_AI) {
-            session.subscribe();
-        }
+        session.subscribe();
     }
 
     private void leave() {
@@ -157,7 +150,6 @@ public class LobbyScene extends BaseScene {
         }
         if (searching) {
             searchTime += dt;
-            updateSearch(dt);
         }
 
         updateEntries();
@@ -207,39 +199,6 @@ public class LobbyScene extends BaseScene {
         btnFindMatch.setEnabled(true);
     }
 
-    private void updateSearch(float dt) {
-        if (accepting) return;
-
-        String challenger = findChallengeToAccept();
-        if (challenger != null) {
-            accept(challenger);
-            return;
-        }
-
-        if (session.getRoom() == Room.AI_VS_AI) return;
-
-        challengeTimer -= dt;
-        List<String> players = session.getPlayers();
-        if (challengeTimer > 0f || players.isEmpty()) return;
-
-        challengeTimer = CHALLENGE_TIME;
-        String target = players.get(challengeIndex++ % players.size());
-        if (!target.equals(session.getChallenged())) {
-            session.challenge(target);
-        }
-    }
-
-    private String findChallengeToAccept() {
-        String me = session.getDisplayName();
-        for (String challenger : session.getChallenges().keySet()) {
-            boolean mutual = challenger.equalsIgnoreCase(session.getChallenged());
-            if (!mutual || me.compareTo(OnlineSession.displayName(challenger)) > 0) {
-                return challenger;
-            }
-        }
-        return null;
-    }
-
     private void updateEntries() {
         Map<String, String> challenges = session.getChallenges();
         entries.clear();
@@ -272,7 +231,7 @@ public class LobbyScene extends BaseScene {
             if (session.getChallenges().containsKey(player)) {
                 button.setText("ACCEPT");
                 button.setColors(HIGHLIGHT_COLOR, ACCEPT_HOVER_COLOR, PRESSED_COLOR);
-                button.setEnabled(!accepting);
+                button.setEnabled(!accepting && !searching);
             } else {
                 boolean sent = player.equals(session.getChallenged());
                 button.setText(sent ? "SENT" : "CHALLENGE");
@@ -313,7 +272,7 @@ public class LobbyScene extends BaseScene {
 
         int seconds = (int) searchTime;
         String time = String.format(" %d:%02d", seconds / 60, seconds % 60);
-        boolean alone = session.getRoom() == Room.PLAYER_VS_PLAYER && session.getPlayers().isEmpty();
+        boolean alone = session.getPlayers().isEmpty();
         return (alone ? "Waiting for another player..." : "Looking for an opponent...") + time;
     }
 
@@ -352,15 +311,14 @@ public class LobbyScene extends BaseScene {
 
         float titleX = panelX + PANEL_PADDING;
         float titleTop = panelY + UI_SCALE;
-        drawText(smallFont, "PLAYERS IN THIS ROOM (" + entries.size() + ")", titleX, titleTop, DARK_TEXT_COLOR);
+        drawText(smallFont, "PLAYERS ONLINE (" + entries.size() + ")", titleX, titleTop, DARK_TEXT_COLOR);
         if (entries.size() > visibleRows) {
             String range = (scroll + 1) + "-" + (scroll + visibleRows);
             drawText(smallFont, range, panelX + PANEL_WIDTH - PANEL_PADDING - smallFont.getTextWidth(range), titleTop, DARK_TEXT_COLOR);
         }
 
         if (entries.isEmpty()) {
-            String empty = session.getRoom() == Room.PLAYER_VS_PLAYER ? "Nobody else is here yet" : "No other players online";
-            drawCenteredText(smallFont, empty, rowsY + (ROW_HEIGHT - smallFont.getCapHeight()) / 2f, DIM_WHITE);
+            drawCenteredText(smallFont, "No other players online", rowsY + (ROW_HEIGHT - smallFont.getCapHeight()) / 2f, DIM_WHITE);
             return;
         }
 

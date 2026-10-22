@@ -5,7 +5,6 @@ import nl.team3.engine.input.ActionMap;
 import nl.team3.engine.input.InputManager;
 import nl.team3.engine.ui.TextField;
 import nl.team3.games.tictactoe.Settings;
-import nl.team3.games.tictactoe.network.OnlineSession;
 import nl.team3.games.tictactoe.network.ServerAddress;
 import org.joml.Vector2f;
 
@@ -62,8 +61,8 @@ public class MainMenuScene extends MenuScene {
             focus(nameField, "Enter your name first!");
         } else if (!name.matches(NAME_PATTERN)) {
             focus(nameField, "Use letters and numbers only!");
-        } else if (name.endsWith(OnlineSession.PVP_TAG)) {
-            focus(nameField, "Names can't end with " + OnlineSession.PVP_TAG);
+        } else if (Character.isDigit(name.charAt(0))) {
+            focus(nameField, "Names must start with a letter!");
         } else {
             ServerAddress address = ServerAddress.parse(serverField.getText());
             if (address == null) {

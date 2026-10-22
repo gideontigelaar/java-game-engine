@@ -13,8 +13,8 @@ import nl.team3.games.tictactoe.network.ServerMessage;
 import java.util.Locale;
 
 public class OnlineMatchScene extends MatchScene {
-    private static final String FORFEITED = "Player forfeited match";
-    private static final String DISCONNECTED = "Client disconnected";
+    private static final String FORFEITED = "Player forfeited";
+    private static final String DISCONNECTED = "disconnected";
 
     private final OnlineSession session;
     private final String opponentName;
@@ -135,10 +135,10 @@ public class OnlineMatchScene extends MatchScene {
     private String resultText(ServerMessage message) {
         String comment = message.get("COMMENT");
         boolean won = message.is("SVR GAME WIN");
-        if (comment.equals(FORFEITED)) {
+        if (comment.startsWith(FORFEITED)) {
             return won ? opponentName + " FORFEITED, YOU WIN!" : "YOU FORFEITED!";
         }
-        if (comment.equals(DISCONNECTED)) {
+        if (comment.endsWith(DISCONNECTED)) {
             return opponentName + " LEFT, YOU WIN!";
         }
 
