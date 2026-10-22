@@ -78,15 +78,15 @@ public abstract class BaseScene implements Scene {
         spriteRenderer = assets.getSpriteRenderer();
         background = assets.getShared(BackgroundRenderer.class, BackgroundRenderer::new);
 
-        gameFont = assets.loadFont("gameFont", "/games/tictactoe/fonts/3x5-Microfont-Mono.ttf", 48f);
-        smallFont = assets.loadFont("smallFont", "/games/tictactoe/fonts/3x5-Microfont-Mono.ttf", 24f);
+        gameFont = assets.loadFont("gameFont", "/fonts/3x5-Microfont-Mono.ttf", 48f);
+        smallFont = assets.loadFont("smallFont", "/fonts/3x5-Microfont-Mono.ttf", 24f);
 
-        buttonTexture = assets.loadTexture("btnTexture", "/games/tictactoe/textures/button.png");
-        buttonPressedTexture = assets.loadTexture("btnPressedTexture", "/games/tictactoe/textures/buttonPressed.png");
-        logoTexture = assets.loadTexture("tripleTlogo", "/games/tictactoe/textures/tripleTlogo.png");
+        buttonTexture = assets.loadTexture("btnTexture", "/textures/button.png");
+        buttonPressedTexture = assets.loadTexture("btnPressedTexture", "/textures/buttonPressed.png");
+        logoTexture = assets.loadTexture("tripleTlogo", "/textures/tripleTlogo.png");
 
-        mousePointTexture = assets.loadTexture("mousePoint", "/games/tictactoe/textures/cursorPoint.png");
-        mouseGrabTexture = assets.loadTexture("mouseGrab", "/games/tictactoe/textures/cursorGrab.png");
+        mousePointTexture = assets.loadTexture("mousePoint", "/textures/cursorPoint.png");
+        mouseGrabTexture = assets.loadTexture("mouseGrab", "/textures/cursorGrab.png");
         input.setCursorVisible(false);
 
         mousePoint = new Sprite(mousePointTexture);
