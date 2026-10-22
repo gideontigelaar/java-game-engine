@@ -3,12 +3,10 @@ package nl.team3.games.tictactoe.scenes;
 import nl.team3.engine.core.SceneManager;
 import nl.team3.engine.input.ActionMap;
 import nl.team3.engine.input.InputManager;
-import nl.team3.engine.ui.Button;
 import nl.team3.engine.ui.TextField;
 import nl.team3.games.tictactoe.Settings;
+import nl.team3.games.tictactoe.network.OnlineSession;
 import nl.team3.games.tictactoe.network.ServerAddress;
-import nl.team3.games.tictactoe.network.ServerConnection;
-import nl.team3.games.tictactoe.network.ServerMessage;
 import org.joml.Vector2f;
 
 import java.util.Locale;
@@ -20,18 +18,10 @@ public class MainMenuScene extends MenuScene {
     private static final float FIELD_WIDTH = 480f;
     private static final int NAME_LENGTH = 16;
     private static final int ADDRESS_LENGTH = 28;
-    private static final float LOGIN_TIMEOUT = 5f;
     private static final String NAME_PATTERN = "[a-z0-9_-]+";
 
     private TextField nameField;
     private TextField serverField;
-    private Button btnLoginOnline;
-    private Button btnPlayOffline;
-
-    private ServerConnection login;
-    private String loginName;
-    private boolean loginSent;
-    private float loginTime;
 
     public MainMenuScene(InputManager input, ActionMap actions, SceneManager sceneManager) {
         this(input, actions, sceneManager, "");
@@ -49,8 +39,8 @@ public class MainMenuScene extends MenuScene {
                 c -> isAsciiLetterOrDigit(c) || c == '.' || c == ':' || c == '-');
         serverField.setColors(DIM_WHITE, HOVER_COLOR, HIGHLIGHT_COLOR);
 
-        btnLoginOnline = addButton("LOGIN ONLINE", this::openOnline);
-        btnPlayOffline = addButton("PLAY OFFLINE", () -> open(new OfflineMenuScene(input, actions, sceneManager)));
+        addButton("LOGIN ONLINE", this::openOnline);
+        addButton("PLAY OFFLINE", () -> open(new OfflineMenuScene(input, actions, sceneManager)));
         addSmallButton("QUIT GAME", input::requestClose);
     }
 
@@ -73,62 +63,16 @@ public class MainMenuScene extends MenuScene {
             focus(nameField, "Enter your name first!");
         } else if (!name.matches(NAME_PATTERN)) {
             focus(nameField, "Use letters and numbers only!");
+        } else if (name.endsWith(OnlineSession.PVP_TAG)) {
+            focus(nameField, "Names can't end with " + OnlineSession.PVP_TAG);
         } else {
             ServerAddress address = ServerAddress.parse(serverField.getText());
             if (address == null) {
                 focus(serverField, "Enter a server address like " + Settings.DEFAULT_SERVER);
             } else {
-                startLogin(name, address);
+                open(new OnlineMenuScene(input, actions, sceneManager, address));
             }
         }
-    }
-
-    private void startLogin(String name, ServerAddress address) {
-        loginName = name;
-        loginSent = false;
-        loginTime = 0f;
-        login = new ServerConnection(address);
-        login.connect();
-        setLoginButtonsEnabled(false);
-        showProgress("Connecting to " + address + "...");
-    }
-
-    private void updateLogin(float dt) {
-        loginTime += dt;
-        if (login.isConnected() && !loginSent) {
-            login.sendCommand("login " + loginName);
-            loginSent = true;
-        }
-
-        ServerMessage message;
-        while ((message = login.poll()) != null) {
-            if (!message.isReplyTo("login")) continue;
-            if (message.is("OK")) {
-                open(new LobbyScene(input, actions, sceneManager, login, loginName, false));
-                login = null;
-            } else {
-                stopLogin("Login failed: " + message.data());
-            }
-            return;
-        }
-
-        if (!login.isConnecting() && !login.isConnected()) {
-            stopLogin("Can't reach " + login.getAddress());
-        } else if (loginTime > LOGIN_TIMEOUT) {
-            stopLogin("No answer from the server!");
-        }
-    }
-
-    private void stopLogin(String error) {
-        login.disconnect();
-        login = null;
-        setLoginButtonsEnabled(true);
-        showStatus(error);
-    }
-
-    private void setLoginButtonsEnabled(boolean enabled) {
-        btnLoginOnline.setEnabled(enabled);
-        btnPlayOffline.setEnabled(enabled);
     }
 
     private void focus(TextField field, String error) {
@@ -139,11 +83,6 @@ public class MainMenuScene extends MenuScene {
 
     @Override
     protected void updateMenu(float dt) {
-        if (login != null) {
-            updateLogin(dt);
-            return;
-        }
-
         nameField.update(input);
         serverField.update(input);
 

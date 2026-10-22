@@ -11,7 +11,6 @@ import nl.team3.engine.input.ActionMap;
 import nl.team3.engine.input.InputManager;
 import nl.team3.engine.ui.Button;
 import nl.team3.games.tictactoe.BackgroundRenderer;
-import nl.team3.games.tictactoe.network.ServerConnection;
 import org.joml.Vector2f;
 import org.joml.Vector4f;
 
@@ -30,6 +29,7 @@ public abstract class BaseScene implements Scene {
     protected static final Vector4f ERROR_COLOR = new Vector4f(1, 0, 0, 1);
     protected static final Vector4f HIGHLIGHT_COLOR = new Vector4f(1, 1, 0, 1);
     protected static final Vector4f HOVER_COLOR = new Vector4f(0.8f, 0.8f, 0, 1);
+    protected static final Vector4f DARK_TEXT_COLOR = new Vector4f(0f, 0.157f, 0.349f, 1f);
 
     private static final NineSlice BUTTON_SLICE = new NineSlice(5, 6, 5, 5);
     private static final float TRANSITION_TIME = 0.7f;
@@ -38,7 +38,6 @@ public abstract class BaseScene implements Scene {
     protected final InputManager input;
     protected final ActionMap actions;
     protected final SceneManager sceneManager;
-    protected final ServerConnection connection;
 
     protected SpriteRenderer spriteRenderer;
     protected TextRenderer textRenderer;
@@ -68,11 +67,10 @@ public abstract class BaseScene implements Scene {
     private Button[] shrinkingButtons;
     private Animation[] shrinkAnimations;
 
-    public BaseScene(InputManager input, ActionMap actions, SceneManager sceneManager, ServerConnection connection) {
+    public BaseScene(InputManager input, ActionMap actions, SceneManager sceneManager) {
         this.input = input;
         this.actions = actions;
         this.sceneManager = sceneManager;
-        this.connection = connection;
     }
 
     @Override
@@ -151,7 +149,11 @@ public abstract class BaseScene implements Scene {
     }
 
     protected Button createButton(String text, float width, Runnable onClick) {
-        Button button = new Button(text, smallFont, new Vector2f(), new Vector2f(width, BUTTON_HEIGHT));
+        return createButton(text, width, BUTTON_HEIGHT, onClick);
+    }
+
+    protected Button createButton(String text, float width, float height, Runnable onClick) {
+        Button button = new Button(text, smallFont, new Vector2f(), new Vector2f(width, height));
         button.setBackgroundSprite(new Sprite(buttonTexture));
         button.setPressedSprite(new Sprite(buttonPressedTexture), UI_SCALE);
         button.setNineSlice(BUTTON_SLICE, UI_SCALE);
@@ -168,6 +170,10 @@ public abstract class BaseScene implements Scene {
     protected void drawCenteredText(Font font, String text, float y, Vector4f color) {
         float x = Math.round((currentWidth - font.getTextWidth(text)) / 2f);
         textRenderer.drawText(font, text, x, Math.round(y + font.getCapHeight()), color);
+    }
+
+    protected void drawText(Font font, String text, float x, float y, Vector4f color) {
+        textRenderer.drawText(font, text, Math.round(x), Math.round(y + font.getCapHeight()), color);
     }
 
     protected boolean isBackPressed() {

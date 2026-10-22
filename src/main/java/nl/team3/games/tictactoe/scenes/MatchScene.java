@@ -13,9 +13,7 @@ import nl.team3.engine.ui.Button;
 import nl.team3.games.tictactoe.AIOpponent;
 import nl.team3.games.tictactoe.BackgroundRenderer;
 import nl.team3.games.tictactoe.Board;
-import nl.team3.games.tictactoe.network.ServerConnection;
 import org.joml.Vector2f;
-import org.joml.Vector4f;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -52,7 +50,6 @@ public class MatchScene extends BaseScene {
     private static final float FADE_ALPHA = 0.35f;
     private static final float FADE_TIME = 0.4f;
     private static final float AI_MOVE_DELAY = 0.5f;
-    private static final Vector4f TEXT_COLOR = new Vector4f(0f, 0.157f, 0.349f, 1f);
 
     protected final Board board;
     private final Board.Mark firstTurn;
@@ -187,18 +184,18 @@ public class MatchScene extends BaseScene {
     }
 
     public MatchScene(InputManager input, ActionMap actions, SceneManager sceneManager) {
-        this(input, actions, sceneManager, null, ThreadLocalRandom.current().nextBoolean() ? Board.Mark.X : Board.Mark.O,
+        this(input, actions, sceneManager, ThreadLocalRandom.current().nextBoolean() ? Board.Mark.X : Board.Mark.O,
                 Board.Mark.X, null, null);
     }
 
     // Against the computer, which plays O on the right
     public MatchScene(InputManager input, ActionMap actions, SceneManager sceneManager, AIOpponent ai) {
-        this(input, actions, sceneManager, null, Board.Mark.X, Board.Mark.X, ai, Board.Mark.O);
+        this(input, actions, sceneManager, Board.Mark.X, Board.Mark.X, ai, Board.Mark.O);
     }
 
-    protected MatchScene(InputManager input, ActionMap actions, SceneManager sceneManager, ServerConnection connection,
+    protected MatchScene(InputManager input, ActionMap actions, SceneManager sceneManager,
                          Board.Mark firstTurn, Board.Mark leftMark, AIOpponent ai, Board.Mark aiMark) {
-        super(input, actions, sceneManager, connection);
+        super(input, actions, sceneManager);
         this.board = new Board(firstTurn);
         this.firstTurn = firstTurn;
         this.leftMark = leftMark;
@@ -266,7 +263,7 @@ public class MatchScene extends BaseScene {
 
     // Take turns starting
     protected void playAgain() {
-        leaveTo(new MatchScene(input, actions, sceneManager, null, firstTurn.opponent(), leftMark, ai, aiMark));
+        leaveTo(new MatchScene(input, actions, sceneManager, firstTurn.opponent(), leftMark, ai, aiMark));
     }
 
     protected void leaveTo(BaseScene scene) {
@@ -502,7 +499,7 @@ public class MatchScene extends BaseScene {
         String status = getStatus();
         Font statusFont = gameFont.getTextWidth(status) <= currentWidth - 4 * UI_SPACING ? gameFont : smallFont;
 
-        drawCenteredText(statusFont, status, statusY, TEXT_COLOR);
+        drawCenteredText(statusFont, status, statusY, DARK_TEXT_COLOR);
         drawPlayerName(xSide);
         drawPlayerName(oSide);
 
@@ -526,7 +523,7 @@ public class MatchScene extends BaseScene {
         } else {
             x = Math.max(x, boardTopLeft.x + boardTexture.getWidth() * BOARD_SCALE + UI_SPACING);
         }
-        textRenderer.drawText(smallFont, name, Math.round(x), Math.round(nameY + smallFont.getCapHeight()), TEXT_COLOR);
+        textRenderer.drawText(smallFont, name, Math.round(x), Math.round(nameY + smallFont.getCapHeight()), DARK_TEXT_COLOR);
     }
 
     @Override

@@ -4,19 +4,22 @@ import nl.team3.engine.assets.AssetManager;
 import nl.team3.engine.core.SceneManager;
 import nl.team3.engine.input.ActionMap;
 import nl.team3.engine.input.InputManager;
+import nl.team3.games.tictactoe.AIOpponent;
 import nl.team3.games.tictactoe.BackgroundRenderer;
 import nl.team3.games.tictactoe.Board;
-import nl.team3.games.tictactoe.network.ServerConnection;
+import nl.team3.games.tictactoe.network.OnlineSession;
 import nl.team3.games.tictactoe.network.ServerMessage;
+
+import java.util.Locale;
 
 public class OnlineMatchScene extends MatchScene {
     private static final String FORFEITED = "Player forfeited match";
     private static final String DISCONNECTED = "Client disconnected";
 
-    private final String playerName;
+    private final OnlineSession session;
     private final String opponentName;
     private final Board.Mark playerMark;
-    private final Board.Mark opponentMark;
+    private final boolean aiPlays;
 
     private boolean yourTurn;
     private boolean forfeitSent;
@@ -24,13 +27,20 @@ public class OnlineMatchScene extends MatchScene {
     private Board.Mark winner;
     private String result;
 
-    public OnlineMatchScene(InputManager input, ActionMap actions, SceneManager sceneManager, ServerConnection connection,
-                            String playerName, String opponentName, boolean playerStarts) {
-        super(input, actions, sceneManager, connection, Board.Mark.X, playerStarts ? Board.Mark.X : Board.Mark.O, null, null);
-        this.playerName = playerName;
-        this.opponentName = opponentName.toUpperCase();
-        this.playerMark = playerStarts ? Board.Mark.X : Board.Mark.O;
-        this.opponentMark = playerStarts ? Board.Mark.O : Board.Mark.X;
+    private OnlineMatchScene(InputManager input, ActionMap actions, SceneManager sceneManager, OnlineSession session,
+                             String opponent, Board.Mark playerMark, AIOpponent ai) {
+        super(input, actions, sceneManager, Board.Mark.X, playerMark, ai, playerMark);
+        this.session = session;
+        this.opponentName = OnlineSession.displayName(opponent);
+        this.playerMark = playerMark;
+        this.aiPlays = ai != null;
+    }
+
+    static OnlineMatchScene create(BaseScene from, OnlineSession session, ServerMessage match) {
+        Board.Mark playerMark = session.isMe(match.get("PLAYERTOMOVE")) ? Board.Mark.X : Board.Mark.O;
+        AIOpponent ai = session.getRoom() == OnlineSession.Room.AI_VS_AI
+                ? new AIOpponent(AIOpponent.Difficulty.UNBEATABLE) : null;
+        return new OnlineMatchScene(from.input, from.actions, from.sceneManager, session, match.get("OPPONENT"), playerMark, ai);
     }
 
     @Override
@@ -44,12 +54,12 @@ public class OnlineMatchScene extends MatchScene {
         super.onUpdate(dt);
 
         ServerMessage message;
-        while (!isTransitioning() && (message = connection.poll()) != null) {
+        while (!isTransitioning() && (message = session.poll()) != null) {
             handleMessage(message);
         }
 
-        if (!isTransitioning() && !connection.isConnected()) {
-            sceneManager.changeScene(new MainMenuScene(input, actions, sceneManager, "Connection lost!"));
+        if (!isTransitioning() && !session.isConnected()) {
+            leaveTo(new OnlineMenuScene(input, actions, sceneManager, session.getAddress(), "Connection lost!"));
         }
     }
 
@@ -63,14 +73,14 @@ public class OnlineMatchScene extends MatchScene {
     }
 
     private void applyMove(ServerMessage message) {
-        if (message.get("PLAYER").equalsIgnoreCase(playerName)) return;
+        if (session.isMe(message.get("PLAYER"))) return;
 
         int cell = parseCell(message.get("MOVE"));
         if (cell < 0) return;
 
         int col = cell % Board.SIZE;
         int row = cell / Board.SIZE;
-        if (board.getTurn() == opponentMark && board.canPlace(col, row)) {
+        if (board.getTurn() == playerMark.opponent() && board.canPlace(col, row)) {
             playMove(col, row);
         }
     }
@@ -87,7 +97,7 @@ public class OnlineMatchScene extends MatchScene {
     @Override
     protected void onMove(int col, int row) {
         yourTurn = false;
-        connection.sendCommand("move " + (row * Board.SIZE + col));
+        session.move(row * Board.SIZE + col);
     }
 
     @Override
@@ -106,7 +116,7 @@ public class OnlineMatchScene extends MatchScene {
         if (message.is("SVR GAME WIN")) {
             winner = playerMark;
         } else if (message.is("SVR GAME LOSS")) {
-            winner = opponentMark;
+            winner = playerMark.opponent();
         }
         result = resultText(message);
         btnAction.setText("LEAVE GAME");
@@ -124,7 +134,7 @@ public class OnlineMatchScene extends MatchScene {
         }
 
         String text = message.is("SVR GAME DRAW") ? "DRAW!" : won ? "YOU WIN!" : "YOU LOSE!";
-        return comment.isEmpty() ? text : text + " " + comment.toUpperCase();
+        return comment.isEmpty() ? text : text + " " + comment.toUpperCase(Locale.ROOT);
     }
 
     @Override
@@ -138,12 +148,18 @@ public class OnlineMatchScene extends MatchScene {
         if (board.isDraw()) {
             return "DRAW!";
         }
-        return board.getTurn() == playerMark ? "YOUR TURN" : opponentName + "'S TURN";
+        if (board.getTurn() != playerMark) {
+            return opponentName + "'S TURN";
+        }
+        return aiPlays ? "AI IS THINKING..." : "YOUR TURN";
     }
 
     @Override
     protected String getPlayerName(Board.Mark mark) {
-        return mark == playerMark ? "YOU" : opponentName;
+        if (mark != playerMark) {
+            return opponentName;
+        }
+        return aiPlays ? "YOUR AI" : "YOU";
     }
 
     @Override
@@ -157,15 +173,15 @@ public class OnlineMatchScene extends MatchScene {
     @Override
     protected void leave() {
         if (!matchEnded && !forfeitSent) {
-            connection.sendCommand("forfeit");
+            session.forfeit();
             forfeitSent = true;
             return;
         }
-        leaveTo(new LobbyScene(input, actions, sceneManager, connection, playerName, false));
+        leaveTo(new LobbyScene(input, actions, sceneManager, session, false));
     }
 
     @Override
     protected void playAgain() {
-        leaveTo(new LobbyScene(input, actions, sceneManager, connection, playerName, true));
+        leaveTo(new LobbyScene(input, actions, sceneManager, session, true));
     }
 }

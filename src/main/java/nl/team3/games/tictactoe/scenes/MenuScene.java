@@ -34,7 +34,7 @@ public abstract class MenuScene extends BaseScene {
     private float statusY;
 
     protected MenuScene(InputManager input, ActionMap actions, SceneManager sceneManager, String status) {
-        super(input, actions, sceneManager, null);
+        super(input, actions, sceneManager);
         if (!status.isEmpty()) {
             setStatus(status, ERROR_COLOR, STATUS_TIME);
         }
