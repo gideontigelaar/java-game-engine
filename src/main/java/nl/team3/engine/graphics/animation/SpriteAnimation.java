@@ -131,18 +131,21 @@ public class SpriteAnimation {
 
 
     public void setTransformation() {
-        if (!started || sprite == null) return;
-        sprite.setTransformation(getPosition(), getScale(), getRotation());
+        setPosition();
+        setScale();
+        setRotation();
     }
 
     public void setPosition() {
         if (!started || sprite == null) return;
-        sprite.setPosition(getPosition());
+        float p = getProgress();
+        sprite.setPosition(ease(startPos.x, endPos.x, p), ease(startPos.y, endPos.y, p));
     }
 
     public void setScale() {
         if (!started || sprite == null) return;
-        sprite.setScale(getScale());
+        float p = getProgress();
+        sprite.setScale(ease(startScale.x, endScale.x, p), ease(startScale.y, endScale.y, p));
     }
 
     public void setRotation() {
@@ -176,6 +179,10 @@ public class SpriteAnimation {
 
 
     public Timer getTimer() { return timer; }
+
+    private float ease(float start, float end, float progress) {
+        return Interpolators.Easing(start, end, progress, easingType);
+    }
 
     public void SetSprite(Sprite sprite) {
         this.sprite = sprite;

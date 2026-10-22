@@ -37,10 +37,17 @@ public class TextRenderer {
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        shader.bind();
+        shader.setUniform1i("uTexture", 0);
     }
 
     public void setProjection(int width, int height) {
         projection.identity().ortho(0, width, height, 0, -1, 1);
+        shader.bind();
+        shader.setUniformMat4("uProjection", projection);
     }
 
     public void drawText(Font font, String text, float x, float y, Vector4f color) {
@@ -60,12 +67,10 @@ public class TextRenderer {
         vertices.clear();
 
         shader.bind();
-        shader.setUniformMat4("uProjection", projection);
         shader.setUniform4f("uColor", color.x, color.y, color.z, color.w);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, font.getTextureId());
-        shader.setUniform1i("uTexture", 0);
 
         glBindVertexArray(vaoId);
         glBindBuffer(GL_ARRAY_BUFFER, vboId);
@@ -100,15 +105,8 @@ public class TextRenderer {
             int vertexCount = vertices.remaining() / 4;
 
             glBufferData(GL_ARRAY_BUFFER, vertices, GL_DYNAMIC_DRAW);
-
-            glEnable(GL_BLEND);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             glDrawArrays(GL_TRIANGLES, 0, vertexCount);
         }
-
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
-        shader.unbind();
     }
 
     public void cleanup() {

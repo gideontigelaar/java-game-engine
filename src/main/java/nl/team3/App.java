@@ -66,7 +66,6 @@ public class App {
             sceneManager.resize(viewport.getScaledWidth(), viewport.getScaledHeight());
         };
         GLFW.glfwSetFramebufferSizeCallback(window, (win, width, height) -> refreshViewport.run());
-        GLFW.glfwSetWindowSizeCallback(window, (win, width, height) -> refreshViewport.run());
 
         // Set initial viewport and scene size
         sceneManager.resize(viewport.getScaledWidth(), viewport.getScaledHeight());
@@ -75,6 +74,7 @@ public class App {
         sceneManager.changeScene(new MainMenuScene(input, actions, sceneManager));
 
         double lastTime = GLFW.glfwGetTime();
+        GL11.glClearColor(Config.BG_COLOR.x, Config.BG_COLOR.y, Config.BG_COLOR.z, Config.BG_COLOR.w);
 
         while (!GLFW.glfwWindowShouldClose(window)) {
             GLFW.glfwPollEvents();
@@ -89,8 +89,7 @@ public class App {
             }
 
             viewport.apply();
-            GL11.glClearColor(Config.BG_COLOR.x, Config.BG_COLOR.y, Config.BG_COLOR.z, Config.BG_COLOR.w);
-            GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
+            GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
 
             sceneManager.update(deltaTime);
             sceneManager.render();

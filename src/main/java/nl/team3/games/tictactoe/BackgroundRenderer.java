@@ -60,6 +60,5 @@ public class BackgroundRenderer {
         shader.setUniform1f("startTime", startTime);
         shader.setUniform2f("mousePosition", mouseX, mouseY);
         quad.render();
-        shader.unbind();
     }
 }

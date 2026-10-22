@@ -15,8 +15,6 @@ import org.joml.Vector2f;
 import org.joml.Vector4f;
 
 import static org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT;
-import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
-import static org.lwjgl.opengl.GL11.glClear;
 
 public abstract class BaseScene implements Scene {
     protected static final int UI_SCALE = 4;
@@ -97,7 +95,6 @@ public abstract class BaseScene implements Scene {
         mouseReleaseAnim = SpriteAnimation.builder().sprite(mousePoint).scale(new Vector2f(3f, 3f), new Vector2f(4f, 4f)).duration(0.3f).easing("ExponentialOut").build();
 
         onInit(assets);
-        resize(currentWidth, currentHeight);
         updatePalette(currentWidth / 2f, currentHeight / 2f);
     }
 
@@ -130,7 +127,6 @@ public abstract class BaseScene implements Scene {
 
     @Override
     public final void render() {
-        glClear(GL_COLOR_BUFFER_BIT);
         background.render(currentWidth, currentHeight);
 
         onRender();

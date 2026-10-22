@@ -38,6 +38,8 @@ public class SpriteRenderer {
 
     public void setProjection(int width, int height) {
         this.projection.identity().ortho(0, width, height, 0, -1, 1);
+        shader.bind();
+        shader.setUniformMat4("uProjection", projection);
     }
 
     public void draw(Sprite sprite) {
@@ -45,7 +47,6 @@ public class SpriteRenderer {
 
         shader.bind();
         shader.setUniformMat4("uModel", buildModelMatrix(sprite, texture));
-        shader.setUniformMat4("uProjection", projection);
 
         Vector4f tint = sprite.getTint();
         shader.setUniform4f("uTint", tint.x, tint.y, tint.z, tint.w * sprite.getAlpha());
@@ -82,7 +83,6 @@ public class SpriteRenderer {
         float[] uvsY = { 0.0f, vTop, vBottom, 1.0f };
 
         shader.bind();
-        shader.setUniformMat4("uProjection", projection);
 
         Vector4f tint = sprite.getTint();
         shader.setUniform4f("uTint", tint.x, tint.y, tint.z, tint.w * sprite.getAlpha());
