@@ -4,14 +4,14 @@ public class Animation {
     private final float startValue;
     private final float endValue;
 
-    private final String easingType;
+    private final EasingType easingType;
     private final float duration;
 
     private boolean started = false;
     private boolean playing = false;
     private float elapsed = 0f;
 
-    public Animation(float startValue, float endValue, String easingType, float duration) {
+    public Animation(float startValue, float endValue, EasingType easingType, float duration) {
         this.startValue = startValue;
         this.endValue = endValue;
         this.easingType = easingType;
@@ -24,8 +24,7 @@ public class Animation {
         playing = true;
     }
 
-
-    public void UpdateAnimation(float dt) {
+    public void update(float dt) {
         if (!playing) return;
 
         elapsed += dt;
@@ -40,7 +39,6 @@ public class Animation {
     public boolean hasStarted() { return started; }
     public boolean isFinished() { return started && !playing; }
 
-
     public float getProgress() {
         if (!started) return 0f;
         if (duration <= 0f) return 1f;
@@ -49,6 +47,6 @@ public class Animation {
 
     public float getValue() {
         float p = getProgress();
-        return Interpolators.Easing(startValue, endValue, p, easingType);
+        return Interpolators.ease(startValue, endValue, p, easingType);
     }
 }

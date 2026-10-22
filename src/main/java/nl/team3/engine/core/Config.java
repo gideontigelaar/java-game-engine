@@ -2,7 +2,10 @@ package nl.team3.engine.core;
 
 import org.joml.Vector4f;
 
-public class Config {
+public final class Config {
+    private Config() {
+    }
+
     // Window
     public static final String WINDOW_TITLE = "Game Engine";
     public static final int WINDOW_WIDTH = 1920;

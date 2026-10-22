@@ -11,13 +11,13 @@ public class OnlineSession {
 
     private static final float LOGIN_TIMEOUT = 5f;
 
-    public enum Room {
+    public enum Mode {
         PLAYER_VS_PLAYER("PLAYER VS PLAYER"),
         AI_VS_AI("AI VS AI");
 
         private final String title;
 
-        Room(String title) {
+        Mode(String title) {
             this.title = title;
         }
 
@@ -29,7 +29,7 @@ public class OnlineSession {
     public enum LoginState { PENDING, DONE, FAILED }
 
     private final ServerConnection connection;
-    private final Room room;
+    private final Mode mode;
     private final String loginName;
     private final Map<String, String> challenges = new LinkedHashMap<>();
     private final Map<String, String> challengesView = Collections.unmodifiableMap(challenges);
@@ -41,8 +41,8 @@ public class OnlineSession {
     private float loginTime;
     private String loginError = "";
 
-    public OnlineSession(ServerAddress address, Room room, String name) {
-        this.room = room;
+    public OnlineSession(ServerAddress address, Mode mode, String name) {
+        this.mode = mode;
         this.loginName = name.toLowerCase(Locale.ROOT);
         this.connection = new ServerConnection(address);
         connection.connect();
@@ -159,8 +159,8 @@ public class OnlineSession {
         return connection.isConnected();
     }
 
-    public Room getRoom() {
-        return room;
+    public Mode getMode() {
+        return mode;
     }
 
     public String getDisplayName() {

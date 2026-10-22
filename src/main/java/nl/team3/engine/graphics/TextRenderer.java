@@ -82,9 +82,9 @@ public class TextRenderer {
 
             for (int i = 0; i < text.length(); i++) {
                 int c = text.charAt(i);
-                if (c >= 32 && c < 128) {
+                if (c >= Font.FIRST_CHAR && c < Font.FIRST_CHAR + Font.CHAR_COUNT) {
                     stbtt_GetBakedQuad(font.getCharData(), font.getAtlasWidth(), font.getAtlasHeight(),
-                            c - 32, xBuffer, yBuffer, q, true);
+                            c - Font.FIRST_CHAR, xBuffer, yBuffer, q, true);
 
                     float x0 = x + (q.x0() - x) * scale;
                     float y0 = y + (q.y0() - y) * scale;

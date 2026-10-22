@@ -6,6 +6,7 @@ import nl.team3.engine.graphics.Font;
 import nl.team3.engine.graphics.Sprite;
 import nl.team3.engine.graphics.Texture;
 import nl.team3.engine.graphics.animation.Animation;
+import nl.team3.engine.graphics.animation.EasingType;
 import nl.team3.engine.graphics.animation.SpriteAnimation;
 import nl.team3.engine.input.ActionMap;
 import nl.team3.engine.input.InputManager;
@@ -126,7 +127,7 @@ public class MatchScene extends BaseScene {
         private void pickUp() {
             pickedUp = true;
             returnAnim = null;
-            grabAnim = SpriteAnimation.builder().sprite(active).scale(new Vector2f(active.getScale()), new Vector2f(GRAB_SCALE, GRAB_SCALE)).duration(MOVE_TIME).easing("ExponentialOut").build();
+            grabAnim = SpriteAnimation.builder().sprite(active).scale(new Vector2f(active.getScale()), new Vector2f(GRAB_SCALE, GRAB_SCALE)).duration(MOVE_TIME).easing(EasingType.EXPONENTIAL_OUT).build();
             grabAnim.startAnimation();
             layout();
         }
@@ -137,7 +138,7 @@ public class MatchScene extends BaseScene {
             returnAnim = SpriteAnimation.builder().sprite(active)
                     .position(new Vector2f(active.getPosition()), new Vector2f(stackX(), levelY(stack.size())))
                     .scale(new Vector2f(active.getScale()), new Vector2f(BOARD_SCALE, BOARD_SCALE))
-                    .duration(MOVE_TIME).easing("ExponentialOut").build();
+                    .duration(MOVE_TIME).easing(EasingType.EXPONENTIAL_OUT).build();
             returnAnim.startAnimation();
             layout();
         }
@@ -352,7 +353,7 @@ public class MatchScene extends BaseScene {
 
         if (side.pickedUp) {
             if (input.isButtonDown(GLFW_MOUSE_BUTTON_LEFT)) {
-                side.grabAnim.UpdateAnimation(dt);
+                side.grabAnim.update(dt);
                 side.grabAnim.setScale();
                 Vector2f position = side.active.getPosition();
                 side.active.setPosition(position.x + (float) input.getMouseDeltaX(), position.y + (float) input.getMouseDeltaY());
@@ -360,7 +361,7 @@ public class MatchScene extends BaseScene {
                 dropPiece(side);
             }
         } else if (side.returnAnim != null) {
-            side.returnAnim.UpdateAnimation(dt);
+            side.returnAnim.update(dt);
             side.returnAnim.setTransformation();
             if (side.returnAnim.isFinished()) {
                 side.returnAnim = null;
@@ -419,7 +420,7 @@ public class MatchScene extends BaseScene {
         SpriteAnimation settle = SpriteAnimation.builder().sprite(piece)
                 .position(new Vector2f(piece.getPosition()), getGridCenter(col, row))
                 .scale(new Vector2f(piece.getScale()), new Vector2f(BOARD_SCALE, BOARD_SCALE))
-                .duration(moveTime).easing("ExponentialOut").build();
+                .duration(moveTime).easing(EasingType.EXPONENTIAL_OUT).build();
         settle.startAnimation();
         settling.add(settle);
 
@@ -436,7 +437,7 @@ public class MatchScene extends BaseScene {
     protected void finishMatch() {
         if (fadeAnim == null) {
             winningLine = board.getWinningLine();
-            fadeAnim = new Animation(1f, FADE_ALPHA, "ExponentialOut", FADE_TIME);
+            fadeAnim = new Animation(1f, FADE_ALPHA, EasingType.EXPONENTIAL_OUT, FADE_TIME);
             fadeAnim.startAnimation();
         }
         layoutButtons();
@@ -447,7 +448,7 @@ public class MatchScene extends BaseScene {
         Iterator<SpriteAnimation> it = settling.iterator();
         while (it.hasNext()) {
             SpriteAnimation settle = it.next();
-            settle.UpdateAnimation(dt);
+            settle.update(dt);
             settle.setTransformation();
             if (settle.isFinished()) {
                 it.remove();
@@ -458,7 +459,7 @@ public class MatchScene extends BaseScene {
     private void updateGameOver(float dt) {
         if (fadeAnim == null) return;
 
-        fadeAnim.UpdateAnimation(dt);
+        fadeAnim.update(dt);
         float alpha = fadeAnim.getValue();
         xSide.setAlpha(alpha);
         oSide.setAlpha(alpha);

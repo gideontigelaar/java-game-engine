@@ -40,7 +40,7 @@ public class OnlineMatchScene extends MatchScene {
 
     static OnlineMatchScene create(BaseScene from, OnlineSession session, ServerMessage match) {
         Board.Mark playerMark = session.isMe(match.get("PLAYERTOMOVE")) ? Board.Mark.X : Board.Mark.O;
-        AIOpponent ai = session.getRoom() == OnlineSession.Room.AI_VS_AI
+        AIOpponent ai = session.getMode() == OnlineSession.Mode.AI_VS_AI
                 ? new AIOpponent(AIOpponent.Difficulty.UNBEATABLE) : null;
         return new OnlineMatchScene(from.input, from.actions, from.sceneManager, session, match.get("OPPONENT"), playerMark, ai);
     }

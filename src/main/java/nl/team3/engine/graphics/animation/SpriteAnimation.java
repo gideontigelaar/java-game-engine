@@ -35,7 +35,7 @@ public class SpriteAnimation extends Animation {
         private float startRot = 0f;
         private float endRot = 0f;
         private float duration = 1f;
-        private String easingType = "Linear";
+        private EasingType easingType = EasingType.LINEAR;
         private Sprite sprite;   // optional
 
         private Builder() {}
@@ -63,7 +63,7 @@ public class SpriteAnimation extends Animation {
             return this;
         }
 
-        public Builder easing(String easingType) {
+        public Builder easing(EasingType easingType) {
             this.easingType = easingType;
             return this;
         }

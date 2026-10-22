@@ -6,6 +6,7 @@ import nl.team3.engine.core.Scene;
 import nl.team3.engine.core.SceneManager;
 import nl.team3.engine.graphics.*;
 import nl.team3.engine.graphics.animation.Animation;
+import nl.team3.engine.graphics.animation.EasingType;
 import nl.team3.engine.graphics.animation.SpriteAnimation;
 import nl.team3.engine.input.ActionMap;
 import nl.team3.engine.input.InputManager;
@@ -75,7 +76,7 @@ public abstract class BaseScene implements Scene {
     public final void init(AssetManager assets) {
         textRenderer = assets.getTextRenderer();
         spriteRenderer = assets.getSpriteRenderer();
-        background = assets.getBackgroundRenderer();
+        background = assets.getShared(BackgroundRenderer.class, BackgroundRenderer::new);
 
         gameFont = assets.loadFont("gameFont", "/fonts/3x5-Microfont-Mono.ttf", 48f);
         smallFont = assets.loadFont("smallFont", "/fonts/3x5-Microfont-Mono.ttf", 24f);
@@ -91,8 +92,8 @@ public abstract class BaseScene implements Scene {
         mousePoint = new Sprite(mousePointTexture);
         mousePoint.setScale(4f);
 
-        mouseGrabAnim = SpriteAnimation.builder().sprite(mousePoint).scale(new Vector2f(4f, 4f), new Vector2f(3f, 3f)).duration(0.3f).easing("ExponentialOut").build();
-        mouseReleaseAnim = SpriteAnimation.builder().sprite(mousePoint).scale(new Vector2f(3f, 3f), new Vector2f(4f, 4f)).duration(0.3f).easing("ExponentialOut").build();
+        mouseGrabAnim = SpriteAnimation.builder().sprite(mousePoint).scale(new Vector2f(4f, 4f), new Vector2f(3f, 3f)).duration(0.3f).easing(EasingType.EXPONENTIAL_OUT).build();
+        mouseReleaseAnim = SpriteAnimation.builder().sprite(mousePoint).scale(new Vector2f(3f, 3f), new Vector2f(4f, 4f)).duration(0.3f).easing(EasingType.EXPONENTIAL_OUT).build();
 
         onInit(assets);
         updatePalette(currentWidth / 2f, currentHeight / 2f);
@@ -107,11 +108,11 @@ public abstract class BaseScene implements Scene {
 
         if (input.isButtonDown(GLFW_MOUSE_BUTTON_LEFT)) {
             mousePoint.setTexture(mouseGrabTexture);
-            mouseGrabAnim.UpdateAnimation(dt);
+            mouseGrabAnim.update(dt);
             mouseGrabAnim.setScale();
         } else {
             mousePoint.setTexture(mousePointTexture);
-            mouseReleaseAnim.UpdateAnimation(dt);
+            mouseReleaseAnim.update(dt);
             mouseReleaseAnim.setScale();
         }
         mousePoint.setPosition(mousePosition.x + 4f, mousePosition.y + 20f);
@@ -192,7 +193,7 @@ public abstract class BaseScene implements Scene {
         shrinkingButtons = buttons;
         shrinkAnimations = new Animation[buttons.length];
         for (int i = 0; i < buttons.length; i++) {
-            shrinkAnimations[i] = new Animation(1f, 0f, "ExponentialIn", 0.3f + 0.1f * (buttons.length - 1 - i));
+            shrinkAnimations[i] = new Animation(1f, 0f, EasingType.EXPONENTIAL_IN, 0.3f + 0.1f * (buttons.length - 1 - i));
             shrinkAnimations[i].startAnimation();
         }
     }
@@ -206,7 +207,7 @@ public abstract class BaseScene implements Scene {
         transitionTime += dt;
 
         for (int i = 0; i < shrinkingButtons.length; i++) {
-            shrinkAnimations[i].UpdateAnimation(dt);
+            shrinkAnimations[i].update(dt);
             shrinkingButtons[i].setScale(shrinkAnimations[i].getValue());
         }
 

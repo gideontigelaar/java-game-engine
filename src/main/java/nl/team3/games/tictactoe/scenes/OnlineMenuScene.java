@@ -12,7 +12,7 @@ import java.util.List;
 
 public class OnlineMenuScene extends MenuScene {
     private final ServerAddress address;
-    private final List<Button> roomButtons = new ArrayList<>();
+    private final List<Button> modeButtons = new ArrayList<>();
     private OnlineSession login;
 
     public OnlineMenuScene(InputManager input, ActionMap actions, SceneManager sceneManager, ServerAddress address) {
@@ -26,21 +26,21 @@ public class OnlineMenuScene extends MenuScene {
 
     @Override
     protected void initMenu() {
-        for (OnlineSession.Room room : OnlineSession.Room.values()) {
-            roomButtons.add(addButton(room.getTitle(), () -> join(room)));
+        for (OnlineSession.Mode mode : OnlineSession.Mode.values()) {
+            modeButtons.add(addButton(mode.getTitle(), () -> join(mode)));
         }
         addSmallButton("BACK", this::onBack);
     }
 
-    private void join(OnlineSession.Room room) {
-        login = new OnlineSession(address, room, playerName);
-        roomButtons.forEach(button -> button.setEnabled(false));
+    private void join(OnlineSession.Mode mode) {
+        login = new OnlineSession(address, mode, playerName);
+        modeButtons.forEach(button -> button.setEnabled(false));
         showProgress("Connecting to " + address + "...");
     }
 
     private void stopLogin() {
         login = null;
-        roomButtons.forEach(button -> button.setEnabled(true));
+        modeButtons.forEach(button -> button.setEnabled(true));
     }
 
     @Override

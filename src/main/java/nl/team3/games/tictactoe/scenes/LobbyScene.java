@@ -295,7 +295,7 @@ public class LobbyScene extends BaseScene {
     }
 
     private void renderTitle() {
-        String title = session.getRoom().getTitle();
+        String title = session.getMode().getTitle();
         float dotSize = statusDot.getTexture().getWidth() * UI_SCALE;
         float width = dotSize + UI_SPACING + gameFont.getTextWidth(title);
         float x = Math.round((currentWidth - width) / 2f);
@@ -336,7 +336,7 @@ public class LobbyScene extends BaseScene {
     protected void onResize(int width, int height) {
         float titleHeight = gameFont.getCapHeight();
         float lineHeight = smallFont.getCapHeight();
-        float panelChrome = (WINDOW_SLICE.top + WINDOW_SLICE.bottom) * UI_SCALE + 2 * PANEL_PADDING;
+        float panelChrome = (WINDOW_SLICE.top() + WINDOW_SLICE.bottom()) * UI_SCALE + 2 * PANEL_PADDING;
         float fixedHeight = titleHeight + UI_SPACING + lineHeight + 2 * UI_SPACING
                 + panelChrome + 2 * UI_SPACING + lineHeight + 2 * UI_SPACING + BUTTON_HEIGHT;
 
@@ -354,8 +354,8 @@ public class LobbyScene extends BaseScene {
 
         panelX = Math.round((width - PANEL_WIDTH) / 2f);
         panelY = y;
-        rowsY = panelY + WINDOW_SLICE.top * UI_SCALE + PANEL_PADDING;
-        float buttonX = panelX + PANEL_WIDTH - WINDOW_SLICE.right * UI_SCALE - PANEL_PADDING / 2f - SMALL_BUTTON_WIDTH;
+        rowsY = panelY + WINDOW_SLICE.top() * UI_SCALE + PANEL_PADDING;
+        float buttonX = panelX + PANEL_WIDTH - WINDOW_SLICE.right() * UI_SCALE - PANEL_PADDING / 2f - SMALL_BUTTON_WIDTH;
         for (int slot = 0; slot < MAX_ROWS; slot++) {
             rowButtons[slot].setPosition(buttonX, rowsY + slot * (ROW_HEIGHT + ROW_GAP));
         }

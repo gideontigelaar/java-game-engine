@@ -6,10 +6,10 @@ import nl.team3.engine.graphics.ShaderProgram;
 import nl.team3.engine.graphics.SpriteRenderer;
 import nl.team3.engine.graphics.TextRenderer;
 import nl.team3.engine.graphics.Texture;
-import nl.team3.games.tictactoe.BackgroundRenderer;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public final class AssetManager {
@@ -21,10 +21,10 @@ public final class AssetManager {
     private final Map<String, ShaderProgram> shaders = new HashMap<>();
     private final Map<String, Mesh> meshes = new HashMap<>();
     private final Map<String, Font> fonts = new HashMap<>();
+    private final Map<Class<?>, Object> shared = new HashMap<>();
 
     private TextRenderer textRenderer;
     private SpriteRenderer spriteRenderer;
-    private BackgroundRenderer backgroundRenderer;
 
     public AssetManager() {
         loadShader(SPRITE_SHADER, "/shaders/sprite.vert", "/shaders/sprite.frag");
@@ -81,11 +81,8 @@ public final class AssetManager {
         return spriteRenderer;
     }
 
-    public BackgroundRenderer getBackgroundRenderer() {
-        if (backgroundRenderer == null) {
-            backgroundRenderer = new BackgroundRenderer(this);
-        }
-        return backgroundRenderer;
+    public <T> T getShared(Class<T> type, Function<AssetManager, T> factory) {
+        return type.cast(shared.computeIfAbsent(type, k -> factory.apply(this)));
     }
 
     private static <T> T get(Map<String, T> assets, String type, String key) {
@@ -109,5 +106,6 @@ public final class AssetManager {
         shaders.clear();
         meshes.clear();
         fonts.clear();
+        shared.clear();
     }
 }

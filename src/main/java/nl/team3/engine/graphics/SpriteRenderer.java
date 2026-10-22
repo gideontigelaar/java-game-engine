@@ -65,19 +65,19 @@ public class SpriteRenderer {
         float texW = texture.getWidth();
         float texH = texture.getHeight();
 
-        float leftW   = Math.min(slice.left   * pixelScale, targetWidth  * 0.5f);
-        float rightW  = Math.min(slice.right  * pixelScale, targetWidth  * 0.5f);
-        float topH    = Math.min(slice.top    * pixelScale, targetHeight * 0.5f);
-        float bottomH = Math.min(slice.bottom * pixelScale, targetHeight * 0.5f);
+        float leftW   = Math.min(slice.left()   * pixelScale, targetWidth  * 0.5f);
+        float rightW  = Math.min(slice.right()  * pixelScale, targetWidth  * 0.5f);
+        float topH    = Math.min(slice.top()    * pixelScale, targetHeight * 0.5f);
+        float bottomH = Math.min(slice.bottom() * pixelScale, targetHeight * 0.5f);
 
         // Screen positions according to 3x3 grid
         float[] destX = { x, x + leftW, x + targetWidth - rightW, x + targetWidth };
         float[] destY = { y, y + topH, y + targetHeight - bottomH, y + targetHeight };
 
-        float uLeft = slice.left / texW;
-        float uRight = (texW - slice.right) / texW;
-        float vTop = slice.top / texH;
-        float vBottom = (texH - slice.bottom) / texH;
+        float uLeft = slice.left() / texW;
+        float uRight = (texW - slice.right()) / texW;
+        float vTop = slice.top() / texH;
+        float vBottom = (texH - slice.bottom()) / texH;
 
         float[] uvsX = { 0.0f, uLeft, uRight, 1.0f };
         float[] uvsY = { 0.0f, vTop, vBottom, 1.0f };
