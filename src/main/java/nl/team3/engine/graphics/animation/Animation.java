@@ -1,8 +1,5 @@
 package nl.team3.engine.graphics.animation;
 
-import nl.team3.engine.graphics.Sprite;
-import org.joml.Vector2f;
-
 public class Animation {
     private final float startValue;
     private final float endValue;
@@ -10,9 +7,6 @@ public class Animation {
     private final String easingType;
     private final float duration;
     private final Timer timer;
-
-    private Sprite sprite;
-
 
     private boolean started = false;
     private boolean playing = false;
