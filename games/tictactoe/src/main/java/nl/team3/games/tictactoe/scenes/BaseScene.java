@@ -1,0 +1,225 @@
+package nl.team3.games.tictactoe.scenes;
+
+import nl.team3.engine.assets.AssetManager;
+import nl.team3.engine.core.EngineContext;
+import nl.team3.engine.core.Scene;
+import nl.team3.engine.graphics.*;
+import nl.team3.engine.graphics.animation.Animation;
+import nl.team3.engine.graphics.animation.EasingType;
+import nl.team3.engine.graphics.animation.SpriteAnimation;
+import nl.team3.engine.input.InputManager;
+import nl.team3.engine.input.MouseButtons;
+import nl.team3.engine.ui.Button;
+import nl.team3.games.tictactoe.BackgroundRenderer;
+import org.joml.Vector2f;
+import org.joml.Vector4f;
+
+public abstract class BaseScene implements Scene {
+    protected static final int UI_SCALE = 4;
+    protected static final float UI_SPACING = 4 * UI_SCALE;
+    protected static final float BUTTON_WIDTH = 300f;
+    protected static final float SMALL_BUTTON_WIDTH = 200f;
+    protected static final float BUTTON_HEIGHT = 68f;
+    protected static final Vector4f WHITE = new Vector4f(1, 1, 1, 1);
+    protected static final Vector4f DIM_WHITE = new Vector4f(1, 1, 1, 0.7f);
+    protected static final Vector4f ERROR_COLOR = new Vector4f(1, 0, 0, 1);
+    protected static final Vector4f HIGHLIGHT_COLOR = new Vector4f(1, 1, 0, 1);
+    protected static final Vector4f HOVER_COLOR = new Vector4f(0.8f, 0.8f, 0, 1);
+    protected static final Vector4f DARK_TEXT_COLOR = new Vector4f(0f, 0.157f, 0.349f, 1f);
+
+    private static final NineSlice BUTTON_SLICE = new NineSlice(5, 6, 5, 5);
+    private static final float TRANSITION_TIME = 0.7f;
+    private static final float PALETTE_SWITCH_TIME = 0.2f;
+
+    protected final EngineContext context;
+    protected final InputManager input;
+
+    protected SpriteRenderer spriteRenderer;
+    protected TextRenderer textRenderer;
+    protected BackgroundRenderer background;
+
+    protected Font gameFont;
+    protected Font smallFont;
+
+    protected int currentWidth;
+    protected int currentHeight;
+
+    private Texture mousePointTexture;
+    private Texture mouseGrabTexture;
+    private Sprite mousePoint;
+
+    private Texture buttonTexture;
+    private Texture buttonPressedTexture;
+    private Texture logoTexture;
+
+    protected Vector2f mousePosition = new Vector2f();
+
+    private SpriteAnimation mouseGrabAnim;
+    private SpriteAnimation mouseReleaseAnim;
+
+    private BaseScene nextScene;
+    private float transitionTime;
+    private Button[] shrinkingButtons;
+    private Animation[] shrinkAnimations;
+
+    public BaseScene(EngineContext context) {
+        this.context = context;
+        this.input = context.input();
+    }
+
+    @Override
+    public final void init(AssetManager assets) {
+        currentWidth = context.sceneManager().getWidth();
+        currentHeight = context.sceneManager().getHeight();
+
+        textRenderer = assets.getTextRenderer();
+        spriteRenderer = assets.getSpriteRenderer();
+        background = assets.getShared(BackgroundRenderer.class, BackgroundRenderer::new);
+
+        gameFont = assets.loadFont("gameFont", "/games/tictactoe/fonts/3x5-Microfont-Mono.ttf", 48f);
+        smallFont = assets.loadFont("smallFont", "/games/tictactoe/fonts/3x5-Microfont-Mono.ttf", 24f);
+
+        buttonTexture = assets.loadTexture("btnTexture", "/games/tictactoe/textures/button.png");
+        buttonPressedTexture = assets.loadTexture("btnPressedTexture", "/games/tictactoe/textures/buttonPressed.png");
+        logoTexture = assets.loadTexture("tripleTlogo", "/games/tictactoe/textures/tripleTlogo.png");
+
+        mousePointTexture = assets.loadTexture("mousePoint", "/games/tictactoe/textures/cursorPoint.png");
+        mouseGrabTexture = assets.loadTexture("mouseGrab", "/games/tictactoe/textures/cursorGrab.png");
+        context.window().setCursorVisible(false);
+
+        mousePoint = new Sprite(mousePointTexture);
+        mousePoint.setScale(4f);
+
+        mouseGrabAnim = SpriteAnimation.builder().sprite(mousePoint).scale(new Vector2f(4f, 4f), new Vector2f(3f, 3f)).duration(0.3f).easing(EasingType.EXPONENTIAL_OUT).build();
+        mouseReleaseAnim = SpriteAnimation.builder().sprite(mousePoint).scale(new Vector2f(3f, 3f), new Vector2f(4f, 4f)).duration(0.3f).easing(EasingType.EXPONENTIAL_OUT).build();
+
+        onInit(assets);
+        updatePalette(currentWidth / 2f, currentHeight / 2f);
+    }
+
+    @Override
+    public final void update(float dt) {
+        mousePosition.set((float) input.getMouseX(), (float) input.getMouseY());
+
+        if (input.isButtonPressed(MouseButtons.LEFT)) mouseGrabAnim.startAnimation();
+        if (input.isButtonReleased(MouseButtons.LEFT)) mouseReleaseAnim.startAnimation();
+
+        if (input.isButtonDown(MouseButtons.LEFT)) {
+            mousePoint.setTexture(mouseGrabTexture);
+            mouseGrabAnim.update(dt);
+            mouseGrabAnim.setScale();
+        } else {
+            mousePoint.setTexture(mousePointTexture);
+            mouseReleaseAnim.update(dt);
+            mouseReleaseAnim.setScale();
+        }
+        mousePoint.setPosition(mousePosition.x + 4f, mousePosition.y + 20f);
+
+        background.update(dt);
+
+        onUpdate(dt);
+
+        if (isTransitioning()) {
+            updateTransition(dt);
+        }
+    }
+
+    @Override
+    public final void render() {
+        background.render(currentWidth, currentHeight);
+
+        onRender();
+
+        spriteRenderer.draw(mousePoint);
+    }
+
+    @Override
+    public final void resize(int width, int height) {
+        this.currentWidth = width;
+        this.currentHeight = height;
+        spriteRenderer.setProjection(width, height);
+        textRenderer.setProjection(width, height);
+
+        onResize(width, height);
+    }
+
+    protected Button createButton(String text, float width, Runnable onClick) {
+        return createButton(text, width, BUTTON_HEIGHT, onClick);
+    }
+
+    protected Button createButton(String text, float width, float height, Runnable onClick) {
+        Button button = new Button(text, smallFont, new Vector2f(), new Vector2f(width, height));
+        button.setBackgroundSprite(new Sprite(buttonTexture));
+        button.setPressedSprite(new Sprite(buttonPressedTexture), UI_SCALE);
+        button.setNineSlice(BUTTON_SLICE, UI_SCALE);
+        button.setOnClick(onClick);
+        return button;
+    }
+
+    protected Sprite createLogo() {
+        Sprite logo = new Sprite(logoTexture);
+        logo.setScale(UI_SCALE);
+        return logo;
+    }
+
+    protected void drawCenteredText(Font font, String text, float y, Vector4f color) {
+        float x = Math.round((currentWidth - font.getTextWidth(text)) / 2f);
+        textRenderer.drawText(font, text, x, Math.round(y + font.getCapHeight()), color);
+    }
+
+    protected void drawText(Font font, String text, float x, float y, Vector4f color) {
+        textRenderer.drawText(font, text, Math.round(x), Math.round(y + font.getCapHeight()), color);
+    }
+
+    protected boolean isBackPressed() {
+        return context.actions().isActionPressed("back");
+    }
+
+    protected int getPalette() {
+        return BackgroundRenderer.PALETTE_BLUE;
+    }
+
+    protected void updatePalette(float x, float y) {
+        if (background.getPalette() != getPalette()) {
+            background.setPalette(x, y, getPalette());
+        }
+    }
+
+    protected void transitionTo(BaseScene scene, Button... buttons) {
+        nextScene = scene;
+        transitionTime = 0f;
+        shrinkingButtons = buttons;
+        shrinkAnimations = new Animation[buttons.length];
+        for (int i = 0; i < buttons.length; i++) {
+            shrinkAnimations[i] = new Animation(1f, 0f, EasingType.EXPONENTIAL_IN, 0.3f + 0.1f * (buttons.length - 1 - i));
+            shrinkAnimations[i].startAnimation();
+        }
+    }
+
+    protected boolean isTransitioning() {
+        return nextScene != null;
+    }
+
+    private void updateTransition(float dt) {
+        float previousTime = transitionTime;
+        transitionTime += dt;
+
+        for (int i = 0; i < shrinkingButtons.length; i++) {
+            shrinkAnimations[i].update(dt);
+            shrinkingButtons[i].setScale(shrinkAnimations[i].getValue());
+        }
+
+        if (previousTime < PALETTE_SWITCH_TIME && transitionTime >= PALETTE_SWITCH_TIME) {
+            background.setPalette(0, 0, nextScene.getPalette());
+        }
+
+        if (transitionTime >= TRANSITION_TIME) {
+            context.sceneManager().changeScene(nextScene);
+        }
+    }
+
+    protected abstract void onInit(AssetManager assets);
+    protected abstract void onUpdate(float dt);
+    protected abstract void onRender();
+    protected abstract void onResize(int width, int height);
+}
