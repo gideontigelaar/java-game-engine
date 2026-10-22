@@ -20,6 +20,11 @@ mvn clean package
 mvn clean package -pl games/tictactoe -am
 ```
 
+Build a jar that runs on every OS, with the native libraries for Windows, Linux and macOS included:
+```bash
+mvn clean package -DallNatives
+```
+
 ## Running
 macOS:
 ```bash
@@ -32,6 +37,8 @@ java -jar games/tictactoe/target/tictactoe.jar
 ```
 
 ## Notes
-Maven pulls in the right native libraries for your OS automatically. Engine dependencies live in `engine/pom.xml`, each game is its own module in `games/`, and shared versions like LWJGL live in the root `pom.xml`.
+Maven pulls in the right native libraries for your OS automatically, or for every OS with `-DallNatives`. Engine dependencies live in `engine/pom.xml`, each game is its own module in `games/`, and shared versions like LWJGL live in the root `pom.xml`.
 
 Each module builds into its own `target/` folder. The playable game is located in `games/tictactoe/target/tictactoe.jar` after building.
+
+Each module keeps its resources under a folder that matches its package.
