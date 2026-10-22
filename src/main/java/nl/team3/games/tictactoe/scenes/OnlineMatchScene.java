@@ -68,7 +68,16 @@ public class OnlineMatchScene extends MatchScene {
             case "SVR GAME YOURTURN" -> yourTurn = true;
             case "SVR GAME MOVE" -> applyMove(message);
             case "SVR GAME WIN", "SVR GAME LOSS", "SVR GAME DRAW" -> endMatch(message);
+            case "SVR GAME MATCH" -> startNextMatch(message);
             default -> { }
+        }
+    }
+
+    private void startNextMatch(ServerMessage match) {
+        if (session.isOurGame(match)) {
+            leaveTo(create(this, session, match));
+        } else {
+            session.forfeit();
         }
     }
 
