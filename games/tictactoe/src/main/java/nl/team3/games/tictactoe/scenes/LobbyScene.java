@@ -68,9 +68,9 @@ public class LobbyScene extends BaseScene {
 
     @Override
     protected void onInit(AssetManager assets) {
-        statusDot = new Sprite(assets.loadTexture("connectedStatus", "/textures/tictactoe/connectedStatus.png"));
+        statusDot = new Sprite(assets.loadTexture("connectedStatus", "/games/tictactoe/textures/connectedStatus.png"));
         statusDot.setScale(UI_SCALE);
-        panel = new Sprite(assets.loadTexture("window", "/textures/tictactoe/window.png"));
+        panel = new Sprite(assets.loadTexture("window", "/games/tictactoe/textures/window.png"));
 
         btnFindMatch = createButton("FIND MATCH", BUTTON_WIDTH, this::findMatch);
         btnDisconnect = createButton("DISCONNECT", SMALL_BUTTON_WIDTH, this::leave);

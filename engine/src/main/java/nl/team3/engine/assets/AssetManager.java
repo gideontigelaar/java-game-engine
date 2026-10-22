@@ -27,8 +27,8 @@ public final class AssetManager {
     private SpriteRenderer spriteRenderer;
 
     public AssetManager() {
-        loadShader(SPRITE_SHADER, "/shaders/sprite.vert", "/shaders/sprite.frag");
-        loadShader(TEXT_SHADER, "/shaders/text.vert", "/shaders/text.frag");
+        loadShader(SPRITE_SHADER, "/engine/shaders/sprite.vert", "/engine/shaders/sprite.frag");
+        loadShader(TEXT_SHADER, "/engine/shaders/text.vert", "/engine/shaders/text.frag");
         loadMesh(QUAD_MESH, Mesh::createQuad);
     }
 

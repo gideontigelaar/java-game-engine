@@ -206,15 +206,15 @@ public class MatchScene extends BaseScene {
 
     @Override
     protected void onInit(AssetManager assets) {
-        boardTexture = assets.loadTexture("board", "/textures/tictactoe/board.png");
+        boardTexture = assets.loadTexture("board", "/games/tictactoe/textures/board.png");
         boardSprite = new Sprite(boardTexture);
         boardSprite.setScale(BOARD_SCALE);
         logo = createLogo();
 
-        Texture xPieceTexture = assets.loadTexture("xPiece", "/textures/tictactoe/x.png");
-        Texture xStackTexture = assets.loadTexture("xStack", "/textures/tictactoe/xStack.png");
-        Texture oPieceTexture = assets.loadTexture("oPiece", "/textures/tictactoe/o.png");
-        Texture oStackTexture = assets.loadTexture("oStack", "/textures/tictactoe/oStack.png");
+        Texture xPieceTexture = assets.loadTexture("xPiece", "/games/tictactoe/textures/x.png");
+        Texture xStackTexture = assets.loadTexture("xStack", "/games/tictactoe/textures/xStack.png");
+        Texture oPieceTexture = assets.loadTexture("oPiece", "/games/tictactoe/textures/o.png");
+        Texture oStackTexture = assets.loadTexture("oStack", "/games/tictactoe/textures/oStack.png");
 
         xSide = new PieceSide(Board.Mark.X, leftMark == Board.Mark.X ? -1f : 1f, xPieceTexture, xStackTexture);
         oSide = new PieceSide(Board.Mark.O, leftMark == Board.Mark.O ? -1f : 1f, oPieceTexture, oStackTexture);
