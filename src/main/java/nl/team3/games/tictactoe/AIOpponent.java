@@ -44,8 +44,42 @@ public class AIOpponent {
                 best.add(cell);
             }
         }
+        if (bestScore == 0 && best.size() > 1) {
+            best = mostTraps(cells, mark, best);
+        }
         // Pick between good moves so each game doesn't look the same
         return best.get(random.nextInt(best.size()));
+    }
+
+    private static List<int[]> mostTraps(Board.Mark[][] cells, Board.Mark mark, List<int[]> moves) {
+        List<int[]> result = new ArrayList<>();
+        int most = -1;
+        for (int[] move : moves) {
+            cells[move[0]][move[1]] = mark;
+            int traps = countLosingReplies(cells, mark);
+            cells[move[0]][move[1]] = null;
+
+            if (traps > most) {
+                most = traps;
+                result.clear();
+            }
+            if (traps == most) {
+                result.add(move);
+            }
+        }
+        return result;
+    }
+
+    private static int countLosingReplies(Board.Mark[][] cells, Board.Mark mark) {
+        int traps = 0;
+        for (int[] reply : freeCells(cells)) {
+            cells[reply[0]][reply[1]] = mark.opponent();
+            if (negamax(cells, mark, 2, -INFINITY, INFINITY) > 0) {
+                traps++;
+            }
+            cells[reply[0]][reply[1]] = null;
+        }
+        return traps;
     }
 
     private static int negamax(Board.Mark[][] cells, Board.Mark toMove, int depth, int alpha, int beta) {
