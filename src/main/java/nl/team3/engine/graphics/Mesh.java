@@ -19,7 +19,6 @@ import static org.lwjgl.opengl.GL30.glGenVertexArrays;
 
 public class Mesh {
     private static final int FLOATS_PER_VERTEX = 4;
-    private static Mesh quadInstance;
 
     private final int vaoId;
     private final int vboId;
@@ -55,16 +54,7 @@ public class Mesh {
     }
 
     public static Mesh createQuad() {
-        float[] vertices = {
-                // pos          // uv
-                -0.5f, -0.5f,   0.0f, 1.0f, // top-left
-                -0.5f,  0.5f,   0.0f, 0.0f, // bottom-left
-                0.5f,  0.5f,   1.0f, 0.0f, // bottom-right
-                0.5f, -0.5f,   1.0f, 1.0f  // top-right
-        };
-
-        int[] indices = { 0, 1, 2, 2, 3, 0 };
-        return new Mesh(vertices, indices);
+        return createQuad(0f, 0f, 1f, 1f);
     }
 
     // Generate quad with custom UV-coordinates for nine slicing
@@ -79,13 +69,6 @@ public class Mesh {
 
         int[] indices = { 0, 1, 2, 2, 3, 0 };
         return new Mesh(vertices, indices);
-    }
-
-    public static Mesh getQuad() {
-        if (quadInstance == null) {
-            quadInstance = createQuad();
-        }
-        return quadInstance;
     }
 
     public void render() {

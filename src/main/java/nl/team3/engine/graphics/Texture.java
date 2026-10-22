@@ -36,10 +36,6 @@ public class Texture {
         glBindTexture(GL_TEXTURE_2D, textureId);
     }
 
-    public void unbind() {
-        glBindTexture(GL_TEXTURE_2D, 0);
-    }
-
     public int getWidth() {
         return width;
     }

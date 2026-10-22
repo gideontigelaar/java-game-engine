@@ -16,11 +16,6 @@ public class Sprite {
         this.texture = texture;
     }
 
-    public Sprite(Texture texture, Vector2f position) {
-        this.texture = texture;
-        this.position = position;
-    }
-
     public Texture getTexture() {
         return texture;
     }

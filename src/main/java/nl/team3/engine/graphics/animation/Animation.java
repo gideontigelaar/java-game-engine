@@ -6,7 +6,6 @@ public class Animation {
 
     private final String easingType;
     private final float duration;
-    private final Timer timer;
 
     private boolean started = false;
     private boolean playing = false;
@@ -17,14 +16,12 @@ public class Animation {
         this.endValue = endValue;
         this.easingType = easingType;
         this.duration = duration;
-        this.timer = new Timer(duration);
     }
 
     public void startAnimation() {
         elapsed = 0f;
         started = true;
         playing = true;
-        timer.start();
     }
 
 
@@ -32,7 +29,6 @@ public class Animation {
         if (!playing) return;
 
         elapsed += dt;
-        timer.update(dt);
 
         if (elapsed >= duration) {
             elapsed = duration;
