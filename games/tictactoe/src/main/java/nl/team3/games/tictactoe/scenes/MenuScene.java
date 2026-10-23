@@ -8,6 +8,7 @@ import nl.team3.games.tictactoe.Settings;
 import org.joml.Vector4f;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 // Shared layout so the logo and header stay put when switching between menus
@@ -79,8 +80,37 @@ public abstract class MenuScene extends BaseScene {
         return button;
     }
 
+    private boolean logoStays;
+
+    @Override
+    protected Collection<Sprite> getTransitionSprites() {
+        List<Sprite> sprites = new ArrayList<>();
+        if (!logoStays) {
+            sprites.add(logo);
+            if (profileVisible) sprites.add(profile);
+        }
+        return sprites;
+    }
+
+    @Override
+    protected Button[] getTransitionButtons() {
+        return buttons.toArray(new Button[0]);
+    }
+
     protected void open(BaseScene scene) {
-        transitionTo(scene, buttons.toArray(new Button[0]));
+        if (scene instanceof MenuScene next) {
+            next.logoStays = true;   // logo and header stay put between menus
+            transitionTo(scene, List.of(), getTransitionButtons());
+        } else {
+            transitionTo(scene);
+        }
+    }
+
+    protected List<Sprite> getShrinkSprites() {
+        List<Sprite> sprites = new ArrayList<>();
+        sprites.add(logo);
+        if (profileVisible) sprites.add(profile);
+        return sprites;
     }
 
     protected void showStatus(String message) {

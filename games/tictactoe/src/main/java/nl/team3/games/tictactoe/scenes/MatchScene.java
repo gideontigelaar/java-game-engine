@@ -16,6 +16,7 @@ import nl.team3.games.tictactoe.logic.Board;
 import org.joml.Vector2f;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -103,6 +104,8 @@ public class MatchScene extends BaseScene {
             spawnNext();
         }
 
+
+
         private void spawnNext() {
             pickedUp = false;
             returnAnim = null;
@@ -179,6 +182,11 @@ public class MatchScene extends BaseScene {
         private void drawMoving() {
             if (active != null && (pickedUp || returnAnim != null)) spriteRenderer.draw(active);
         }
+
+        private void collectSprites(List<Sprite> out) {
+            out.addAll(stack);
+            if (active != null) out.add(active);
+        }
     }
 
     public MatchScene(EngineContext context) {
@@ -200,6 +208,8 @@ public class MatchScene extends BaseScene {
         this.ai = ai;
         this.aiMark = aiMark;
     }
+
+
 
     @Override
     protected void onInit(AssetManager assets) {
@@ -273,11 +283,7 @@ public class MatchScene extends BaseScene {
     }
 
     protected void leaveTo(BaseScene scene) {
-        if (showsPlayAgain()) {
-            transitionTo(scene, btnPlayAgain, btnAction);
-        } else {
-            transitionTo(scene, btnAction);
-        }
+        transitionTo(scene, getTransitionSprites(), getTransitionButtons());
     }
 
     @Override
@@ -489,6 +495,14 @@ public class MatchScene extends BaseScene {
 
     @Override
     protected void onRender() {
+
+        if (!isAnimating()) {
+            String status = getStatus();
+            Font statusFont = gameFont.getTextWidth(status) <= currentWidth - 4 * UI_SPACING ? gameFont : smallFont;
+            drawCenteredText(statusFont, status, statusY, DARK_TEXT_COLOR);
+            drawPlayerName(xSide);
+            drawPlayerName(oSide);
+        }
         if (logoVisible) {
             spriteRenderer.draw(logo);
         }
@@ -509,6 +523,8 @@ public class MatchScene extends BaseScene {
         drawPlayerName(xSide);
         drawPlayerName(oSide);
 
+
+
         btnAction.render(spriteRenderer, textRenderer);
         if (showsPlayAgain()) {
             btnPlayAgain.render(spriteRenderer, textRenderer);
@@ -516,6 +532,8 @@ public class MatchScene extends BaseScene {
 
         xSide.drawMoving();
         oSide.drawMoving();
+
+
     }
 
     private void drawPlayerName(PieceSide side) {
@@ -566,6 +584,28 @@ public class MatchScene extends BaseScene {
         xSide.layout();
         oSide.layout();
     }
+    @Override
+    protected Collection<Sprite> getTransitionSprites() {
+        List<Sprite> sprites = new ArrayList<>();
+        sprites.add(boardSprite);
+        if (logoVisible) sprites.add(logo);
+        xSide.collectSprites(sprites);
+        oSide.collectSprites(sprites);
+        for (int c = 0; c < Board.SIZE; c++) {
+            for (int r = 0; r < Board.SIZE; r++) {
+                if (boardPieces[c][r] != null) sprites.add(boardPieces[c][r]);
+            }
+        }
+        return sprites;
+    }
+
+    @Override
+    protected Button[] getTransitionButtons() {
+        return showsPlayAgain() ? new Button[]{btnPlayAgain, btnAction} : new Button[]{btnAction};
+    }
+
+
+
 
     private void layoutButtons() {
         float boardBottom = boardTopLeft.y + boardTexture.getHeight() * BOARD_SCALE;

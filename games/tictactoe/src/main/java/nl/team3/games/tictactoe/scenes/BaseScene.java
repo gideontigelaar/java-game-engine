@@ -14,6 +14,10 @@ import nl.team3.games.tictactoe.BackgroundRenderer;
 import org.joml.Vector2f;
 import org.joml.Vector4f;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 public abstract class BaseScene implements Scene {
     protected static final int UI_SCALE = 4;
     protected static final float UI_SPACING = 4 * UI_SCALE;
@@ -59,8 +63,43 @@ public abstract class BaseScene implements Scene {
 
     private BaseScene nextScene;
     private float transitionTime;
-    private Button[] shrinkingButtons;
-    private Animation[] shrinkAnimations;
+
+    private static final float SLIDE_TIME = 0.4f;
+
+    private interface PositionSetter {
+        void set(float x, float y);
+    }
+
+    private static final class Slide {
+        final Vector2f start;
+        final float travel;
+        final Animation anim;
+        final PositionSetter setter;
+
+        Slide(Vector2f start, float travel, Animation anim, PositionSetter setter) {
+            this.start = start;
+            this.travel = travel;
+            this.anim = anim;
+            this.setter = setter;
+        }
+    }
+
+    protected boolean isAnimating() {
+        return introducing || nextScene != null;
+    }
+
+    private static final float INTRO_BUTTON_TIME = 0.3f;
+
+    private boolean introducing = true;
+    private float introTime;
+    private float introDuration;
+    private final List<Slide> intros = new ArrayList<>();
+    private boolean introBuilt;
+
+
+    private final List<Slide> slides = new ArrayList<>();
+
+
 
     public BaseScene(EngineContext context) {
         this.context = context;
@@ -118,8 +157,9 @@ public abstract class BaseScene implements Scene {
         background.update(dt);
 
         onUpdate(dt);
+        updateIntro(dt);
 
-        if (isTransitioning()) {
+        if (nextScene != null) {
             updateTransition(dt);
         }
     }
@@ -141,6 +181,7 @@ public abstract class BaseScene implements Scene {
         textRenderer.setProjection(width, height);
 
         onResize(width, height);
+        if (introducing) buildIntro();
     }
 
     protected Button createButton(String text, float width, Runnable onClick) {
@@ -186,32 +227,123 @@ public abstract class BaseScene implements Scene {
     }
 
     protected void transitionTo(BaseScene scene, Button... buttons) {
+        transitionTo(scene, List.of(), buttons);
+    }
+
+    protected void transitionTo(BaseScene scene, Collection<Sprite> sprites, Button... buttons) {
         nextScene = scene;
         transitionTime = 0f;
-        shrinkingButtons = buttons;
-        shrinkAnimations = new Animation[buttons.length];
+        slides.clear();
+
+        for (Sprite sprite : sprites) {
+            if (sprite == null) continue;
+            Vector2f start = new Vector2f(sprite.getPosition());
+            float travel = start.x + sprite.getTexture().getWidth() * sprite.getScale().x;
+            addSlide(start, travel, SLIDE_TIME, sprite::setPosition);
+        }
+
         for (int i = 0; i < buttons.length; i++) {
-            shrinkAnimations[i] = new Animation(1f, 0f, EasingType.EXPONENTIAL_IN, 0.3f + 0.1f * (buttons.length - 1 - i));
-            shrinkAnimations[i].startAnimation();
+            Button button = buttons[i];
+            Vector2f start = new Vector2f(button.getPosition());
+            float travel = start.x + button.getSize().x;
+            addSlide(start, travel, 0.4f, button::setPosition);
+        }
+    }
+    protected Collection<Sprite> getTransitionSprites() {
+        return List.of();
+    }
+
+    protected Button[] getTransitionButtons() {
+        return new Button[0];
+    }
+    private void buildIntro() {
+        intros.clear();
+        introDuration = 0f;
+
+        for (Sprite sprite : getTransitionSprites()) {
+            if (sprite == null) continue;
+            Vector2f target = new Vector2f(sprite.getPosition());
+            float travel = currentWidth - target.x + sprite.getTexture().getWidth() * sprite.getScale().x;
+            addIntro(target, travel, SLIDE_TIME, sprite::setPosition);
+        }
+
+        Button[] buttons = getTransitionButtons();
+        for (int i = 0; i < buttons.length; i++) {
+            Button button = buttons[i];
+            Vector2f target = new Vector2f(button.getPosition());
+            float travel = currentWidth - target.x + button.getSize().x;
+            addIntro(target, travel, INTRO_BUTTON_TIME + 0.1f * i, button::setPosition);
+        }
+
+        introBuilt = true;
+        for (Slide slide : intros) {
+            slide.anim.update(introTime);   // keeps progress if the window is resized mid-intro
+        }
+        applyIntro();
+    }
+
+    private void addIntro(Vector2f target, float travel, float duration, PositionSetter setter) {
+        Animation anim = new Animation(0f, 1f, EasingType.EXPONENTIAL_OUT, duration);
+        anim.startAnimation();
+        intros.add(new Slide(target, travel, anim, setter));
+        introDuration = Math.max(introDuration, duration);
+    }
+
+    private void applyIntro() {
+        for (Slide slide : intros) {
+            float remaining = 1f - slide.anim.getValue();
+            slide.setter.set(Math.round(slide.start.x + remaining * slide.travel), slide.start.y);
         }
     }
 
+    private void updateIntro(float dt) {
+        if (!introducing) return;
+        if (!introBuilt) buildIntro();
+
+        introTime += dt;
+        for (Slide slide : intros) {
+            slide.anim.update(dt);
+        }
+
+        if (introTime >= introDuration) {
+            introducing = false;
+            for (Slide slide : intros) {
+                slide.setter.set(slide.start.x, slide.start.y);
+            }
+            intros.clear();
+            return;
+        }
+        applyIntro();
+    }
+
+    private void addSlide(Vector2f start, float travel, float duration, PositionSetter setter) {
+        Animation anim = new Animation(0f, 1f, EasingType.EXPONENTIAL_IN, duration);
+        anim.startAnimation();
+        slides.add(new Slide(start, travel, anim, setter));
+    }
+
     protected boolean isTransitioning() {
-        return nextScene != null;
+        return nextScene != null || introducing;
+    }
+
+    protected void transitionTo(BaseScene scene) {
+        transitionTo(scene, getTransitionSprites(), getTransitionButtons());
     }
 
     private void updateTransition(float dt) {
         float previousTime = transitionTime;
         transitionTime += dt;
 
-        for (int i = 0; i < shrinkingButtons.length; i++) {
-            shrinkAnimations[i].update(dt);
-            shrinkingButtons[i].setScale(shrinkAnimations[i].getValue());
+        for (Slide slide : slides) {
+            slide.anim.update(dt);
+            slide.setter.set(Math.round(slide.start.x - slide.anim.getValue() * slide.travel), slide.start.y);
         }
 
         if (previousTime < PALETTE_SWITCH_TIME && transitionTime >= PALETTE_SWITCH_TIME) {
             background.setPalette(0, 0, nextScene.getPalette());
         }
+
+
 
         if (transitionTime >= TRANSITION_TIME) {
             context.sceneManager().changeScene(nextScene);

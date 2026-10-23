@@ -12,8 +12,8 @@ public final class TicTacToe {
 
     public static void main(String[] args) {
         EngineConfig config = EngineConfig.builder("Tic-tac-toe")
-                .windowSize(1920, 1080)
-                .minWindowSize(960, 540)
+                .windowSize(600, 800)
+                .minWindowSize(600, 800)
                 .minGuiSize(1280, 720)
                 .clearColor(new Vector4f(0.62f, 0.62f, 0.62f, 1.0f))
                 .build();
@@ -21,7 +21,7 @@ public final class TicTacToe {
         Engine.run(config, context -> {
             context.actions().bind("back", Keys.ESCAPE);
 
-            // Start in Main Menu instead of directly in the game
+
             return new MainMenuScene(context);
         });
     }
