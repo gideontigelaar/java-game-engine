@@ -1,5 +1,6 @@
 package nl.team3.games.tictactoe.scenes;
 
+import nl.team3.engine.assets.AssetManager;
 import nl.team3.engine.core.EngineContext;
 import nl.team3.engine.input.Keys;
 import nl.team3.engine.ui.TextField;
@@ -28,7 +29,7 @@ public class MainMenuScene extends MenuScene {
     }
 
     @Override
-    protected void initMenu() {
+    protected void initMenu(AssetManager assets) {
         nameField = createField(playerName, "ENTER YOUR NAME", NAME_LENGTH, MainMenuScene::isAsciiLetterOrDigit);
         serverField = createField(Settings.getServerAddress(), "SERVER ADDRESS", ADDRESS_LENGTH,
                 c -> isAsciiLetterOrDigit(c) || c == '.' || c == ':' || c == '-');
@@ -93,6 +94,7 @@ public class MainMenuScene extends MenuScene {
 
     @Override
     protected void renderHeader() {
+        layoutHeader(Math.round(currentWidth / 2f) + getContentOffset());
         nameField.render(spriteRenderer, textRenderer);
         serverField.render(spriteRenderer, textRenderer);
     }

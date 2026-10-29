@@ -13,15 +13,15 @@ import java.util.List;
 
 // Shared layout so the logo and header stay put when switching between menus
 public abstract class MenuScene extends BaseScene {
-    protected static final float LINE_GAP = 12f;
-
     private static final int MAX_BUTTONS = 4;
+    private static final int STATUS_LINES = 2;
     private static final float STATUS_TIME = 3f;
 
     private final List<Button> buttons = new ArrayList<>();
     private Sprite logo;
     private Sprite profile;
     private boolean profileVisible;
+    private boolean logoStays;
 
     private String status = "";
     private Vector4f statusColor = ERROR_COLOR;
@@ -45,10 +45,10 @@ public abstract class MenuScene extends BaseScene {
         logo = createLogo();
         profile = new Sprite(assets.loadTexture("anonUserProfile", "/games/tictactoe/textures/anonUserProfile.png"));
         profile.setScale(UI_SCALE);
-        initMenu();
+        initMenu(assets);
     }
 
-    protected abstract void initMenu();
+    protected abstract void initMenu(AssetManager assets);
 
     protected void updateMenu(float dt) {
     }
@@ -60,9 +60,25 @@ public abstract class MenuScene extends BaseScene {
         return "";
     }
 
+    protected Sprite getDetailIcon() {
+        return null;
+    }
+
     protected void renderHeader() {
-        drawCenteredText(smallFont, playerName, nameY, WHITE);
-        drawCenteredText(smallFont, getDetail(), detailY, DIM_WHITE);
+        drawCenteredText(smallFont, fitText(smallFont, playerName, getMaxTextWidth()), nameY, WHITE);
+
+        Sprite icon = getDetailIcon();
+        if (icon == null) {
+            drawCenteredText(smallFont, fitText(smallFont, getDetail(), getMaxTextWidth()), detailY, DIM_WHITE);
+            return;
+        }
+
+        float iconWidth = icon.getTexture().getWidth() * icon.getScale().x;
+        String detail = fitText(smallFont, getDetail(), getMaxTextWidth() - iconWidth - UI_SPACING / 2f);
+        float x = Math.round((currentWidth - iconWidth - UI_SPACING / 2f - smallFont.getTextWidth(detail)) / 2f);
+        icon.setPosition(x + iconWidth / 2f + getContentOffset(), detailY + smallFont.getCapHeight() / 2f);
+        spriteRenderer.draw(icon);
+        drawText(smallFont, detail, x + iconWidth + UI_SPACING / 2f, detailY, DIM_WHITE);
     }
 
     protected void layoutHeader(float centerX) {
@@ -80,16 +96,9 @@ public abstract class MenuScene extends BaseScene {
         return button;
     }
 
-    private boolean logoStays;
-
     @Override
     protected Collection<Sprite> getTransitionSprites() {
-        List<Sprite> sprites = new ArrayList<>();
-        if (!logoStays) {
-            sprites.add(logo);
-            if (profileVisible) sprites.add(profile);
-        }
-        return sprites;
+        return logoStays ? List.of() : getHeaderSprites();
     }
 
     @Override
@@ -102,11 +111,11 @@ public abstract class MenuScene extends BaseScene {
             next.logoStays = true;   // logo and header stay put between menus
             transitionTo(scene, List.of(), getTransitionButtons());
         } else {
-            transitionTo(scene);
+            transitionTo(scene, getHeaderSprites(), getTransitionButtons());
         }
     }
 
-    protected List<Sprite> getShrinkSprites() {
+    private List<Sprite> getHeaderSprites() {
         List<Sprite> sprites = new ArrayList<>();
         sprites.add(logo);
         if (profileVisible) sprites.add(profile);
@@ -134,14 +143,14 @@ public abstract class MenuScene extends BaseScene {
     @Override
     protected final void onUpdate(float dt) {
         statusTimer = Math.max(0f, statusTimer - dt);
-        if (isTransitioning()) return;
+        if (isLeaving()) return;
 
         updateMenu(dt);
         for (Button button : buttons) {
-            if (isTransitioning()) return;
+            if (isLeaving()) return;
             button.update(input);
         }
-        if (!isTransitioning() && isBackPressed()) {
+        if (!isLeaving() && isBackPressed()) {
             onBack();
         }
     }
@@ -157,7 +166,7 @@ public abstract class MenuScene extends BaseScene {
             button.render(spriteRenderer, textRenderer);
         }
         if (statusTimer > 0f) {
-            drawCenteredText(smallFont, status, statusY, statusColor);
+            drawWrappedText(smallFont, status, statusY, getMaxTextWidth(), statusColor);
         }
     }
 
@@ -166,10 +175,11 @@ public abstract class MenuScene extends BaseScene {
         float logoHeight = logo.getTexture().getHeight() * UI_SCALE;
         float profileHeight = profile.getTexture().getHeight() * UI_SCALE + UI_SPACING;
         float lineHeight = smallFont.getCapHeight();
+        float statusHeight = STATUS_LINES * (lineHeight + LINE_GAP) - LINE_GAP;
 
         float columnHeight = logoHeight + 2 * lineHeight + LINE_GAP + UI_SPACING
-                + MAX_BUTTONS * (BUTTON_HEIGHT + UI_SPACING) + lineHeight;
-        profileVisible = columnHeight + profileHeight + 4 * UI_SPACING <= height;
+                + MAX_BUTTONS * (BUTTON_HEIGHT + UI_SPACING) + statusHeight;
+        profileVisible = columnHeight + profileHeight + 2 * UI_SPACING <= height;
         if (profileVisible) {
             columnHeight += profileHeight;
         }

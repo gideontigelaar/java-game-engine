@@ -12,15 +12,14 @@ public final class TicTacToe {
 
     public static void main(String[] args) {
         EngineConfig config = EngineConfig.builder("Tic-tac-toe")
-                .windowSize(600, 800)
-                .minWindowSize(600, 800)
-                .minGuiSize(1280, 720)
+                .windowSize(720, 720)
+                .minWindowSize(640, 640)
+                .minGuiSize(640, 640)
                 .clearColor(new Vector4f(0.62f, 0.62f, 0.62f, 1.0f))
                 .build();
 
         Engine.run(config, context -> {
             context.actions().bind("back", Keys.ESCAPE);
-
 
             return new MainMenuScene(context);
         });

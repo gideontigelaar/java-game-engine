@@ -1,5 +1,6 @@
 package nl.team3.games.tictactoe.scenes;
 
+import nl.team3.engine.assets.AssetManager;
 import nl.team3.engine.core.EngineContext;
 import nl.team3.games.tictactoe.logic.AIOpponent;
 
@@ -9,7 +10,7 @@ public class OfflineMenuScene extends MenuScene {
     }
 
     @Override
-    protected void initMenu() {
+    protected void initMenu(AssetManager assets) {
         addButton("PLAYER VS PLAYER", () -> open(new MatchScene(context)));
         addButton("50 / 50 AI", () -> playAI(AIOpponent.Difficulty.FIFTY_FIFTY));
         addButton("UNBEATABLE AI", () -> playAI(AIOpponent.Difficulty.UNBEATABLE));

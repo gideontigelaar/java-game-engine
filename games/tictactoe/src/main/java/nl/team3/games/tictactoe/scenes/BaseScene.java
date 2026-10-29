@@ -21,6 +21,7 @@ import java.util.List;
 public abstract class BaseScene implements Scene {
     protected static final int UI_SCALE = 4;
     protected static final float UI_SPACING = 4 * UI_SCALE;
+    protected static final float LINE_GAP = 12f;
     protected static final float BUTTON_WIDTH = 300f;
     protected static final float SMALL_BUTTON_WIDTH = 200f;
     protected static final float BUTTON_HEIGHT = 68f;
@@ -32,7 +33,11 @@ public abstract class BaseScene implements Scene {
     protected static final Vector4f DARK_TEXT_COLOR = new Vector4f(0f, 0.157f, 0.349f, 1f);
 
     private static final NineSlice BUTTON_SLICE = new NineSlice(5, 6, 5, 5);
-    private static final float TRANSITION_TIME = 0.7f;
+    private static final int FONT_PIXEL_ROWS = 6;
+    private static final float TEXT_OUTLINE = 1f / FONT_PIXEL_ROWS;
+    private static final float SLIDE_TIME = 0.4f;
+    private static final float INTRO_BUTTON_TIME = 0.3f;
+    private static final float TRANSITION_TIME = SLIDE_TIME + 0.05f;
     private static final float PALETTE_SWITCH_TIME = 0.2f;
 
     protected final EngineContext context;
@@ -63,8 +68,14 @@ public abstract class BaseScene implements Scene {
 
     private BaseScene nextScene;
     private float transitionTime;
+    private final List<Slide> slides = new ArrayList<>();
 
-    private static final float SLIDE_TIME = 0.4f;
+    private boolean introducing = true;
+    private float introTime;
+    private float introDuration;
+    private final List<Slide> intros = new ArrayList<>();
+    private boolean introBuilt;
+    private Animation contentSlide;
 
     private interface PositionSetter {
         void set(float x, float y);
@@ -88,19 +99,6 @@ public abstract class BaseScene implements Scene {
         return introducing || nextScene != null;
     }
 
-    private static final float INTRO_BUTTON_TIME = 0.3f;
-
-    private boolean introducing = true;
-    private float introTime;
-    private float introDuration;
-    private final List<Slide> intros = new ArrayList<>();
-    private boolean introBuilt;
-
-
-    private final List<Slide> slides = new ArrayList<>();
-
-
-
     public BaseScene(EngineContext context) {
         this.context = context;
         this.input = context.input();
@@ -112,6 +110,7 @@ public abstract class BaseScene implements Scene {
         currentHeight = context.sceneManager().getHeight();
 
         textRenderer = assets.getTextRenderer();
+        textRenderer.setOutline(TEXT_OUTLINE, DARK_TEXT_COLOR);
         spriteRenderer = assets.getSpriteRenderer();
         background = assets.getShared(BackgroundRenderer.class, BackgroundRenderer::new);
 
@@ -131,6 +130,9 @@ public abstract class BaseScene implements Scene {
 
         mouseGrabAnim = SpriteAnimation.builder().sprite(mousePoint).scale(new Vector2f(4f, 4f), new Vector2f(3f, 3f)).duration(0.3f).easing(EasingType.EXPONENTIAL_OUT).build();
         mouseReleaseAnim = SpriteAnimation.builder().sprite(mousePoint).scale(new Vector2f(3f, 3f), new Vector2f(4f, 4f)).duration(0.3f).easing(EasingType.EXPONENTIAL_OUT).build();
+
+        contentSlide = new Animation(1f, 0f, EasingType.EXPONENTIAL_OUT, SLIDE_TIME);
+        contentSlide.startAnimation();
 
         onInit(assets);
         updatePalette(currentWidth / 2f, currentHeight / 2f);
@@ -155,6 +157,7 @@ public abstract class BaseScene implements Scene {
         mousePoint.setPosition(mousePosition.x + 4f, mousePosition.y + 20f);
 
         background.update(dt);
+        contentSlide.update(dt);
 
         onUpdate(dt);
         updateIntro(dt);
@@ -170,7 +173,9 @@ public abstract class BaseScene implements Scene {
 
         onRender();
 
-        spriteRenderer.draw(mousePoint);
+        if (input.isCursorInWindow()) {
+            spriteRenderer.draw(mousePoint);
+        }
     }
 
     @Override
@@ -204,12 +209,54 @@ public abstract class BaseScene implements Scene {
     }
 
     protected void drawCenteredText(Font font, String text, float y, Vector4f color) {
-        float x = Math.round((currentWidth - font.getTextWidth(text)) / 2f);
+        float x = Math.round((currentWidth - font.getTextWidth(text)) / 2f + getContentOffset());
         textRenderer.drawText(font, text, x, Math.round(y + font.getCapHeight()), color);
     }
 
     protected void drawText(Font font, String text, float x, float y, Vector4f color) {
-        textRenderer.drawText(font, text, Math.round(x), Math.round(y + font.getCapHeight()), color);
+        textRenderer.drawText(font, text, Math.round(x + getContentOffset()), Math.round(y + font.getCapHeight()), color);
+    }
+
+    protected void drawWrappedText(Font font, String text, float y, float maxWidth, Vector4f color) {
+        for (String line : wrapText(font, text, maxWidth)) {
+            drawCenteredText(font, line, y, color);
+            y += font.getCapHeight() + LINE_GAP;
+        }
+    }
+
+    protected List<String> wrapText(Font font, String text, float maxWidth) {
+        List<String> lines = new ArrayList<>();
+        String line = "";
+        for (String word : text.split(" ")) {
+            String candidate = line.isEmpty() ? word : line + " " + word;
+            if (!line.isEmpty() && font.getTextWidth(candidate) > maxWidth) {
+                lines.add(line);
+                line = word;
+            } else {
+                line = candidate;
+            }
+        }
+        lines.add(line);
+        return lines;
+    }
+
+    protected String fitText(Font font, String text, float maxWidth) {
+        if (font.getTextWidth(text) <= maxWidth) {
+            return text;
+        }
+        String shortened = text;
+        while (shortened.length() > 1 && font.getTextWidth(shortened + "..") > maxWidth) {
+            shortened = shortened.substring(0, shortened.length() - 1);
+        }
+        return shortened + "..";
+    }
+
+    protected float getMaxTextWidth() {
+        return currentWidth - 2 * UI_SPACING;
+    }
+
+    protected float getContentOffset() {
+        return Math.round(contentSlide.getValue() * currentWidth);
     }
 
     protected boolean isBackPressed() {
@@ -226,6 +273,10 @@ public abstract class BaseScene implements Scene {
         }
     }
 
+    protected void transitionTo(BaseScene scene) {
+        transitionTo(scene, getTransitionSprites(), getTransitionButtons());
+    }
+
     protected void transitionTo(BaseScene scene, Button... buttons) {
         transitionTo(scene, List.of(), buttons);
     }
@@ -234,21 +285,26 @@ public abstract class BaseScene implements Scene {
         nextScene = scene;
         transitionTime = 0f;
         slides.clear();
+        introducing = false;
+        intros.clear();
+
+        contentSlide = new Animation(contentSlide.getValue(), -1f, EasingType.EXPONENTIAL_IN, SLIDE_TIME);
+        contentSlide.startAnimation();
 
         for (Sprite sprite : sprites) {
             if (sprite == null) continue;
             Vector2f start = new Vector2f(sprite.getPosition());
             float travel = start.x + sprite.getTexture().getWidth() * sprite.getScale().x;
-            addSlide(start, travel, SLIDE_TIME, sprite::setPosition);
+            addSlide(start, travel, sprite::setPosition);
         }
 
-        for (int i = 0; i < buttons.length; i++) {
-            Button button = buttons[i];
+        for (Button button : buttons) {
             Vector2f start = new Vector2f(button.getPosition());
             float travel = start.x + button.getSize().x;
-            addSlide(start, travel, 0.4f, button::setPosition);
+            addSlide(start, travel, button::setPosition);
         }
     }
+
     protected Collection<Sprite> getTransitionSprites() {
         return List.of();
     }
@@ -256,6 +312,15 @@ public abstract class BaseScene implements Scene {
     protected Button[] getTransitionButtons() {
         return new Button[0];
     }
+
+    protected boolean isTransitioning() {
+        return nextScene != null || introducing;
+    }
+
+    protected boolean isLeaving() {
+        return nextScene != null;
+    }
+
     private void buildIntro() {
         intros.clear();
         introDuration = 0f;
@@ -316,18 +381,10 @@ public abstract class BaseScene implements Scene {
         applyIntro();
     }
 
-    private void addSlide(Vector2f start, float travel, float duration, PositionSetter setter) {
-        Animation anim = new Animation(0f, 1f, EasingType.EXPONENTIAL_IN, duration);
+    private void addSlide(Vector2f start, float travel, PositionSetter setter) {
+        Animation anim = new Animation(0f, 1f, EasingType.EXPONENTIAL_IN, SLIDE_TIME);
         anim.startAnimation();
         slides.add(new Slide(start, travel, anim, setter));
-    }
-
-    protected boolean isTransitioning() {
-        return nextScene != null || introducing;
-    }
-
-    protected void transitionTo(BaseScene scene) {
-        transitionTo(scene, getTransitionSprites(), getTransitionButtons());
     }
 
     private void updateTransition(float dt) {
@@ -342,8 +399,6 @@ public abstract class BaseScene implements Scene {
         if (previousTime < PALETTE_SWITCH_TIME && transitionTime >= PALETTE_SWITCH_TIME) {
             background.setPalette(0, 0, nextScene.getPalette());
         }
-
-
 
         if (transitionTime >= TRANSITION_TIME) {
             context.sceneManager().changeScene(nextScene);
