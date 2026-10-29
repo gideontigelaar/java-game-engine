@@ -7,12 +7,15 @@ import nl.team3.games.tictactoe.logic.AIOpponent;
 import nl.team3.games.tictactoe.logic.Board;
 import nl.team3.games.tictactoe.network.OnlineSession;
 import nl.team3.games.tictactoe.network.ServerMessage;
+import org.joml.Vector4f;
 
 import java.util.Locale;
 
 public class OnlineMatchScene extends MatchScene {
-    private static final String FORFEITED = "Player forfeited";
+    private static final String FORFEITED = "player forfeited";
     private static final String DISCONNECTED = "disconnected";
+    private static final String TIME_LIMIT = "time";
+    private static final String ILLEGAL_MOVE = "illegal";
     private static final float TURN_TIME_LIMIT = 10f;
 
     private final OnlineSession session;
@@ -26,6 +29,7 @@ public class OnlineMatchScene extends MatchScene {
     private boolean matchEnded;
     private Board.Mark winner;
     private String result;
+    private String resultDetail;
 
     private OnlineMatchScene(EngineContext context, OnlineSession session,
                              String opponent, Board.Mark playerMark, AIOpponent ai) {
@@ -61,8 +65,8 @@ public class OnlineMatchScene extends MatchScene {
             handleMessage(message);
         }
 
-        if (!isTransitioning() && !session.isConnected()) {
-            leaveTo(new OnlineMenuScene(context, session.getAddress(), "Connection lost!"));
+        if (!isLeaving() && !session.isConnected()) {
+            leaveTo(new OnlineMenuScene(context, session.getAddress(), "Lost connection to the server!"));
         }
     }
 
@@ -70,7 +74,7 @@ public class OnlineMatchScene extends MatchScene {
         switch (message.type()) {
             case "SVR GAME YOURTURN" -> {
                 yourTurn = true;
-                turnTime = 0f;
+                turnTime = message.getAge();
             }
             case "SVR GAME MOVE" -> applyMove(message);
             case "SVR GAME WIN", "SVR GAME LOSS", "SVR GAME DRAW" -> endMatch(message);
@@ -133,41 +137,48 @@ public class OnlineMatchScene extends MatchScene {
     private void endMatch(ServerMessage message) {
         matchEnded = true;
         yourTurn = false;
-        if (message.is("SVR GAME WIN")) {
+        boolean won = message.is("SVR GAME WIN");
+        boolean lost = message.is("SVR GAME LOSS");
+        if (won) {
             winner = playerMark;
-        } else if (message.is("SVR GAME LOSS")) {
+        } else if (lost) {
             winner = playerMark.opponent();
         }
-        result = resultText(message);
+        result = won ? "YOU WIN!" : lost ? "YOU LOSE!" : "DRAW!";
+        resultDetail = resultDetail(message.get("COMMENT"), won, lost);
         btnAction.setText("LEAVE GAME");
         finishMatch();
     }
 
-    private String resultText(ServerMessage message) {
-        String comment = message.get("COMMENT");
-        boolean won = message.is("SVR GAME WIN");
-        if (comment.startsWith(FORFEITED)) {
-            return won ? opponentName + " FORFEITED, YOU WIN!" : "YOU FORFEITED!";
+    private String resultDetail(String comment, boolean won, boolean lost) {
+        String reason = comment.toLowerCase(Locale.ROOT);
+        if (reason.startsWith(FORFEITED)) {
+            return won ? opponentName + " FORFEITED" : "YOU FORFEITED";
         }
-        if (comment.endsWith(DISCONNECTED)) {
-            return opponentName + " LEFT, YOU WIN!";
+        if (reason.endsWith(DISCONNECTED)) {
+            return won ? opponentName + " LEFT THE GAME" : "YOU LEFT THE GAME";
         }
+        if (reason.contains(TIME_LIMIT)) {
+            return won ? opponentName + " RAN OUT OF TIME" : "YOU RAN OUT OF TIME";
+        }
+        if (reason.contains(ILLEGAL_MOVE)) {
+            return won ? opponentName + " MADE AN ILLEGAL MOVE" : "ILLEGAL MOVE";
+        }
+        if (!comment.isBlank()) {
+            return comment.toUpperCase(Locale.ROOT);
+        }
+        if (won || lost) {
+            return won ? "THREE IN A ROW!" : opponentName + " GOT THREE IN A ROW";
+        }
+        return "NO MOVES LEFT";
+    }
 
-        String text = message.is("SVR GAME DRAW") ? "DRAW!" : won ? "YOU WIN!" : "YOU LOSE!";
-        return comment.isEmpty() ? text : text + " " + comment.toUpperCase(Locale.ROOT);
+    private Board.Mark getWinner() {
+        return matchEnded ? winner : board.getWinner();
     }
 
     @Override
     protected String getStatus() {
-        if (result != null) {
-            return result;
-        }
-        if (board.getWinner() != null) {
-            return board.getWinner() == playerMark ? "YOU WIN!" : "YOU LOSE!";
-        }
-        if (board.isDraw()) {
-            return "DRAW!";
-        }
         if (board.getTurn() != playerMark) {
             return opponentName + "'S TURN";
         }
@@ -179,6 +190,41 @@ public class OnlineMatchScene extends MatchScene {
         }
         int secondsLeft = (int) Math.ceil(Math.max(0f, TURN_TIME_LIMIT - turnTime));
         return "YOUR TURN: " + secondsLeft;
+    }
+
+    @Override
+    protected String getResultTitle() {
+        if (result != null) {
+            return result;
+        }
+        if (getWinner() == null) {
+            return "DRAW!";
+        }
+        return getWinner() == playerMark ? "YOU WIN!" : "YOU LOSE!";
+    }
+
+    @Override
+    protected String getResultDetail() {
+        if (resultDetail != null) {
+            return resultDetail;
+        }
+        if (getWinner() == null) {
+            return "NO MOVES LEFT";
+        }
+        return getWinner() == playerMark ? "THREE IN A ROW!" : opponentName + " GOT THREE IN A ROW";
+    }
+
+    @Override
+    protected Vector4f getResultColor() {
+        if (getWinner() == null) {
+            return WHITE;
+        }
+        return getWinner() == playerMark ? WIN_COLOR : LOSE_COLOR;
+    }
+
+    @Override
+    protected boolean isCelebrating() {
+        return getWinner() == playerMark;
     }
 
     @Override

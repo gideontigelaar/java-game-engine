@@ -5,21 +5,22 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public record ServerMessage(String type, String data, String command) {
+public record ServerMessage(String type, String data, String command, long time) {
     private static final Pattern FIELD = Pattern.compile("(\\w+): \"([^\"]*)\"");
     private static final Pattern ITEM = Pattern.compile("\"([^\"]*)\"");
 
     public static ServerMessage parse(String line) {
         String trimmed = line.trim();
+        long time = System.nanoTime();
         if (trimmed.startsWith("ERR")) {
-            return new ServerMessage("ERR", trimmed.substring(3).trim(), null);
+            return new ServerMessage("ERR", trimmed.substring(3).trim(), null, time);
         }
 
         int start = dataStart(trimmed);
         if (start < 0) {
-            return new ServerMessage(trimmed, "", null);
+            return new ServerMessage(trimmed, "", null, time);
         }
-        return new ServerMessage(trimmed.substring(0, start).trim(), trimmed.substring(start), null);
+        return new ServerMessage(trimmed.substring(0, start).trim(), trimmed.substring(start), null, time);
     }
 
     private static int dataStart(String line) {
@@ -32,7 +33,11 @@ public record ServerMessage(String type, String data, String command) {
     }
 
     ServerMessage answering(String command) {
-        return new ServerMessage(type, data, command);
+        return new ServerMessage(type, data, command, time);
+    }
+
+    public float getAge() {
+        return (System.nanoTime() - time) / 1_000_000_000f;
     }
 
     public boolean is(String type) {

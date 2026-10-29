@@ -14,6 +14,7 @@ import nl.team3.games.tictactoe.BackgroundRenderer;
 import nl.team3.games.tictactoe.logic.AIOpponent;
 import nl.team3.games.tictactoe.logic.Board;
 import org.joml.Vector2f;
+import org.joml.Vector4f;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -22,6 +23,11 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class MatchScene extends BaseScene {
+    protected static final Vector4f WIN_COLOR = HIGHLIGHT_COLOR;
+    protected static final Vector4f LOSE_COLOR = new Vector4f(1f, 0.25f, 0.25f, 1f);
+
+    private static final Vector4f X_COLOR = new Vector4f(1f, 0.149f, 0.455f, 1f);
+    private static final Vector4f O_COLOR = new Vector4f(0.063f, 0.824f, 0.459f, 1f);
     private static final float BOARD_SCALE = 8f;
     private static final float START_OFFSET_X = 2f * BOARD_SCALE;
     private static final float START_OFFSET_Y = 2f * BOARD_SCALE;
@@ -34,6 +40,8 @@ public class MatchScene extends BaseScene {
     private static final float GRAB_SCALE = BOARD_SCALE + 1f;
     private static final float MOVE_TIME = 0.3f;
     private static final float PLAY_MOVE_TIME = 0.5f;
+    private static final float PLAY_MOVE_ARC = 3f * BOARD_SCALE;
+    private static final float GHOST_ALPHA = 0.4f;
     private static final float STACK_OFFSET_X = 240f;
     private static final float STACK_BASE_OFFSET_Y = 108f;
     private static final float STACK_STRIDE = 4f * BOARD_SCALE;
@@ -50,6 +58,13 @@ public class MatchScene extends BaseScene {
     private static final float FADE_TIME = 0.4f;
     private static final float AI_MOVE_DELAY = 0.5f;
 
+    private static final float RESULT_DROP = 2 * UI_SPACING;
+    private static final float RESULT_DROP_TIME = 0.5f;
+    private static final int CONFETTI_COUNT = 90;
+    private static final float CONFETTI_GRAVITY = 900f;
+    private static final float CONFETTI_TIME = 2.5f;
+    private static final float CONFETTI_SIZE = 2 * UI_SCALE;
+
     protected final Board board;
     private final Board.Mark firstTurn;
     private final Board.Mark leftMark;
@@ -62,20 +77,28 @@ public class MatchScene extends BaseScene {
     private final Vector2f boardTopLeft = new Vector2f();
     private Sprite logo;
     private boolean logoVisible;
+    private Sprite ghost;
+    private Sprite pixel;
 
     private PieceSide xSide;
     private PieceSide oSide;
     private final Sprite[][] boardPieces = new Sprite[Board.SIZE][Board.SIZE];
-    private final List<SpriteAnimation> settling = new ArrayList<>();
+    private final List<PieceMove> settling = new ArrayList<>();
+    private int pressedCell = -1;
+    private int ghostCell = -1;
 
     private int[][] winningLine;
     private float winTime;
     private Animation fadeAnim;
+    private Animation resultAnim;
+    private final List<Confetti> confetti = new ArrayList<>();
 
     protected Button btnAction;
     private Button btnPlayAgain;
     private float statusY;
+    private float statusHeight;
     private float nameY;
+    private boolean namesBelowBoard;
 
     private class PieceSide {
         private final Board.Mark mark;
@@ -88,6 +111,7 @@ public class MatchScene extends BaseScene {
         private SpriteAnimation returnAnim;
         private boolean pickedUp = false;
         private float bobTime;
+        private float nameX;
 
         private PieceSide(Board.Mark mark, float direction, Texture pieceTexture, Texture stackTexture) {
             this.mark = mark;
@@ -103,8 +127,6 @@ public class MatchScene extends BaseScene {
             }
             spawnNext();
         }
-
-
 
         private void spawnNext() {
             pickedUp = false;
@@ -151,9 +173,16 @@ public class MatchScene extends BaseScene {
             return Math.round(currentHeight / 2f) + STACK_BASE_OFFSET_Y - level * STACK_STRIDE;
         }
 
+        private float bobOffset() {
+            return Math.round(BOB_HEIGHT * (1f - (float) Math.cos(2 * Math.PI * bobTime / BOB_TIME)) / 2f);
+        }
+
         private void snapActiveToStack() {
-            float bob = BOB_HEIGHT * (1f - (float) Math.cos(2 * Math.PI * bobTime / BOB_TIME)) / 2f;
-            active.setPosition(stackX(), levelY(stack.size()) - Math.round(bob));
+            float bob = bobOffset();
+            active.setPosition(stackX(), levelY(stack.size()) - bob);
+            if (!stack.isEmpty()) {
+                stack.get(stack.size() - 1).setTexture(bobTime > 0f ? pieceTexture : stackTexture);
+            }
         }
 
         private void layout() {
@@ -189,6 +218,45 @@ public class MatchScene extends BaseScene {
         }
     }
 
+    private static final class PieceMove {
+        private final Sprite piece;
+        private final Vector2f from;
+        private final Vector2f to;
+        private final float fromScale;
+        private final float lift;
+        private final float arc;
+        private final Animation progress;
+
+        private PieceMove(Sprite piece, Vector2f to, float lift, float arc, float time, EasingType easing) {
+            this.piece = piece;
+            this.from = new Vector2f(piece.getPosition());
+            this.to = to;
+            this.fromScale = piece.getScale().x;
+            this.lift = lift;
+            this.arc = arc;
+            this.progress = new Animation(0f, 1f, easing, time);
+            progress.startAnimation();
+        }
+
+        private boolean update(float dt) {
+            progress.update(dt);
+            float amount = progress.getValue();
+            float bump = (float) Math.sin(Math.PI * amount);
+            piece.setPosition(Math.round(from.x + (to.x - from.x) * amount),
+                    Math.round(from.y + (to.y - from.y) * amount - arc * bump));
+            piece.setScale(fromScale + (BOARD_SCALE - fromScale) * amount + lift * bump);
+            return progress.isFinished();
+        }
+    }
+
+    private static final class Confetti {
+        private final Vector2f position = new Vector2f();
+        private final Vector2f velocity = new Vector2f();
+        private final Vector4f color = new Vector4f();
+        private float flipTime;
+        private float age;
+    }
+
     public MatchScene(EngineContext context) {
         this(context, ThreadLocalRandom.current().nextBoolean() ? Board.Mark.X : Board.Mark.O,
                 Board.Mark.X, null, null);
@@ -209,14 +277,13 @@ public class MatchScene extends BaseScene {
         this.aiMark = aiMark;
     }
 
-
-
     @Override
     protected void onInit(AssetManager assets) {
         boardTexture = assets.loadTexture("board", "/games/tictactoe/textures/board.png");
         boardSprite = new Sprite(boardTexture);
         boardSprite.setScale(BOARD_SCALE);
         logo = createLogo();
+        pixel = new Sprite(assets.getTexture(AssetManager.WHITE_TEXTURE));
 
         Texture xPieceTexture = assets.loadTexture("xPiece", "/games/tictactoe/textures/x.png");
         Texture xStackTexture = assets.loadTexture("xStack", "/games/tictactoe/textures/xStack.png");
@@ -225,6 +292,10 @@ public class MatchScene extends BaseScene {
 
         xSide = new PieceSide(Board.Mark.X, leftMark == Board.Mark.X ? -1f : 1f, xPieceTexture, xStackTexture);
         oSide = new PieceSide(Board.Mark.O, leftMark == Board.Mark.O ? -1f : 1f, oPieceTexture, oStackTexture);
+
+        ghost = new Sprite(xPieceTexture);
+        ghost.setScale(BOARD_SCALE);
+        ghost.setAlpha(GHOST_ALPHA);
 
         btnAction = createButton("LEAVE GAME", BUTTON_WIDTH, this::leave);
         btnPlayAgain = createButton("PLAY AGAIN", BUTTON_WIDTH, this::playAgain);
@@ -254,18 +325,43 @@ public class MatchScene extends BaseScene {
     }
 
     protected String getStatus() {
-        Board.Mark winner = board.getWinner();
-        if (winner != null) {
-            if (ai == null) return winner + " WINS!";
-            return winner == aiMark ? "AI WINS!" : "YOU WIN!";
-        }
-        if (board.isDraw()) {
-            return "DRAW!";
-        }
         if (ai == null) {
             return board.getTurn() + "'S TURN";
         }
         return board.getTurn() == aiMark ? "AI'S TURN" : "YOUR TURN";
+    }
+
+    protected String getResultTitle() {
+        Board.Mark winner = board.getWinner();
+        if (winner == null) {
+            return "DRAW!";
+        }
+        if (ai == null) {
+            return winner + " WINS!";
+        }
+        return winner == aiMark ? "YOU LOSE!" : "YOU WIN!";
+    }
+
+    protected String getResultDetail() {
+        if (board.getWinner() == null) {
+            return "NO MOVES LEFT";
+        }
+        if (ai == null || board.getWinner() != aiMark) {
+            return "THREE IN A ROW!";
+        }
+        return "THE AI GOT THREE IN A ROW";
+    }
+
+    protected Vector4f getResultColor() {
+        Board.Mark winner = board.getWinner();
+        if (winner == null) {
+            return WHITE;
+        }
+        return ai != null && winner == aiMark ? LOSE_COLOR : WIN_COLOR;
+    }
+
+    protected boolean isCelebrating() {
+        return board.getWinner() != null && isHuman(board.getWinner());
     }
 
     protected String getPlayerName(Board.Mark mark) {
@@ -308,7 +404,7 @@ public class MatchScene extends BaseScene {
 
     @Override
     protected void onUpdate(float dt) {
-        if (!isTransitioning()) {
+        if (!isLeaving()) {
             btnAction.update(input);
             if (showsPlayAgain()) {
                 btnPlayAgain.update(input);
@@ -318,8 +414,10 @@ public class MatchScene extends BaseScene {
         updateAI(dt);
         updateSide(xSide, oSide, dt);
         updateSide(oSide, xSide, dt);
+        updateTap();
         updateSettling(dt);
         updateGameOver(dt);
+        updateConfetti(dt);
     }
 
     private void updateAI(float dt) {
@@ -371,37 +469,76 @@ public class MatchScene extends BaseScene {
                 side.layout();
             }
         } else {
-            side.bobTime = isPlayable(side) ? side.bobTime + dt : 0f;
+            side.bobTime = isPlayable(side) ? side.bobTime + dt : settleBob(side.bobTime, dt);
             side.snapActiveToStack();
         }
     }
 
-    private void dropPiece(PieceSide side) {
-        float boardW = boardTexture.getWidth() * BOARD_SCALE;
-        float boardH = boardTexture.getHeight() * BOARD_SCALE;
+    private static float settleBob(float bobTime, float dt) {
+        float end = (float) Math.ceil(bobTime / BOB_TIME) * BOB_TIME;
+        float next = bobTime + dt;
+        return next >= end ? 0f : next;
+    }
 
-        Vector2f dropPos = side.active.getPosition();
-        if (dropPos.x >= boardTopLeft.x && dropPos.x <= boardTopLeft.x + boardW
-                && dropPos.y >= boardTopLeft.y && dropPos.y <= boardTopLeft.y + boardH) {
-            int bestCol = 0;
-            int bestRow = 0;
-            float bestDist = Float.MAX_VALUE;
-            for (int c = 0; c < Board.SIZE; c++) {
-                for (int r = 0; r < Board.SIZE; r++) {
-                    float dist = dropPos.distanceSquared(getGridCenter(c, r));
-                    if (dist < bestDist) {
-                        bestDist = dist;
-                        bestCol = c;
-                        bestRow = r;
-                    }
-                }
-            }
+    private void updateTap() {
+        PieceSide side = sideOf(board.getTurn());
+        ghostCell = -1;
+        if (side.active == null || !isPlayable(side)) {
+            pressedCell = -1;
+            return;
+        }
+        if (side.pickedUp) {
+            pressedCell = -1;
+            ghostCell = cellAt(side.active.getPosition());
+            return;
+        }
 
-            if (board.canPlace(bestCol, bestRow)) {
-                placePiece(side, bestCol, bestRow, MOVE_TIME);
-                onMove(bestCol, bestRow);
+        int cell = cellAt(mousePosition);
+        if (input.isButtonPressed(MouseButtons.LEFT)) {
+            pressedCell = cell;
+        }
+        if (input.isButtonReleased(MouseButtons.LEFT)) {
+            int tapped = pressedCell;
+            pressedCell = -1;
+            if (cell >= 0 && cell == tapped) {
+                placePiece(side, cell % Board.SIZE, cell / Board.SIZE, true);
+                onMove(cell % Board.SIZE, cell / Board.SIZE);
                 return;
             }
+        }
+        ghostCell = cell;
+    }
+
+    private int cellAt(Vector2f position) {
+        float boardW = boardTexture.getWidth() * BOARD_SCALE;
+        float boardH = boardTexture.getHeight() * BOARD_SCALE;
+        if (position.x < boardTopLeft.x || position.x > boardTopLeft.x + boardW
+                || position.y < boardTopLeft.y || position.y > boardTopLeft.y + boardH) {
+            return -1;
+        }
+
+        int bestCol = 0;
+        int bestRow = 0;
+        float bestDist = Float.MAX_VALUE;
+        for (int c = 0; c < Board.SIZE; c++) {
+            for (int r = 0; r < Board.SIZE; r++) {
+                float dist = position.distanceSquared(getGridCenter(c, r));
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    bestCol = c;
+                    bestRow = r;
+                }
+            }
+        }
+        return board.canPlace(bestCol, bestRow) ? bestRow * Board.SIZE + bestCol : -1;
+    }
+
+    private void dropPiece(PieceSide side) {
+        int cell = cellAt(side.active.getPosition());
+        if (cell >= 0) {
+            placePiece(side, cell % Board.SIZE, cell / Board.SIZE, false);
+            onMove(cell % Board.SIZE, cell / Board.SIZE);
+            return;
         }
 
         side.putBack();
@@ -410,22 +547,19 @@ public class MatchScene extends BaseScene {
     protected void playMove(int col, int row) {
         PieceSide side = sideOf(board.getTurn());
         if (side.active != null) {
-            side.active.setScale(GRAB_SCALE);
-            placePiece(side, col, row, PLAY_MOVE_TIME);
+            placePiece(side, col, row, true);
         }
     }
 
-    private void placePiece(PieceSide side, int col, int row, float moveTime) {
+    private void placePiece(PieceSide side, int col, int row, boolean carried) {
         Sprite piece = side.active;
         boardPieces[col][row] = piece;
         board.place(col, row);
 
-        SpriteAnimation settle = SpriteAnimation.builder().sprite(piece)
-                .position(new Vector2f(piece.getPosition()), getGridCenter(col, row))
-                .scale(new Vector2f(piece.getScale()), new Vector2f(BOARD_SCALE, BOARD_SCALE))
-                .duration(moveTime).easing(EasingType.EXPONENTIAL_OUT).build();
-        settle.startAnimation();
-        settling.add(settle);
+        PieceMove move = carried
+                ? new PieceMove(piece, getGridCenter(col, row), GRAB_SCALE - BOARD_SCALE, PLAY_MOVE_ARC, PLAY_MOVE_TIME, EasingType.SINE_IN_OUT)
+                : new PieceMove(piece, getGridCenter(col, row), 0f, 0f, MOVE_TIME, EasingType.EXPONENTIAL_OUT);
+        settling.add(move);
 
         side.spawnNext();
 
@@ -442,26 +576,31 @@ public class MatchScene extends BaseScene {
             winningLine = board.getWinningLine();
             fadeAnim = new Animation(1f, FADE_ALPHA, EasingType.EXPONENTIAL_OUT, FADE_TIME);
             fadeAnim.startAnimation();
+            resultAnim = new Animation(0f, 1f, EasingType.BACK_OUT, RESULT_DROP_TIME);
         }
         layoutButtons();
         updatePalette(boardSprite.getPosition().x, boardSprite.getPosition().y);
     }
 
     private void updateSettling(float dt) {
-        Iterator<SpriteAnimation> it = settling.iterator();
+        Iterator<PieceMove> it = settling.iterator();
         while (it.hasNext()) {
-            SpriteAnimation settle = it.next();
-            settle.update(dt);
-            settle.setTransformation();
-            if (settle.isFinished()) {
+            if (it.next().update(dt)) {
                 it.remove();
             }
         }
     }
 
     private void updateGameOver(float dt) {
-        if (fadeAnim == null) return;
+        if (fadeAnim == null || !settling.isEmpty()) return;
 
+        if (!resultAnim.hasStarted()) {
+            resultAnim.startAnimation();
+            if (isCelebrating()) {
+                spawnConfetti();
+            }
+        }
+        resultAnim.update(dt);
         fadeAnim.update(dt);
         float alpha = fadeAnim.getValue();
         xSide.setAlpha(alpha);
@@ -493,16 +632,51 @@ public class MatchScene extends BaseScene {
         return false;
     }
 
+    private void spawnConfetti() {
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        Vector4f main = getResultColor();
+        for (int i = 0; i < CONFETTI_COUNT; i++) {
+            Confetti piece = new Confetti();
+            boolean left = i % 2 == 0;
+            piece.position.set(left ? -UI_SPACING : currentWidth + UI_SPACING, currentHeight * random.nextFloat(0.55f, 0.85f));
+            float angle = (float) Math.toRadians(random.nextFloat(50f, 80f));
+            float speed = random.nextFloat(500f, 1000f);
+            piece.velocity.set((left ? 1f : -1f) * (float) Math.cos(angle) * speed, -(float) Math.sin(angle) * speed);
+            Vector4f color = switch (i % 4) {
+                case 0 -> main;
+                case 1 -> WHITE;
+                case 2 -> X_COLOR;
+                default -> O_COLOR;
+            };
+            piece.color.set(color);
+            piece.flipTime = random.nextFloat(0.08f, 0.2f);
+            confetti.add(piece);
+        }
+    }
+
+    private void updateConfetti(float dt) {
+        Iterator<Confetti> it = confetti.iterator();
+        while (it.hasNext()) {
+            Confetti piece = it.next();
+            piece.age += dt;
+            piece.velocity.y += CONFETTI_GRAVITY * dt;
+            piece.velocity.x -= piece.velocity.x * Math.min(1f, 1.5f * dt);
+            piece.position.add(piece.velocity.x * dt, piece.velocity.y * dt);
+            if (piece.age > CONFETTI_TIME || piece.position.y > currentHeight + UI_SPACING) {
+                it.remove();
+            }
+        }
+    }
+
+    private boolean isSettling(Sprite piece) {
+        for (PieceMove move : settling) {
+            if (move.piece == piece) return true;
+        }
+        return false;
+    }
+
     @Override
     protected void onRender() {
-
-        if (!isAnimating()) {
-            String status = getStatus();
-            Font statusFont = gameFont.getTextWidth(status) <= currentWidth - 4 * UI_SPACING ? gameFont : smallFont;
-            drawCenteredText(statusFont, status, statusY, DARK_TEXT_COLOR);
-            drawPlayerName(xSide);
-            drawPlayerName(oSide);
-        }
         if (logoVisible) {
             spriteRenderer.draw(logo);
         }
@@ -512,42 +686,78 @@ public class MatchScene extends BaseScene {
         oSide.drawResting();
         for (int c = 0; c < Board.SIZE; c++) {
             for (int r = 0; r < Board.SIZE; r++) {
-                if (boardPieces[c][r] != null) spriteRenderer.draw(boardPieces[c][r]);
+                Sprite piece = boardPieces[c][r];
+                if (piece != null && !isSettling(piece)) spriteRenderer.draw(piece);
             }
         }
+        renderGhost();
+        renderConfetti();
 
-        String status = getStatus();
-        Font statusFont = gameFont.getTextWidth(status) <= currentWidth - 4 * UI_SPACING ? gameFont : smallFont;
-
-        drawCenteredText(statusFont, status, statusY, DARK_TEXT_COLOR);
+        renderStatus();
         drawPlayerName(xSide);
         drawPlayerName(oSide);
-
-
 
         btnAction.render(spriteRenderer, textRenderer);
         if (showsPlayAgain()) {
             btnPlayAgain.render(spriteRenderer, textRenderer);
         }
 
+        for (PieceMove move : settling) {
+            spriteRenderer.draw(move.piece);
+        }
         xSide.drawMoving();
         oSide.drawMoving();
+    }
 
+    private void renderGhost() {
+        if (ghostCell < 0) return;
 
+        PieceSide side = sideOf(board.getTurn());
+        ghost.setTexture(side.pieceTexture);
+        ghost.setPosition(getGridCenter(ghostCell % Board.SIZE, ghostCell / Board.SIZE));
+        spriteRenderer.draw(ghost);
+    }
+
+    private void renderConfetti() {
+        pixel.setOrigin(0.5f, 0.5f);
+        for (Confetti piece : confetti) {
+            boolean flipped = (int) (piece.age / piece.flipTime) % 2 == 0;
+            pixel.setPosition(Math.round(piece.position.x), Math.round(piece.position.y));
+            pixel.setScale(flipped ? CONFETTI_SIZE : UI_SCALE, flipped ? UI_SCALE : CONFETTI_SIZE);
+            pixel.setTint(piece.color.x, piece.color.y, piece.color.z, 1f);
+            pixel.setAlpha(Math.min(1f, 3f * (CONFETTI_TIME - piece.age)));
+            spriteRenderer.draw(pixel);
+        }
+        pixel.setAlpha(1f);
+    }
+
+    private void renderStatus() {
+        if (fadeAnim != null) {
+            if (!resultAnim.hasStarted()) return;
+
+            float drop = Math.round((1f - resultAnim.getValue()) * RESULT_DROP);
+            drawCenteredText(gameFont, fitText(gameFont, getResultTitle(), getMaxTextWidth()), statusY - drop, getResultColor());
+
+            String detail = fitText(smallFont, getResultDetail(), getMaxTextWidth());
+            drawCenteredText(smallFont, detail, statusY + gameFont.getCapHeight() + LINE_GAP - drop, WHITE);
+            return;
+        }
+
+        String status = getStatus();
+        Font statusFont = gameFont.getTextWidth(status) <= getMaxTextWidth() ? gameFont : smallFont;
+        float y = statusY + (statusHeight - statusFont.getCapHeight()) / 2f;
+        drawCenteredText(statusFont, fitText(statusFont, status, getMaxTextWidth()), y, WHITE);
     }
 
     private void drawPlayerName(PieceSide side) {
         String name = getPlayerName(side.mark);
         if (name == null) return;
 
-        float width = smallFont.getTextWidth(name);
-        float x = side.stackX() - width / 2f;
-        if (side.direction < 0) {
-            x = Math.min(x, boardTopLeft.x - UI_SPACING - width);
-        } else {
-            x = Math.max(x, boardTopLeft.x + boardTexture.getWidth() * BOARD_SCALE + UI_SPACING);
-        }
-        textRenderer.drawText(smallFont, name, Math.round(x), Math.round(nameY + smallFont.getCapHeight()), DARK_TEXT_COLOR);
+        drawText(smallFont, fitText(smallFont, name, getNameSpace()), side.nameX, nameY, WHITE);
+    }
+
+    private float getNameSpace() {
+        return currentWidth / 2f - 1.5f * UI_SPACING;
     }
 
     @Override
@@ -558,16 +768,13 @@ public class MatchScene extends BaseScene {
         boardTopLeft.set(boardSprite.getPosition().x - boardW / 2f, boardSprite.getPosition().y - boardH / 2f);
 
         float logoHeight = logo.getTexture().getHeight() * UI_SCALE;
-        float statusHeight = gameFont.getCapHeight();
+        statusHeight = gameFont.getCapHeight() + LINE_GAP + smallFont.getCapHeight();
         logoVisible = logoHeight + UI_SPACING + statusHeight + 2 * UI_SPACING <= boardTopLeft.y;
 
         float headerHeight = logoVisible ? logoHeight + UI_SPACING + statusHeight : statusHeight;
         float headerY = Math.round((boardTopLeft.y - headerHeight) / 2f);
         logo.setPosition(Math.round(width / 2f), headerY + logoHeight / 2f);
         statusY = logoVisible ? headerY + logoHeight + UI_SPACING : headerY;
-        nameY = Math.round(height / 2f) + STACK_BASE_OFFSET_Y + STACK_TEXTURE_HEIGHT / 2f + UI_SPACING;
-
-        layoutButtons();
 
         settling.clear();
         for (int c = 0; c < Board.SIZE; c++) {
@@ -583,7 +790,38 @@ public class MatchScene extends BaseScene {
         oSide.returnAnim = null;
         xSide.layout();
         oSide.layout();
+
+        layoutNames();
+        layoutButtons();
     }
+
+    private void layoutNames() {
+        float boardLeft = boardTopLeft.x;
+        float boardRight = boardLeft + boardTexture.getWidth() * BOARD_SCALE;
+        float boardBottom = boardTopLeft.y + boardTexture.getHeight() * BOARD_SCALE;
+        namesBelowBoard = false;
+        for (PieceSide side : List.of(xSide, oSide)) {
+            String name = getPlayerName(side.mark);
+            if (name != null && smallFont.getTextWidth(name) > boardLeft - 2 * UI_SPACING) {
+                namesBelowBoard = true;
+            }
+        }
+
+        nameY = namesBelowBoard
+                ? boardBottom + UI_SPACING
+                : Math.round(currentHeight / 2f) + STACK_BASE_OFFSET_Y + STACK_TEXTURE_HEIGHT / 2f + UI_SPACING;
+        float leftLimit = namesBelowBoard ? currentWidth / 2f : boardLeft;
+        float rightLimit = namesBelowBoard ? currentWidth / 2f : boardRight;
+
+        for (PieceSide side : List.of(xSide, oSide)) {
+            String name = getPlayerName(side.mark);
+            float width = name == null ? 0f : smallFont.getTextWidth(fitText(smallFont, name, getNameSpace()));
+            float min = side.direction < 0 ? UI_SPACING : rightLimit + UI_SPACING / 2f;
+            float max = side.direction < 0 ? leftLimit - UI_SPACING / 2f - width : currentWidth - UI_SPACING - width;
+            side.nameX = Math.round(Math.max(min, Math.min(max, side.stackX() - width / 2f)));
+        }
+    }
+
     @Override
     protected Collection<Sprite> getTransitionSprites() {
         List<Sprite> sprites = new ArrayList<>();
@@ -604,12 +842,10 @@ public class MatchScene extends BaseScene {
         return showsPlayAgain() ? new Button[]{btnPlayAgain, btnAction} : new Button[]{btnAction};
     }
 
-
-
-
     private void layoutButtons() {
         float boardBottom = boardTopLeft.y + boardTexture.getHeight() * BOARD_SCALE;
-        float y = Math.round(boardBottom + (currentHeight - boardBottom - BUTTON_HEIGHT) / 2f);
+        float top = namesBelowBoard ? nameY + smallFont.getCapHeight() : boardBottom;
+        float y = Math.round(top + (currentHeight - top - BUTTON_HEIGHT) / 2f);
         float centerX = Math.round(currentWidth / 2f);
 
         if (showsPlayAgain()) {

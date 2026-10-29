@@ -95,10 +95,6 @@ public abstract class BaseScene implements Scene {
         }
     }
 
-    protected boolean isAnimating() {
-        return introducing || nextScene != null;
-    }
-
     public BaseScene(EngineContext context) {
         this.context = context;
         this.input = context.input();
