@@ -10,6 +10,7 @@ public class OnlineSession {
     public static final String GAME_TYPE = "Tic-tac-toe";
 
     private static final float LOGIN_TIMEOUT = 5f;
+    private static final float LOGIN_RETRY_TIME = 0.5f;
 
     public enum Mode {
         PLAYER_VS_PLAYER("PLAYER VS PLAYER"),
@@ -28,20 +29,25 @@ public class OnlineSession {
 
     public enum LoginState { PENDING, DONE, FAILED }
 
-    private final ServerConnection connection;
+    private final ServerAddress address;
     private final Mode mode;
     private final String loginName;
     private final Map<String, String> challenges = new LinkedHashMap<>();
     private final Map<String, String> challengesView = Collections.unmodifiableMap(challenges);
 
+    private ServerConnection connection;
     private List<String> players = List.of();
     private String challenged;
+    private String gameType = GAME_TYPE;
 
     private boolean loginSent;
+    private boolean relogin;
     private float loginTime;
+    private float retryTimer;
     private String loginError = "";
 
     public OnlineSession(ServerAddress address, Mode mode, String name) {
+        this.address = address;
         this.mode = mode;
         this.loginName = name.toLowerCase(Locale.ROOT);
         this.connection = new ServerConnection(address);
@@ -54,7 +60,8 @@ public class OnlineSession {
 
     public LoginState updateLogin(float dt) {
         loginTime += dt;
-        if (connection.isConnected() && !loginSent) {
+        retryTimer = Math.max(0f, retryTimer - dt);
+        if (connection.isConnected() && !loginSent && retryTimer <= 0f) {
             connection.sendCommand("login " + loginName);
             loginSent = true;
         }
@@ -63,24 +70,51 @@ public class OnlineSession {
         while ((message = connection.poll()) != null) {
             if (!message.isReplyTo("login")) continue;
             if (message.is("OK")) {
+                relogin = false;
+                connection.sendCommand("get gamelist");
                 return LoginState.DONE;
             }
-            return fail("Login failed: " + message.data());
+            if (relogin && loginTime < LOGIN_TIMEOUT) {
+                loginSent = false;
+                retryTimer = LOGIN_RETRY_TIME;
+                continue;
+            }
+            return fail(loginError(message.data()));
         }
 
         if (!connection.isConnecting() && !connection.isConnected()) {
-            return fail(loginSent ? "Connection lost!" : "Can't reach " + connection.getAddress());
+            return fail(loginSent ? "Lost connection to the server!" : "Can't reach the server at " + address);
         }
         if (loginTime > LOGIN_TIMEOUT) {
-            return fail("No answer from the server!");
+            return fail("The server is not answering!");
         }
         return LoginState.PENDING;
+    }
+
+    private static String loginError(String reason) {
+        String lower = reason.toLowerCase(Locale.ROOT);
+        if (lower.contains("duplicate") || lower.contains("exist") || lower.contains("taken") || lower.contains("in use")) {
+            return "Name already taken, try another!";
+        }
+        return "Name not accepted, try another!";
     }
 
     private LoginState fail(String error) {
         loginError = error;
         disconnect();
         return LoginState.FAILED;
+    }
+
+    public void reconnect() {
+        connection.disconnect();
+        connection = new ServerConnection(address);
+        connection.connect();
+        loginSent = false;
+        relogin = true;
+        loginTime = 0f;
+        retryTimer = 0f;
+        challenges.clear();
+        challenged = null;
     }
 
     public ServerMessage poll() {
@@ -90,6 +124,10 @@ public class OnlineSession {
         }
 
         switch (message.type()) {
+            case "SVR GAMELIST" -> message.items().stream()
+                    .filter(game -> isGame(game, GAME_TYPE))
+                    .findFirst()
+                    .ifPresent(game -> gameType = game);
             case "SVR PLAYERLIST" -> {
                 players = message.items().stream()
                         .filter(player -> !isMe(player))
@@ -115,8 +153,16 @@ public class OnlineSession {
         return message;
     }
 
+    private static boolean isGame(String game, String other) {
+        return normalize(game).equals(normalize(other));
+    }
+
+    private static String normalize(String game) {
+        return game.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
+    }
+
     public boolean isOurGame(ServerMessage message) {
-        return GAME_TYPE.equalsIgnoreCase(message.get("GAMETYPE"));
+        return isGame(message.get("GAMETYPE"), GAME_TYPE);
     }
 
     public boolean isMe(String player) {
@@ -128,11 +174,11 @@ public class OnlineSession {
     }
 
     public void subscribe() {
-        connection.sendCommand("subscribe " + GAME_TYPE);
+        connection.sendCommand("subscribe " + gameType);
     }
 
     public void challenge(String player) {
-        connection.sendCommand("challenge \"" + player + "\" \"" + GAME_TYPE + "\"");
+        connection.sendCommand("challenge \"" + player + "\" \"" + gameType + "\"");
         challenged = player;
     }
 
@@ -168,7 +214,7 @@ public class OnlineSession {
     }
 
     public ServerAddress getAddress() {
-        return connection.getAddress();
+        return address;
     }
 
     public String getLoginError() {
