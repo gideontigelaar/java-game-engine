@@ -32,4 +32,4 @@ target/
 dependency-reduced-pom.xml
 
 # Local game server
-server/
+/server/
