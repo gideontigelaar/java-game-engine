@@ -2,6 +2,7 @@ package nl.team3.engine.core;
 
 import org.joml.Vector4fc;
 import org.lwjgl.glfw.GLFW;
+import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.system.Configuration;
@@ -23,6 +24,7 @@ public final class Engine {
 
     public static void run(EngineConfig config, SceneFactory firstScene) {
         Configuration.GLFW_CHECK_THREAD0.set(false);
+        GLFWErrorCallback.createPrint(System.err).set();
 
         if (!GLFW.glfwInit()) {
             throw new IllegalStateException("Failed to initialize GLFW");
@@ -92,5 +94,9 @@ public final class Engine {
 
         window.destroy();
         GLFW.glfwTerminate();
+        GLFWErrorCallback callback = GLFW.glfwSetErrorCallback(null);
+        if (callback != null) {
+            callback.free();
+        }
     }
 }

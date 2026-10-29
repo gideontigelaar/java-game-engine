@@ -2,6 +2,7 @@ package nl.team3.engine.graphics;
 
 import org.joml.Matrix4f;
 import org.joml.Vector4f;
+import org.joml.Vector4fc;
 import org.lwjgl.stb.STBTTAlignedQuad;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
@@ -13,7 +14,7 @@ import static org.lwjgl.opengl.GL13.glActiveTexture;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
-import static org.lwjgl.stb.STBTruetype.stbtt_GetBakedQuad;
+import static org.lwjgl.stb.STBTruetype.stbtt_GetPackedQuad;
 
 public class TextRenderer {
     private final ShaderProgram shader;
@@ -21,6 +22,9 @@ public class TextRenderer {
     private final int vboId;
     private final Matrix4f projection = new Matrix4f();
     private FloatBuffer vertices = MemoryUtil.memAllocFloat(64 * 24);
+
+    private float outlineThickness;
+    private final Vector4f outlineColor = new Vector4f();
 
     public TextRenderer(ShaderProgram shader) {
         this.shader = shader;
@@ -49,6 +53,11 @@ public class TextRenderer {
         shader.setUniformMat4("uProjection", projection);
     }
 
+    public void setOutline(float thickness, Vector4fc color) {
+        this.outlineThickness = Math.max(0f, thickness);
+        this.outlineColor.set(color);
+    }
+
     public void drawText(Font font, String text, float x, float y, Vector4f color) {
         drawText(font, text, x, y, 1f, color);
     }
@@ -65,8 +74,14 @@ public class TextRenderer {
         }
         vertices.clear();
 
+        float grow = Math.min(Font.MAX_OUTLINE, Math.round(outlineThickness * font.getHeight()));
+        float growU = grow / font.getAtlasWidth();
+        float growV = grow / font.getAtlasHeight();
+
         shader.bind();
         shader.setUniform4f("uColor", color.x, color.y, color.z, color.w);
+        shader.setUniform4f("uOutlineColor", outlineColor.x, outlineColor.y, outlineColor.z, grow > 0f ? outlineColor.w : 0f);
+        shader.setUniform2f("uOutlineStep", growU, growV);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, font.getTextureId());
@@ -82,21 +97,25 @@ public class TextRenderer {
             for (int i = 0; i < text.length(); i++) {
                 int c = text.charAt(i);
                 if (c >= Font.FIRST_CHAR && c < Font.FIRST_CHAR + Font.CHAR_COUNT) {
-                    stbtt_GetBakedQuad(font.getCharData(), font.getAtlasWidth(), font.getAtlasHeight(),
+                    stbtt_GetPackedQuad(font.getCharData(), font.getAtlasWidth(), font.getAtlasHeight(),
                             c - Font.FIRST_CHAR, xBuffer, yBuffer, q, true);
 
-                    float x0 = x + (q.x0() - x) * scale;
-                    float y0 = y + (q.y0() - y) * scale;
-                    float x1 = x + (q.x1() - x) * scale;
-                    float y1 = y + (q.y1() - y) * scale;
+                    float x0 = x + (q.x0() - grow - x) * scale;
+                    float y0 = y + (q.y0() - grow - y) * scale;
+                    float x1 = x + (q.x1() + grow - x) * scale;
+                    float y1 = y + (q.y1() + grow - y) * scale;
+                    float s0 = q.s0() - growU;
+                    float t0 = q.t0() - growV;
+                    float s1 = q.s1() + growU;
+                    float t1 = q.t1() + growV;
 
-                    vertices.put(x0).put(y0).put(q.s0()).put(q.t0());
-                    vertices.put(x0).put(y1).put(q.s0()).put(q.t1());
-                    vertices.put(x1).put(y1).put(q.s1()).put(q.t1());
+                    vertices.put(x0).put(y0).put(s0).put(t0);
+                    vertices.put(x0).put(y1).put(s0).put(t1);
+                    vertices.put(x1).put(y1).put(s1).put(t1);
 
-                    vertices.put(x0).put(y0).put(q.s0()).put(q.t0());
-                    vertices.put(x1).put(y1).put(q.s1()).put(q.t1());
-                    vertices.put(x1).put(y0).put(q.s1()).put(q.t0());
+                    vertices.put(x0).put(y0).put(s0).put(t0);
+                    vertices.put(x1).put(y1).put(s1).put(t1);
+                    vertices.put(x1).put(y0).put(s1).put(t0);
                 }
             }
 

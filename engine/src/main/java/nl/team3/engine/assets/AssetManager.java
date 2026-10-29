@@ -16,6 +16,7 @@ public final class AssetManager {
     public static final String SPRITE_SHADER = "sprite";
     public static final String TEXT_SHADER = "text";
     public static final String QUAD_MESH = "quad";
+    public static final String WHITE_TEXTURE = "white";
 
     private final Map<String, Texture> textures = new HashMap<>();
     private final Map<String, ShaderProgram> shaders = new HashMap<>();
@@ -30,11 +31,16 @@ public final class AssetManager {
         loadShader(SPRITE_SHADER, "/engine/shaders/sprite.vert", "/engine/shaders/sprite.frag");
         loadShader(TEXT_SHADER, "/engine/shaders/text.vert", "/engine/shaders/text.frag");
         loadMesh(QUAD_MESH, Mesh::createQuad);
+        loadTexture(WHITE_TEXTURE, Texture::createWhite);
     }
 
     public Texture loadTexture(String key, String path) {
         return textures.computeIfAbsent(key,
                 k -> Texture.create(ResourceLoader.loadResourceAsByteBuffer(path), path));
+    }
+
+    public Texture loadTexture(String key, Supplier<Texture> factory) {
+        return textures.computeIfAbsent(key, k -> factory.get());
     }
 
     public Font loadFont(String key, String path, float size) {
